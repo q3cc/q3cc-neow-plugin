@@ -2,6 +2,7 @@
 
 ## Project Structure & Module Organization
 - Root modules:
+  - `index.js`: barrel entry that re-exports both plugins for external loading.
   - `meow_user_info.js`: shared account state, favor tiers, stamina recovery, `/nhelp` (`/neowhelp` alias), `/ping`, `/my`, and `/24g sign`.
   - `meow_game_24.js`: `/24g` menu, difficulty settings, game lifecycle, solver, and rewards.
   - `SPEC.md`: behavior contract for commands, favor, stamina, and 24-point rules.
