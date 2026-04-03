@@ -9,7 +9,7 @@ export class MeowGame24Plugin extends plugin {
     super({
       name: 'meow_game_24',
       dsc: 'meow 24点游戏',
-      event: 'message.group',
+      event: 'message',
       priority: 5000,
       rule: [
         {

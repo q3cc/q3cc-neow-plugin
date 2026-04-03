@@ -184,7 +184,7 @@ export class MeowUserInfoPlugin extends plugin {
     super({
       name: 'meow_user_info',
       dsc: 'meow 用户信息与帮助',
-      event: 'message.group',
+      event: 'message',
       priority: 5000,
       rule: [
         {
