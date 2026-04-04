@@ -6,7 +6,19 @@ import {
   buildUserInfoLines,
   difficultyNames,
   recordDailySign,
-  getRandomSignPrompt
+  getRandomSignPrompt,
+  getRandomPokeAction,
+  issueSuCode,
+  verifySuCode,
+  grantTemporaryAdmin,
+  clearTemporaryAdmin,
+  isTemporaryAdmin,
+  getAdminRemainingMs,
+  banUser,
+  tempBanUser,
+  unbanUser,
+  isBannedUser,
+  getBanRemainingMs
 } from '../utils/user-data.js'
 import {
   GAME24_DIFFICULTIES,
@@ -17,6 +29,11 @@ import {
   solve24,
   calculateRewards
 } from '../utils/game24.js'
+
+const loggerInstance = (typeof Bot !== 'undefined' && Bot?.logger)
+  || (typeof logger !== 'undefined' ? logger : null)
+  || globalThis.logger
+const logInfo = loggerInstance?.info?.bind(loggerInstance) || console.log
 
 export class NeowPlugin extends plugin {
   constructor() {
@@ -35,8 +52,48 @@ export class NeowPlugin extends plugin {
           fnc: 'ping'
         },
         {
+          reg: /^(?:\/|#)?su(?:\s+.+)?\s*$/i,
+          fnc: 'switchAdmin'
+        },
+        {
+          reg: /^(?:\/|#)?demote\s*$/i,
+          fnc: 'demoteAdmin'
+        },
+        {
+          reg: /^(?:\/|#)?(?:poke|戳)\s*$/i,
+          fnc: 'pokeMeow'
+        },
+        {
           reg: /^(?:\/|#)?my\s*$/i,
           fnc: 'myInfo'
+        },
+        {
+          reg: /^(?:\/|#)?setcoin(?:\s+.+)?\s*$/i,
+          fnc: 'setCoin'
+        },
+        {
+          reg: /^(?:\/|#)?ban(?:\s+.+)?\s*$/i,
+          fnc: 'banAccount'
+        },
+        {
+          reg: /^(?:\/|#)?tempban(?:\s+.+)?\s*$/i,
+          fnc: 'tempBanAccount'
+        },
+        {
+          reg: /^(?:\/|#)?unban(?:\s+.+)?\s*$/i,
+          fnc: 'unbanAccount'
+        },
+        {
+          reg: /^(?:\/|#)?give(?:\s+.+)?\s*$/i,
+          fnc: 'giveCoin'
+        },
+        {
+          reg: /^(?:\/|#)?rmcoin(?:\s+.+)?\s*$/i,
+          fnc: 'removeCoin'
+        },
+        {
+          reg: /^(?:\/|#)?transfer(?:\s+.+)?\s*$/i,
+          fnc: 'transferCoins'
         },
         {
           reg: /^(?:\/|#)?24g\s*$/i,
@@ -74,16 +131,114 @@ export class NeowPlugin extends plugin {
   }
 
   async showHelp(e) {
-    await e.reply(buildHelpLines().join('\n'), true)
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    await e.reply(buildHelpLines({
+      isAdmin: isTemporaryAdmin(user),
+      adminRemainingMs: getAdminRemainingMs(user)
+    }).join('\n'), true)
     return true
   }
 
   async ping(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
     await e.reply('大喵喵在线，可以正常使用喵~', true)
     return true
   }
 
+  async switchAdmin(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const match = (e.msg || '').match(/^(?:\/|#)?su(?:\s+(.+))?\s*$/i)
+    const inputCode = (match?.[1] || '').trim()
+
+    if (isTemporaryAdmin(user)) {
+      const until = grantTemporaryAdmin(user)
+      const remainSeconds = Math.ceil((until - Date.now()) / 1000)
+      await e.reply(`临时管理员权限已续期喵~ ${remainSeconds} 秒后自动失效`, true)
+      return true
+    }
+
+    if (e.isMaster) {
+      const until = grantTemporaryAdmin(user)
+      const remainSeconds = Math.ceil((until - Date.now()) / 1000)
+      await e.reply(`主人已经切换为管理员啦喵~ ${remainSeconds} 秒后会自动恢复`, true)
+      return true
+    }
+
+    if (!inputCode) {
+      const code = issueSuCode(user)
+      logInfo(`[neow][su] user=${e.user_id} code=${code}`)
+      await e.reply([
+        '已为你生成管理员验证码喵~',
+        '请查看后台日志后输入 /su <验证码>',
+        '验证码 5 分钟内有效，验证成功后权限持续 3 分钟'
+      ].join('\n'), true)
+      return true
+    }
+
+    if (!verifySuCode(user, inputCode)) {
+      await e.reply([
+        '验证码不正确或已过期喵~',
+        '请重新发送 /su 获取新的验证码'
+      ].join('\n'), true)
+      return true
+    }
+
+    const until = grantTemporaryAdmin(user)
+    const remainSeconds = Math.ceil((until - Date.now()) / 1000)
+    await e.reply(`验证成功，已经切换为临时管理员喵~ ${remainSeconds} 秒后自动失效`, true)
+    return true
+  }
+
+  async demoteAdmin(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const hadAdmin = isTemporaryAdmin(user)
+    const hadCode = Boolean(user.suCode)
+
+    clearTemporaryAdmin(user)
+
+    if (hadAdmin) {
+      await e.reply('临时管理员身份已撤销喵~', true)
+      return true
+    }
+
+    if (hadCode) {
+      await e.reply('管理员验证码已作废喵~', true)
+      return true
+    }
+
+    await e.reply('你现在本来就不是临时管理员喵~', true)
+    return true
+  }
+
+  async pokeMeow(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    await e.reply(getRandomPokeAction(), true)
+    return true
+  }
+
   async myInfo(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
     const user = getUserData(e.user_id)
 
     await e.reply([
@@ -99,7 +254,238 @@ export class NeowPlugin extends plugin {
     return true
   }
 
+  async transferCoins(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?transfer(?:\s+(\d+)\s+(\d+))?\s*$/i)
+
+    if (!match || !match[1] || !match[2]) {
+      await e.reply([
+        '/transfer - 将 Star 币转给其它用户',
+        '/transfer <QQ> <数量>',
+        '示例: /transfer 123456789 50'
+      ].join('\n'), true)
+      return true
+    }
+
+    const targetId = match[1]
+    const amount = parseInt(match[2])
+
+    if (!Number.isInteger(amount) || amount <= 0) {
+      await e.reply('转账数量必须是大于 0 的整数喵~', true)
+      return true
+    }
+
+    if (String(targetId) === String(e.user_id)) {
+      await e.reply('不可以把 Star 币转给自己喵~', true)
+      return true
+    }
+
+    const sender = getUserData(e.user_id)
+    if (sender.coins < amount) {
+      await e.reply([
+        '主人的 Star 币不够喵~',
+        `当前只有 ${sender.coins} 枚 Star 币`
+      ].join('\n'), true)
+      return true
+    }
+
+    const receiver = getUserData(targetId)
+    sender.coins -= amount
+    receiver.coins += amount
+    syncUserData(sender)
+    syncUserData(receiver)
+    saveUserData()
+
+    await e.reply([
+      '转赠成功喵~',
+      `已向 ${targetId} 转出 ${amount} 枚 Star 币`,
+      `你当前还有 ${sender.coins} 枚 Star 币`
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async setCoin(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureAdmin(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?setcoin(?:\s+(\d+)\s+(\d+))?\s*$/i)
+    if (!match || !match[1] || !match[2]) {
+      await e.reply([
+        '/setcoin <QQ> <数量>',
+        '示例: /setcoin 123456789 100'
+      ].join('\n'), true)
+      return true
+    }
+
+    const target = getUserData(match[1])
+    const amount = parseInt(match[2])
+
+    target.coins = amount
+    syncUserData(target)
+    saveUserData()
+
+    await e.reply(`已将 ${match[1]} 的 Star 币设置为 ${amount} 喵~`, true)
+    return true
+  }
+
+  async banAccount(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureAdmin(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?ban(?:\s+(\d+))?\s*$/i)
+    if (!match || !match[1]) {
+      await e.reply([
+        '/ban <QQ>',
+        '示例: /ban 123456789'
+      ].join('\n'), true)
+      return true
+    }
+
+    const target = getUserData(match[1])
+    banUser(target)
+    await e.reply(`已永久封禁 ${match[1]} 喵~`, true)
+    return true
+  }
+
+  async tempBanAccount(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureAdmin(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?tempban(?:\s+(\d+)\s+(\d+))?\s*$/i)
+    if (!match || !match[1] || !match[2]) {
+      await e.reply([
+        '/tempban <QQ> <分钟>',
+        '示例: /tempban 123456789 30'
+      ].join('\n'), true)
+      return true
+    }
+
+    const minutes = parseInt(match[2])
+    if (!Number.isInteger(minutes) || minutes <= 0) {
+      await e.reply('临时封禁时长必须是大于 0 的整数分钟喵~', true)
+      return true
+    }
+
+    const target = getUserData(match[1])
+    tempBanUser(target, minutes * 60 * 1000)
+    await e.reply(`已临时封禁 ${match[1]} ${minutes} 分钟喵~`, true)
+    return true
+  }
+
+  async unbanAccount(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureAdmin(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?unban(?:\s+(\d+))?\s*$/i)
+    if (!match || !match[1]) {
+      await e.reply([
+        '/unban <QQ>',
+        '示例: /unban 123456789'
+      ].join('\n'), true)
+      return true
+    }
+
+    const target = getUserData(match[1])
+    unbanUser(target)
+    await e.reply(`已解除 ${match[1]} 的封禁状态喵~`, true)
+    return true
+  }
+
+  async giveCoin(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureAdmin(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?give(?:\s+(\d+)\s+(\d+))?\s*$/i)
+    if (!match || !match[1] || !match[2]) {
+      await e.reply([
+        '/give <QQ> <数量>',
+        '示例: /give 123456789 50'
+      ].join('\n'), true)
+      return true
+    }
+
+    const amount = parseInt(match[2])
+    if (!Number.isInteger(amount) || amount <= 0) {
+      await e.reply('给予数量必须是大于 0 的整数喵~', true)
+      return true
+    }
+
+    const target = getUserData(match[1])
+    target.coins += amount
+    syncUserData(target)
+    saveUserData()
+
+    await e.reply(`已给 ${match[1]} ${amount} 枚 Star 币喵~`, true)
+    return true
+  }
+
+  async removeCoin(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureAdmin(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?rmcoin(?:\s+(\d+)\s+(\d+))?\s*$/i)
+    if (!match || !match[1] || !match[2]) {
+      await e.reply([
+        '/rmcoin <QQ> <数量>',
+        '示例: /rmcoin 123456789 50'
+      ].join('\n'), true)
+      return true
+    }
+
+    const amount = parseInt(match[2])
+    if (!Number.isInteger(amount) || amount <= 0) {
+      await e.reply('删除数量必须是大于 0 的整数喵~', true)
+      return true
+    }
+
+    const target = getUserData(match[1])
+    target.coins = Math.max(0, target.coins - amount)
+    syncUserData(target)
+    saveUserData()
+
+    await e.reply(`已从 ${match[1]} 扣除 ${amount} 枚 Star 币喵~`, true)
+    return true
+  }
+
   async showMenu(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
     const user = getUserData(e.user_id)
     const config = this.difficulties[user.difficulty]
 
@@ -111,14 +497,17 @@ export class NeowPlugin extends plugin {
       '',
       `⚡ 当前体力: ${user.stamina}/${user.maxStamina} (${config.stamina}体力/局)`,
       '/24g start - 开始游戏',
-      '/24g difficulty - 修改难度',
-      '/sign - 每日签到'
+      '/24g difficulty - 修改难度'
     ].join('\n'), true)
 
     return true
   }
 
   async startGame(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
     const activeGame = getActiveGame(e.group_id, e.user_id)
     if (activeGame) {
       await e.reply([
@@ -171,6 +560,10 @@ export class NeowPlugin extends plugin {
   }
 
   async dailySign(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
     const user = getUserData(e.user_id)
     const now = Date.now()
     const today = new Date().setHours(0, 0, 0, 0)
@@ -204,6 +597,10 @@ export class NeowPlugin extends plugin {
   }
 
   async showDifficultyMenu(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
     const user = getUserData(e.user_id)
 
     await e.reply([
@@ -219,6 +616,10 @@ export class NeowPlugin extends plugin {
   }
 
   async setDifficulty(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
     const match = (e.msg || '').match(/^(?:\/|#)?24g\s+difficulty\s+(\d+)\s*$/i)
     const difficulty = match ? parseInt(match[1]) : NaN
 
@@ -243,6 +644,10 @@ export class NeowPlugin extends plugin {
   }
 
   async submitAnswer(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
     const game = getActiveGame(e.group_id, e.user_id)
 
     if (!game) {
@@ -303,6 +708,41 @@ export class NeowPlugin extends plugin {
   }
 
   async listenGameInput(e) {
+    return false
+  }
+
+  async ensureAdmin(e) {
+    const user = getUserData(e.user_id)
+    if (isTemporaryAdmin(user)) {
+      return true
+    }
+
+    await e.reply([
+      '当前不是管理员喵~',
+      '请先使用 /su 切换临时管理员身份'
+    ].join('\n'), true)
+    return false
+  }
+
+  async ensureUsable(e) {
+    if (e.isMaster) {
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    if (!isBannedUser(user)) {
+      return true
+    }
+
+    const remainMs = getBanRemainingMs(user)
+    const remainText = remainMs === -1
+      ? '当前为永久封禁'
+      : `剩余 ${Math.ceil(remainMs / 60000)} 分钟`
+
+    await e.reply([
+      '你已被大喵喵封禁，暂时不能使用这些指令喵~',
+      remainText
+    ].join('\n'), true)
     return false
   }
 
