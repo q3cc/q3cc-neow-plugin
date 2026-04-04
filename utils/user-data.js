@@ -7,6 +7,9 @@ const dailySignStats = new Map()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const signPromptPath = path.join(__dirname, '../resources/sign-prompts.json')
+const dataDirPath = path.join(__dirname, '../data/q3cc-neow-plugin')
+const usersPath = path.join(dataDirPath, 'users.json')
+const signStatsPath = path.join(dataDirPath, 'sign-stats.json')
 const DEFAULT_SIGN_PROMPTS = {
   prompts: [
     '很勤快哦~ 大喵喵一早就把奖励给你准备好啦~',
@@ -23,6 +26,76 @@ const DEFAULT_SIGN_PROMPTS = {
 }
 
 let signPromptConfig
+
+function createDefaultUser() {
+  return {
+    coins: 0,
+    favor: 0,
+    signCount: 0,
+    stamina: 150,
+    maxStamina: 150,
+    difficulty: 1,
+    lastRecover: Date.now(),
+    lastSign: 0,
+    registerTime: new Date().toISOString()
+  }
+}
+
+function ensureDataDir() {
+  if (!fs.existsSync(dataDirPath)) {
+    fs.mkdirSync(dataDirPath, { recursive: true })
+  }
+}
+
+function saveUsers() {
+  ensureDataDir()
+
+  const payload = Object.fromEntries(
+    [...users.entries()].map(([userId, user]) => [userId, user])
+  )
+
+  fs.writeFileSync(usersPath, JSON.stringify(payload, null, 2), 'utf8')
+}
+
+function saveSignStats() {
+  ensureDataDir()
+
+  const payload = Object.fromEntries(
+    [...dailySignStats.entries()].map(([dayKey, stats]) => [dayKey, {
+      count: stats.count,
+      users: [...stats.users]
+    }])
+  )
+
+  fs.writeFileSync(signStatsPath, JSON.stringify(payload, null, 2), 'utf8')
+}
+
+function loadPersistedData() {
+  try {
+    if (fs.existsSync(usersPath)) {
+      const rawUsers = JSON.parse(fs.readFileSync(usersPath, 'utf8'))
+      for (const [userId, user] of Object.entries(rawUsers)) {
+        users.set(userId, { ...createDefaultUser(), ...user })
+      }
+    }
+  } catch {
+    users.clear()
+  }
+
+  try {
+    if (fs.existsSync(signStatsPath)) {
+      const rawStats = JSON.parse(fs.readFileSync(signStatsPath, 'utf8'))
+      for (const [dayKey, stats] of Object.entries(rawStats)) {
+        dailySignStats.set(Number(dayKey), {
+          count: Number(stats?.count) || 0,
+          users: new Set(Array.isArray(stats?.users) ? stats.users : [])
+        })
+      }
+    }
+  } catch {
+    dailySignStats.clear()
+  }
+}
 
 const FAVOR_LEVELS = [
   {
@@ -94,7 +167,17 @@ function getFavorTier(favor) {
   return FAVOR_LEVELS.find(level => favor >= level.minFavor)
 }
 
-export function syncUserData(user) {
+loadPersistedData()
+
+export function saveUserData() {
+  saveUsers()
+}
+
+export function syncUserData(user, options = {}) {
+  const beforeFavor = user.favor
+  const beforeMaxStamina = user.maxStamina
+  const beforeStamina = user.stamina
+
   if (user.favor >= 10000) {
     user.favor = 114514
   }
@@ -110,28 +193,33 @@ export function syncUserData(user) {
     user.stamina = user.maxStamina
   }
 
+  const changed = beforeFavor !== user.favor ||
+    beforeMaxStamina !== user.maxStamina ||
+    beforeStamina !== user.stamina
+
+  if (options.persist && changed) {
+    saveUsers()
+  }
+
   return user
 }
 
 export function getUserData(userId) {
+  let created = false
+
   if (!users.has(userId)) {
-    users.set(userId, {
-      coins: 0,
-      favor: 0,
-      signCount: 0,
-      stamina: 150,
-      maxStamina: 150,
-      difficulty: 1,
-      lastRecover: Date.now(),
-      lastSign: 0,
-      registerTime: new Date().toISOString()
-    })
+    users.set(userId, createDefaultUser())
+    created = true
   }
 
   const user = users.get(userId)
   const now = Date.now()
 
-  syncUserData(user)
+  syncUserData(user, { persist: true })
+
+  if (created) {
+    saveUsers()
+  }
 
   if (user.stamina >= user.maxStamina) {
     user.lastRecover = now
@@ -142,6 +230,7 @@ export function getUserData(userId) {
   if (elapsed > 0) {
     user.stamina = Math.min(user.maxStamina, user.stamina + elapsed)
     user.lastRecover = now
+    saveUsers()
   }
 
   return user
@@ -203,6 +292,7 @@ export function recordDailySign(userId, timestamp = Date.now()) {
     stats.users.add(userId)
     stats.count += 1
     dailySignStats.set(dayKey, stats)
+    saveSignStats()
   }
 
   return stats.count

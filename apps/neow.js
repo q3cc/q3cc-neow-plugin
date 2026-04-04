@@ -1,6 +1,7 @@
 import {
   getUserData,
   syncUserData,
+  saveUserData,
   buildHelpLines,
   buildUserInfoLines,
   difficultyNames,
@@ -144,6 +145,7 @@ export class NeowPlugin extends plugin {
 
     if (config.stamina > 0) {
       user.stamina -= config.stamina
+      syncUserData(user, { persist: true })
     }
 
     setActiveGame(e.group_id, e.user_id, {
@@ -189,7 +191,7 @@ export class NeowPlugin extends plugin {
     user.favor += favorReward
     user.signCount = (user.signCount || 0) + 1
     user.lastSign = now
-    syncUserData(user)
+    syncUserData(user, { persist: true })
 
     const signOrder = recordDailySign(e.user_id, now)
     await e.reply([
@@ -227,6 +229,7 @@ export class NeowPlugin extends plugin {
 
     const user = getUserData(e.user_id)
     user.difficulty = difficulty
+    saveUserData()
 
     const config = this.difficulties[difficulty]
     await e.reply([
@@ -276,7 +279,7 @@ export class NeowPlugin extends plugin {
     if (isCorrect) {
       user.coins += rewardInfo.coinReward
       user.favor += rewardInfo.favorReward
-      syncUserData(user)
+      syncUserData(user, { persist: true })
 
       await e.reply([
         '回答正确喵~',
@@ -286,6 +289,7 @@ export class NeowPlugin extends plugin {
     } else {
       const penalty = config.penalty
       user.coins = Math.max(0, user.coins - penalty)
+      syncUserData(user, { persist: true })
 
       await e.reply([
         '恭喜主人...答错啦!',
