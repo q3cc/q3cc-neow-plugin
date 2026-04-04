@@ -188,19 +188,19 @@ export class MeowUserInfoPlugin extends plugin {
       priority: 5000,
       rule: [
         {
-          reg: '^/(?:neowhelp|nhelp)\\s*$',
+          reg: /^\/(?:neowhelp|nhelp)\s*$/i,
           fnc: 'showHelp'
         },
         {
-          reg: '^/ping$',
+          reg: /^\/ping\s*$/i,
           fnc: 'ping'
         },
         {
-          reg: '^/my$',
+          reg: /^\/my\s*$/i,
           fnc: 'myInfo'
         },
         {
-          reg: '^/24g\\s+sign$',
+          reg: /^\/24g\s+sign\s*$/i,
           fnc: 'dailySign'
         }
       ]

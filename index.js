@@ -3,7 +3,7 @@ import { MeowUserInfoPlugin } from './meow_user_info.js'
 import { MeowGame24Plugin } from './meow_game_24.js'
 
 export const Version = Object.freeze({
-  version: 'v0.0.4'
+  version: 'v0.0.5'
 })
 
 if (globalThis.Bot?.logger?.info) {
@@ -22,39 +22,39 @@ export class MainPlugin extends plugin {
       priority: 5000,
       rule: [
         {
-          reg: '^/(?:neowhelp|nhelp)\\s*$',
+          reg: /^\/(?:neowhelp|nhelp)\s*$/i,
           fnc: 'showHelp'
         },
         {
-          reg: '^/ping$',
+          reg: /^\/ping\s*$/i,
           fnc: 'ping'
         },
         {
-          reg: '^/my$',
+          reg: /^\/my\s*$/i,
           fnc: 'myInfo'
         },
         {
-          reg: '^/24g\\s+sign$',
+          reg: /^\/24g\s+sign\s*$/i,
           fnc: 'dailySign'
         },
         {
-          reg: '^/24g\\s*$',
+          reg: /^\/24g\s*$/i,
           fnc: 'showMenu'
         },
         {
-          reg: '^/24g\\s+start$',
+          reg: /^\/24g\s+start\s*$/i,
           fnc: 'startGame'
         },
         {
-          reg: '^/24g\\s+difficulty\\s*$',
+          reg: /^\/24g\s+difficulty\s*$/i,
           fnc: 'showDifficultyMenu'
         },
         {
-          reg: '^/24g\\s+difficulty\\s+(\\d+)$',
+          reg: /^\/24g\s+difficulty\s+(\d+)\s*$/i,
           fnc: 'setDifficulty'
         },
         {
-          reg: '^/24g\\s+answer\\s+(.+)$',
+          reg: /^\/24g\s+answer\s+(.+)$/i,
           fnc: 'submitAnswer'
         }
       ]

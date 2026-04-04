@@ -13,23 +13,23 @@ export class MeowGame24Plugin extends plugin {
       priority: 5000,
       rule: [
         {
-          reg: '^/24g\\s*$',
+          reg: /^\/24g\s*$/i,
           fnc: 'showMenu'
         },
         {
-          reg: '^/24g\\s+start$',
+          reg: /^\/24g\s+start\s*$/i,
           fnc: 'startGame'
         },
         {
-          reg: '^/24g\\s+difficulty\\s*$',
+          reg: /^\/24g\s+difficulty\s*$/i,
           fnc: 'showDifficultyMenu'
         },
         {
-          reg: '^/24g\\s+difficulty\\s+(\\d+)$',
+          reg: /^\/24g\s+difficulty\s+(\d+)\s*$/i,
           fnc: 'setDifficulty'
         },
         {
-          reg: '^/24g\\s+answer\\s+(.+)$',
+          reg: /^\/24g\s+answer\s+(.+)$/i,
           fnc: 'submitAnswer'
         }
       ]
