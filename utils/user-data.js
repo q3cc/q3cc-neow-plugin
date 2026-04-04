@@ -90,7 +90,7 @@ function loadPersistedData() {
     if (fs.existsSync(usersPath)) {
       const rawUsers = JSON.parse(fs.readFileSync(usersPath, 'utf8'))
       for (const [userId, user] of Object.entries(rawUsers)) {
-        users.set(userId, { ...createDefaultUser(), ...user })
+        users.set(normalizeUserId(userId), { ...createDefaultUser(), ...user })
       }
     }
   } catch {
@@ -103,7 +103,11 @@ function loadPersistedData() {
       for (const [dayKey, stats] of Object.entries(rawStats)) {
         dailySignStats.set(Number(dayKey), {
           count: Number(stats?.count) || 0,
-          users: new Set(Array.isArray(stats?.users) ? stats.users : [])
+          users: new Set(
+            Array.isArray(stats?.users)
+              ? stats.users.map(userId => normalizeUserId(userId))
+              : []
+          )
         })
       }
     }
@@ -176,6 +180,10 @@ export const difficultyNames = {
   1: '普通',
   2: '困难',
   3: '极限'
+}
+
+function normalizeUserId(userId) {
+  return String(userId)
 }
 
 function getFavorTier(favor) {
@@ -258,14 +266,15 @@ export function syncUserData(user, options = {}) {
 }
 
 export function getUserData(userId) {
+  const normalizedUserId = normalizeUserId(userId)
   let created = false
 
-  if (!users.has(userId)) {
-    users.set(userId, createDefaultUser())
+  if (!users.has(normalizedUserId)) {
+    users.set(normalizedUserId, createDefaultUser())
     created = true
   }
 
-  const user = users.get(userId)
+  const user = users.get(normalizedUserId)
   const now = Date.now()
 
   syncUserData(user, { persist: true })
@@ -447,14 +456,15 @@ export function buildHelpLines(options = {}) {
 }
 
 export function recordDailySign(userId, timestamp = Date.now()) {
+  const normalizedUserId = normalizeUserId(userId)
   const dayKey = new Date(timestamp).setHours(0, 0, 0, 0)
   const stats = dailySignStats.get(dayKey) || {
     count: 0,
     users: new Set()
   }
 
-  if (!stats.users.has(userId)) {
-    stats.users.add(userId)
+  if (!stats.users.has(normalizedUserId)) {
+    stats.users.add(normalizedUserId)
     stats.count += 1
     dailySignStats.set(dayKey, stats)
     saveSignStats()
