@@ -161,7 +161,7 @@ export function getFavorInfo(favor) {
 export function buildUserInfoLines(user, options = {}) {
   const favorInfo = getFavorInfo(user.favor)
   const lines = [
-    `Star币: ${user.coins}`,
+    `Star 币: ${user.coins}`,
     `好感度: ${user.favor} (${favorInfo.level})`,
     `  ${favorInfo.desc}`,
     favorInfo.nextLevel ? `  距离升级到 ${favorInfo.nextLevel} 还需 ${favorInfo.needFavor} 好感度` : '',

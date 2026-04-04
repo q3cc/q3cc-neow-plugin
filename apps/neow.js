@@ -118,6 +118,15 @@ export class NeowPlugin extends plugin {
   }
 
   async startGame(e) {
+    const activeGame = getActiveGame(e.group_id, e.user_id)
+    if (activeGame) {
+      await e.reply([
+        '主人已经有一局进行中的24点啦喵~',
+        '先用 /24g answer 提交当前答案，再开始新的一局吧~'
+      ].join('\n'), true)
+      return true
+    }
+
     const user = getUserData(e.user_id)
     const config = this.difficulties[user.difficulty]
     if (user.stamina < config.stamina) {
@@ -149,7 +158,6 @@ export class NeowPlugin extends plugin {
     if (config.needFormula) {
       message += '回答指令-可以组成: /24g answer <算式>\n'
       message += '回答指令-不能组成: /24g answer no\n'
-      message += '也可以直接发送算式或 no\n'
       message += '回答示范: /24g answer 1+2*(3/4)'
     } else {
       message += '/24g answer y - 可以\n'
@@ -174,8 +182,8 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const coinReward = Math.floor(Math.random() * 100) + 50
-    const favorReward = Math.floor(Math.random() * 50) + 20
+    const coinReward = Math.floor(Math.random() * 50) + 1
+    const favorReward = Math.floor(Math.random() * 30) + 1
 
     user.coins += coinReward
     user.favor += favorReward
@@ -184,15 +192,10 @@ export class NeowPlugin extends plugin {
     syncUserData(user)
 
     const signOrder = recordDailySign(e.user_id, now)
-    const stateLines = buildUserInfoLines(user)
-
     await e.reply([
       `${getRandomSignPrompt()} 你是今天第 ${signOrder} 位签到的`,
       `累计签到 ${user.signCount} 次`,
-      `获得了 ${coinReward} 枚Star币 和 来自大喵喵的 ${favorReward} 好感度`,
-      '',
-      stateLines[0],
-      ...stateLines.slice(1).map(line => `  ${line}`)
+      `获得了 ${coinReward} 枚 Star 币和来自大喵喵的 ${favorReward} 点好感度`
     ].join('\n'), true)
 
     return true
@@ -205,9 +208,9 @@ export class NeowPlugin extends plugin {
       `当前难度: ${this.difficulties[user.difficulty].name}`,
       '',
       '/24g difficulty 0 - 练习 (0体力/局, 0奖励)',
-      '/24g difficulty 1 - 普通 (10体力/局, 1-4 Star币, 1-4 好感度)',
-      '/24g difficulty 2 - 困难 (20体力/局, 1-7 Star币, 1-7 好感度)',
-      '/24g difficulty 3 - 极限 (30体力/局, 1-15 Star币, 1-15 好感度, 需输入算式)'
+      '/24g difficulty 1 - 普通 (10体力/局, 1-4 Star 币, 1-4 好感度)',
+      '/24g difficulty 2 - 困难 (20体力/局, 1-7 Star 币, 1-7 好感度)',
+      '/24g difficulty 3 - 极限 (30体力/局, 1-15 Star 币, 1-15 好感度, 需输入算式)'
     ].join('\n'), true)
 
     return true
@@ -229,7 +232,7 @@ export class NeowPlugin extends plugin {
     await e.reply([
       `难度已设置为: ${config.name}`,
       `消耗体力: ${config.stamina}`,
-      `奖励范围: ${config.coinRange[0]}-${config.coinRange[1]} Star币 / ${config.favorRange[0]}-${config.favorRange[1]} 好感度`,
+      `奖励范围: ${config.coinRange[0]}-${config.coinRange[1]} Star 币 / ${config.favorRange[0]}-${config.favorRange[1]} 好感度`,
       config.needFormula ? '需要回答完整算式' : '只需回答是否可以组成'
     ].join('\n'), true)
 
@@ -278,7 +281,7 @@ export class NeowPlugin extends plugin {
       await e.reply([
         '回答正确喵~',
         `用时 ${elapsed} 秒`,
-        `你获得了 ${rewardInfo.coinReward} 枚Star币 和 来自大喵喵的 ${rewardInfo.favorReward} 好感度`
+        `你获得了 ${rewardInfo.coinReward} 枚 Star 币和来自大喵喵的 ${rewardInfo.favorReward} 点好感度`
       ].join('\n'), true)
     } else {
       const penalty = config.penalty
@@ -286,7 +289,7 @@ export class NeowPlugin extends plugin {
 
       await e.reply([
         '恭喜主人...答错啦!',
-        `大喵喵开心的拿走了主人的 ${penalty} 枚Star币`,
+        `大喵喵开心地拿走了主人的 ${penalty} 枚 Star 币`,
         `正确答案: ${correctAnswer} (可能非唯一解)`
       ].join('\n'), true)
     }
@@ -296,28 +299,6 @@ export class NeowPlugin extends plugin {
   }
 
   async listenGameInput(e) {
-    const game = getActiveGame(e.group_id, e.user_id)
-
-    if (!game) {
-      return false
-    }
-
-    const msg = (e.msg || '').trim()
-    if (!msg) {
-      return false
-    }
-
-    if (/^(?:\/|#)?24g\s+answer\s+/i.test(msg)) {
-      return this.submitAnswer(e)
-    }
-
-    const config = this.difficulties[game.difficulty]
-
-    if (config.needFormula && (/^no$/i.test(msg) || /^[\d+\-*/().\s]+$/.test(msg))) {
-      const newEvent = { ...e, msg: `/24g answer ${msg}` }
-      return this.submitAnswer(newEvent)
-    }
-
     return false
   }
 
