@@ -444,8 +444,11 @@ export function buildHelpLines(options = {}) {
       '',
       `管理员指令:${remainText}`,
       '/setcoin <QQ> <数量> - 设置用户 Star 币数量',
+      '/setfavor <QQ> <数量> - 设置用户好感度',
       '/givecoin <QQ> <数量> - 给予用户 Star 币',
+      '/givefavor <QQ> <数量> - 给予用户好感度',
       '/rmcoin <QQ> <数量> - 删除用户 Star 币',
+      '/rmfavor <QQ> <数量> - 删除用户好感度',
       '/ban <QQ> - 永久封禁用户',
       '/tempban <QQ> <分钟> - 临时封禁用户',
       '/unban <QQ> - 解除封禁用户'

@@ -72,6 +72,10 @@ export class NeowPlugin extends plugin {
           fnc: 'setCoin'
         },
         {
+          reg: /^(?:\/|#)?setfavor(?:\s+.+)?\s*$/i,
+          fnc: 'setFavor'
+        },
+        {
           reg: /^(?:\/|#)?ban(?:\s+.+)?\s*$/i,
           fnc: 'banAccount'
         },
@@ -88,8 +92,16 @@ export class NeowPlugin extends plugin {
           fnc: 'giveCoin'
         },
         {
+          reg: /^(?:\/|#)?givefavor(?:\s+.+)?\s*$/i,
+          fnc: 'giveFavor'
+        },
+        {
           reg: /^(?:\/|#)?rmcoin(?:\s+.+)?\s*$/i,
           fnc: 'removeCoin'
+        },
+        {
+          reg: /^(?:\/|#)?rmfavor(?:\s+.+)?\s*$/i,
+          fnc: 'removeFavor'
         },
         {
           reg: /^(?:\/|#)?transfer(?:\s+.+)?\s*$/i,
@@ -337,6 +349,35 @@ export class NeowPlugin extends plugin {
     return true
   }
 
+  async setFavor(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureAdmin(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?setfavor(?:\s+(\d+)\s+(\d+))?\s*$/i)
+    if (!match || !match[1] || !match[2]) {
+      await e.reply([
+        '/setfavor <QQ> <数量>',
+        '示例: /setfavor 123456789 100'
+      ].join('\n'), true)
+      return true
+    }
+
+    const target = getUserData(match[1])
+    const amount = parseInt(match[2])
+
+    target.favor = amount
+    syncUserData(target, { persist: true })
+    saveUserData()
+
+    await e.reply(`已将 ${match[1]} 的好感度设置为 ${target.favor} 喵~`, true)
+    return true
+  }
+
   async banAccount(e) {
     if (!await this.ensureUsable(e)) {
       return true
@@ -448,6 +489,39 @@ export class NeowPlugin extends plugin {
     return true
   }
 
+  async giveFavor(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureAdmin(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?givefavor(?:\s+(\d+)\s+(\d+))?\s*$/i)
+    if (!match || !match[1] || !match[2]) {
+      await e.reply([
+        '/givefavor <QQ> <数量>',
+        '示例: /givefavor 123456789 50'
+      ].join('\n'), true)
+      return true
+    }
+
+    const amount = parseInt(match[2])
+    if (!Number.isInteger(amount) || amount <= 0) {
+      await e.reply('给予好感度数量必须是大于 0 的整数喵~', true)
+      return true
+    }
+
+    const target = getUserData(match[1])
+    target.favor += amount
+    syncUserData(target, { persist: true })
+    saveUserData()
+
+    await e.reply(`已给 ${match[1]} ${amount} 点好感度喵~`, true)
+    return true
+  }
+
   async removeCoin(e) {
     if (!await this.ensureUsable(e)) {
       return true
@@ -478,6 +552,39 @@ export class NeowPlugin extends plugin {
     saveUserData()
 
     await e.reply(`已从 ${match[1]} 扣除 ${amount} 枚 Star 币喵~`, true)
+    return true
+  }
+
+  async removeFavor(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureAdmin(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?rmfavor(?:\s+(\d+)\s+(\d+))?\s*$/i)
+    if (!match || !match[1] || !match[2]) {
+      await e.reply([
+        '/rmfavor <QQ> <数量>',
+        '示例: /rmfavor 123456789 50'
+      ].join('\n'), true)
+      return true
+    }
+
+    const amount = parseInt(match[2])
+    if (!Number.isInteger(amount) || amount <= 0) {
+      await e.reply('扣除好感度数量必须是大于 0 的整数喵~', true)
+      return true
+    }
+
+    const target = getUserData(match[1])
+    target.favor = Math.max(0, target.favor - amount)
+    syncUserData(target, { persist: true })
+    saveUserData()
+
+    await e.reply(`已从 ${match[1]} 扣除 ${amount} 点好感度喵~`, true)
     return true
   }
 
