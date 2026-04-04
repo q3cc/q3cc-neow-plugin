@@ -46,6 +46,7 @@ function createDefaultUser() {
     stamina: 150,
     maxStamina: 150,
     difficulty: 1,
+    mlDifficulty: 1,
     adminUntil: 0,
     suCode: '',
     suCodeExpire: 0,
@@ -432,6 +433,7 @@ export function buildHelpLines(options = {}) {
     '/demote - 撤销自身临时管理员身份',
     '/transfer - 转赠 Star 币',
     '/sign - 每日签到',
+    '/ml - 密码破译',
     '/24g - 二十四点'
   ]
 

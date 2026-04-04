@@ -29,6 +29,19 @@ import {
   solve24,
   calculateRewards
 } from '../utils/game24.js'
+import {
+  ML_DIFFICULTIES,
+  getMlGame,
+  setMlGame,
+  deleteMlGame,
+  createPassword,
+  evaluatePasswordGuess,
+  formatMlHistory,
+  getMlRemainingSeconds,
+  isMlTimeout,
+  shouldMlExplode,
+  calculateMlRewards
+} from '../utils/ml-game.js'
 
 const loggerInstance = (typeof Bot !== 'undefined' && Bot?.logger)
   || (typeof logger !== 'undefined' ? logger : null)
@@ -106,6 +119,26 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?transfer(?:\s+.+)?\s*$/i,
           fnc: 'transferCoins'
+        },
+        {
+          reg: /^(?:\/|#)?ml\s*$/i,
+          fnc: 'showMlMenu'
+        },
+        {
+          reg: /^(?:\/|#)?ml\s+start\s*$/i,
+          fnc: 'startMlGame'
+        },
+        {
+          reg: /^(?:\/|#)?ml\s+difficulty\s*$/i,
+          fnc: 'showMlDifficultyMenu'
+        },
+        {
+          reg: /^(?:\/|#)?ml\s+difficulty\s+(\d+)\s*$/i,
+          fnc: 'setMlDifficulty'
+        },
+        {
+          reg: /^(?:\/|#)?ml\s+(\d{4})\s*$/i,
+          fnc: 'submitMlAnswer'
         },
         {
           reg: /^(?:\/|#)?24g\s*$/i,
@@ -317,6 +350,217 @@ export class NeowPlugin extends plugin {
       `你当前还有 ${sender.coins} 枚 Star 币`
     ].join('\n'), true)
 
+    return true
+  }
+
+  async showMlMenu(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const difficulty = ML_DIFFICULTIES[user.mlDifficulty] || ML_DIFFICULTIES[1]
+
+    await e.reply([
+      '你在整理旧物的时候，翻出了一台布满灰尘的破译机。',
+      '大喵喵拍了拍机身，屏幕竟然真的亮了起来喵~',
+      '只要成功破译密码，好像就能得到一点奖励呢。',
+      '',
+      `⚡ 当前体力: ${user.stamina}/${user.maxStamina} (${difficulty.stamina}体力/局)`,
+      '/ml start - 开始游戏',
+      '/ml difficulty - 修改难度'
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async startMlGame(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const activeGame = getMlGame(e.group_id, e.user_id)
+    if (activeGame) {
+      await e.reply([
+        '主人已经有一局进行中的密码破译啦喵~',
+        '先继续输入四位数字，或者等这局结束后再来一局吧~'
+      ].join('\n'), true)
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const difficulty = ML_DIFFICULTIES[user.mlDifficulty] || ML_DIFFICULTIES[1]
+
+    if (user.stamina < difficulty.stamina) {
+      await e.reply([
+        '体力不足',
+        `当前体力: ${user.stamina}/${user.maxStamina}`,
+        `需要体力: ${difficulty.stamina}`,
+        '体力恢复速度: 1点/分钟'
+      ].join('\n'), true)
+      return true
+    }
+
+    user.stamina -= difficulty.stamina
+    syncUserData(user, { persist: true })
+
+    setMlGame(e.group_id, e.user_id, {
+      password: createPassword(),
+      difficulty: user.mlDifficulty,
+      history: [],
+      startTime: Date.now()
+    })
+
+    await e.reply([
+      '密码破译开始喵~',
+      '我已经把四位密码锁好了。',
+      '请使用 /ml <任意四位数字> 开始破译',
+      '例如: /ml 1234'
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async showMlDifficultyMenu(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const difficulty = ML_DIFFICULTIES[user.mlDifficulty] || ML_DIFFICULTIES[1]
+
+    await e.reply([
+      `主人当前的难度为: ${difficulty.name}`,
+      '',
+      ...Object.entries(ML_DIFFICULTIES).map(([, item]) => `${item.name}: ${item.desc}`),
+      '',
+      '所选难度越高, 消耗体力越多, 奖励越丰富',
+      '/ml difficulty 0 - 简单',
+      '/ml difficulty 1 - 普通',
+      '/ml difficulty 2 - 困难',
+      '/ml difficulty 3 - 极限',
+      '/ml difficulty 4 - 另类极限'
+    ].join('\n'), true)
+    return true
+  }
+
+  async setMlDifficulty(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?ml\s+difficulty\s+(\d+)\s*$/i)
+    const difficultyId = match ? parseInt(match[1]) : NaN
+
+    if (!(difficultyId in ML_DIFFICULTIES)) {
+      await e.reply('无效的难度等级\n可选: 0-简单, 1-普通, 2-困难, 3-极限, 4-另类极限', true)
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    user.mlDifficulty = difficultyId
+    saveUserData()
+
+    const difficulty = ML_DIFFICULTIES[difficultyId]
+    await e.reply([
+      `密码破译难度已设置为: ${difficulty.name}`,
+      difficulty.desc,
+      `消耗体力: ${difficulty.stamina}`
+    ].join('\n'), true)
+    return true
+  }
+
+  async submitMlAnswer(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const game = getMlGame(e.group_id, e.user_id)
+    if (!game) {
+      return false
+    }
+
+    const difficulty = ML_DIFFICULTIES[game.difficulty] || ML_DIFFICULTIES[1]
+    if (isMlTimeout(game, difficulty)) {
+      const lines = [
+        '密码破译 - 失败',
+        ...formatMlHistory(game.history),
+        `时间到啦喵... 正确答案是 ${game.password}`,
+        '/ml start - 再来一次'
+      ]
+      deleteMlGame(e.group_id, e.user_id)
+      await e.reply(lines.join('\n'), true)
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?ml\s+(\d{4})\s*$/i)
+    const guess = match?.[1]
+    if (!guess) {
+      return false
+    }
+
+    const marks = evaluatePasswordGuess(game.password, guess)
+    game.history.push({ guess, marks })
+
+    if (guess === game.password) {
+      const user = getUserData(e.user_id)
+      const rewards = calculateMlRewards(game, difficulty)
+
+      user.coins += rewards.coinReward
+      user.favor += rewards.favorReward
+      syncUserData(user, { persist: true })
+
+      const lines = [
+        '密码破译 - 成功',
+        ...formatMlHistory(game.history),
+        `总共试了 ${game.history.length} 次`,
+        `游戏机吐出了 ${rewards.coinReward} 枚 Star 币, 同时还获得了来自大喵喵的 ${rewards.favorReward} 点好感度`,
+        '/ml start - 再来一次'
+      ]
+
+      deleteMlGame(e.group_id, e.user_id)
+      await e.reply(lines.join('\n'), true)
+      return true
+    }
+
+    if (shouldMlExplode(game, difficulty)) {
+      const lines = [
+        '密码破译 - 失败',
+        ...formatMlHistory(game.history),
+        '第 5 次之后，老旧的机器突然冒出一阵黑烟，直接炸机了喵...',
+        `正确答案是 ${game.password}`,
+        '/ml start - 再来一次'
+      ]
+      deleteMlGame(e.group_id, e.user_id)
+      await e.reply(lines.join('\n'), true)
+      return true
+    }
+
+    if (difficulty.maxAttempts && game.history.length >= difficulty.maxAttempts) {
+      const lines = [
+        '密码破译 - 失败',
+        ...formatMlHistory(game.history),
+        `次数用完啦... 正确答案是 ${game.password}`,
+        '/ml start - 再来一次'
+      ]
+      deleteMlGame(e.group_id, e.user_id)
+      await e.reply(lines.join('\n'), true)
+      return true
+    }
+
+    const lines = []
+    const remainSeconds = getMlRemainingSeconds(game, difficulty)
+    if (remainSeconds !== null) {
+      lines.push(`密码破译 - 剩余时间 ${remainSeconds} 秒`)
+    } else {
+      lines.push('密码破译 - 正在进行')
+    }
+
+    lines.push(...formatMlHistory(game.history))
+    lines.push('使用: /ml <任意四位数字> 以继续破译')
+    lines.push('例如: /ml 1234')
+
+    await e.reply(lines.join('\n'), true)
     return true
   }
 
