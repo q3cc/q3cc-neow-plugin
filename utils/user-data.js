@@ -1,4 +1,5 @@
 const users = new Map()
+
 const FAVOR_LEVELS = [
   {
     minFavor: 10000,
@@ -88,9 +89,6 @@ export function syncUserData(user) {
   return user
 }
 
-/**
- * 获取用户数据
- */
 export function getUserData(userId) {
   if (!users.has(userId)) {
     users.set(userId, {
@@ -124,9 +122,6 @@ export function getUserData(userId) {
   return user
 }
 
-/**
- * 获取好感度等级和描述
- */
 export function getFavorInfo(favor) {
   const tier = getFavorTier(favor)
 
@@ -138,9 +133,6 @@ export function getFavorInfo(favor) {
   }
 }
 
-/**
- * 构建个人信息展示内容
- */
 export function buildUserInfoLines(user, options = {}) {
   const favorInfo = getFavorInfo(user.favor)
   const lines = [
@@ -162,7 +154,7 @@ export function buildUserInfoLines(user, options = {}) {
   return lines.filter(Boolean)
 }
 
-function buildHelpLines() {
+export function buildHelpLines() {
   return [
     'meow 总菜单',
     '',
@@ -170,103 +162,7 @@ function buildHelpLines() {
     '/nhelp - 获取指令帮助',
     '/ping - 在线状态检查',
     '/my - 获取自己的账号信息',
-    '/24g - 查看二十四点子命令菜单'
+    '/sign - 每日签到',
+    '/24g - 二十四点'
   ]
-}
-
-/**
- * meow 用户信息插件
- */
-export class MeowUserInfoPlugin extends plugin {
-  constructor() {
-    super({
-      name: 'meow_user_info',
-      dsc: 'meow 用户信息与帮助',
-      event: 'message',
-      priority: 5000,
-      rule: [
-        {
-          reg: /^\/(?:neowhelp|nhelp)\s*$/i,
-          fnc: 'showHelp'
-        },
-        {
-          reg: /^\/ping\s*$/i,
-          fnc: 'ping'
-        },
-        {
-          reg: /^\/my\s*$/i,
-          fnc: 'myInfo'
-        },
-        {
-          reg: /^\/24g\s+sign\s*$/i,
-          fnc: 'dailySign'
-        }
-      ]
-    })
-  }
-
-  async showHelp(e) {
-    await e.reply(buildHelpLines().join('\n'), true)
-    return true
-  }
-
-  async ping(e) {
-    await e.reply('大喵喵在线，可以正常使用喵~', true)
-    return true
-  }
-
-  async myInfo(e) {
-    return this.userInfo(e)
-  }
-
-  async dailySign(e) {
-    const user = getUserData(e.user_id)
-    const now = Date.now()
-    const today = new Date().setHours(0, 0, 0, 0)
-
-    if (user.lastSign >= today) {
-      const tomorrow = new Date(today + 86400000)
-      await e.reply([
-        '今天已经签到过了喵~',
-        `下次签到时间: ${tomorrow.toLocaleString('zh-CN')}`
-      ].join('\n'), true)
-      return true
-    }
-
-    const coinReward = Math.floor(Math.random() * 100) + 50
-    const favorReward = Math.floor(Math.random() * 50) + 20
-
-    user.coins += coinReward
-    user.favor += favorReward
-    user.lastSign = now
-    syncUserData(user)
-
-    await e.reply([
-      '签到成功喵~',
-      '',
-      `获得 ${coinReward} Star币`,
-      `获得 ${favorReward} 好感度`,
-      '',
-      '当前状态:',
-      ...buildUserInfoLines(user)
-    ].join('\n'), true)
-
-    return true
-  }
-
-  async userInfo(e) {
-    const user = getUserData(e.user_id)
-
-    await e.reply([
-      '大喵喵的个人信息面板',
-      '',
-      `账号ID: ${e.user_id}`,
-      ...buildUserInfoLines(user, {
-        difficultyName: difficultyNames[user.difficulty] || difficultyNames[1],
-        includeRegisterTime: true
-      })
-    ].join('\n'), true)
-
-    return true
-  }
 }

@@ -2,13 +2,14 @@
 
 一个带有“大喵喵”风格文案的游戏插件，目前主要提供账号信息系统与 24 点玩法。
 
-当前版本：`v0.0.8`
+当前版本：`v0.0.9`
 
 ## 功能简介
 
 - 个人信息：`/my`
 - 帮助菜单：`/nhelp`（兼容 `/neowhelp`）
 - 在线检查：`/ping`
+- 每日签到：`/sign`（兼容 `/签到`、`/qd`、`/checkin`）
 - 24 点菜单：`/24g`
 - 24 点开局、难度切换、答题、签到
 - 好感度、体力、Star币 统一管理
@@ -21,6 +22,8 @@
 - `/neowhelp` - `/nhelp` 的兼容别名
 - `/ping` - 检查插件是否在线
 - `/my` - 查看自己的账号信息
+- `/sign` - 每日签到
+- `/签到` / `/qd` / `/checkin` - 签到别名
 
 ### 24 点指令
 
@@ -29,7 +32,6 @@
 - `/24g difficulty` - 查看难度菜单
 - `/24g difficulty <0-3>` - 设置难度
 - `/24g answer <答案>` - 提交答案
-- `/24g sign` - 每日签到
 
 说明：
 - 普通 / 困难模式下，回答 `y` 或 `n`
@@ -48,8 +50,8 @@
 
 - `index.js` - 插件入口与版本日志
 - `apps/neow.js` - Yunzai 实际注册的主插件类
-- `meow_user_info.js` - 用户数据、好感度、体力、签到、帮助
-- `meow_game_24.js` - 24 点玩法逻辑
+- `utils/user-data.js` - 用户数据、好感度、体力、签到、帮助文案
+- `utils/game24.js` - 24 点玩法配置、求解与奖励计算
 - `SPEC.md` - 当前规则说明
 - `AGENTS.md` - 协作与贡献说明
 
@@ -61,7 +63,7 @@
 
 ```txt
 ---------^_^---------
-neow插件v0.0.8初始化~
+neow插件v0.0.9初始化~
 ```
 
 ## 开发
@@ -70,6 +72,7 @@ neow插件v0.0.8初始化~
 
 ```bash
 node --check index.js
-node --check meow_user_info.js
-node --check meow_game_24.js
+node --check apps/neow.js
+node --check utils/user-data.js
+node --check utils/game24.js
 ```

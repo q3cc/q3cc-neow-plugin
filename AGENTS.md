@@ -2,18 +2,21 @@
 
 ## Project Structure & Module Organization
 - Root modules:
-  - `index.js`: barrel entry that re-exports both plugins for external loading.
-  - `meow_user_info.js`: shared account state, favor tiers, stamina recovery, `/nhelp` (`/neowhelp` alias), `/ping`, `/my`, and `/24g sign`.
-  - `meow_game_24.js`: `/24g` menu, difficulty settings, game lifecycle, solver, and rewards.
+  - `index.js`: plugin entry that loads files from `apps/`.
+  - `apps/neow.js`: the active Yunzai plugin class and command routing.
+  - `utils/user-data.js`: shared account state, favor tiers, stamina recovery, `/nhelp` text, `/ping`, `/my`, and sign-in helpers.
+  - `utils/game24.js`: 24-point difficulty config, solver, game key helpers, and reward logic.
   - `SPEC.md`: behavior contract for commands, favor, stamina, and 24-point rules.
-- Keep shared state and profile logic in `meow_user_info.js`; keep game-only logic in `meow_game_24.js`. Add tests under `tests/` if you introduce them.
+- Keep plugin entry logic in `apps/` and reusable state/game helpers in `utils/`. Add tests under `tests/` if you introduce them.
 
 ## Build, Test, and Development Commands
 - No standalone build system is bundled here.
 - Run syntax checks before submitting:
-  - `node --check meow_user_info.js`
-  - `node --check meow_game_24.js`
-- Manually verify the bot flows after edits: `/nhelp`, `/my`, `/24g`, `/24g difficulty`, `/24g start`, `/24g answer ...`, and `/24g sign`.
+  - `node --check index.js`
+  - `node --check apps/neow.js`
+  - `node --check utils/user-data.js`
+  - `node --check utils/game24.js`
+- Manually verify the bot flows after edits: `/nhelp`, `/my`, `/sign`, `/24g`, `/24g difficulty`, `/24g start`, and `/24g answer ...`.
 
 ## Coding Style & Naming Conventions
 - Follow the existing ES module style: 2-space indentation, no semicolons, camelCase methods, PascalCase plugin classes.

@@ -1,4 +1,19 @@
-import { getUserData, syncUserData, buildUserInfoLines, difficultyNames } from '../meow_user_info.js'
+import {
+  getUserData,
+  syncUserData,
+  buildHelpLines,
+  buildUserInfoLines,
+  difficultyNames
+} from '../utils/user-data.js'
+import {
+  GAME24_DIFFICULTIES,
+  getActiveGame,
+  setActiveGame,
+  deleteActiveGame,
+  generateNumbers,
+  solve24,
+  calculateRewards
+} from '../utils/game24.js'
 
 export class NeowPlugin extends plugin {
   constructor() {
@@ -21,10 +36,6 @@ export class NeowPlugin extends plugin {
           fnc: 'myInfo'
         },
         {
-          reg: /^(?:\/|#)?24g\s+sign\s*$/i,
-          fnc: 'dailySign'
-        },
-        {
           reg: /^(?:\/|#)?24g\s*$/i,
           fnc: 'showMenu'
         },
@@ -43,29 +54,24 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?24g\s+answer\s+(.+)$/i,
           fnc: 'submitAnswer'
+        },
+        {
+          reg: /^(?:\/|#)?(?:sign|签到|qd|checkin)\s*$/i,
+          fnc: 'dailySign'
+        },
+        {
+          reg: /^.+$/s,
+          fnc: 'listenGameInput',
+          log: false
         }
       ]
     })
 
-    this.games = new Map()
-    this.difficulties = {
-      0: { name: '练习', numCount: 4, stamina: 0, coinRange: [0, 0], favorRange: [0, 0], penalty: 0, needFormula: false },
-      1: { name: '普通', numCount: 4, stamina: 10, coinRange: [1, 4], favorRange: [1, 4], penalty: 2, needFormula: false },
-      2: { name: '困难', numCount: [3, 4, 5], stamina: 20, coinRange: [1, 7], favorRange: [1, 7], penalty: 3, needFormula: false },
-      3: { name: '极限', numCount: [4, 5, 6], stamina: 30, coinRange: [1, 15], favorRange: [1, 15], penalty: 7, needFormula: true }
-    }
+    this.difficulties = GAME24_DIFFICULTIES
   }
 
   async showHelp(e) {
-    await e.reply([
-      'meow 总菜单',
-      '',
-      '基础指令:',
-      '/nhelp - 获取指令帮助',
-      '/ping - 在线状态检查',
-      '/my - 获取自己的账号信息',
-      '/24g - 查看二十四点子命令菜单'
-    ].join('\n'), true)
+    await e.reply(buildHelpLines().join('\n'), true)
     return true
   }
 
@@ -87,6 +93,69 @@ export class NeowPlugin extends plugin {
       })
     ].join('\n'), true)
 
+    return true
+  }
+
+  async showMenu(e) {
+    const user = getUserData(e.user_id)
+    const config = this.difficulties[user.difficulty]
+
+    await e.reply([
+      '源至二十四点卡牌玩法',
+      '据说有点费脑子..?',
+      '',
+      '哦对了..千万不要蒙题.(凑近)因为会有可怕的事情发生——',
+      '',
+      `⚡ 当前体力: ${user.stamina}/${user.maxStamina} (${config.stamina}体力/局)`,
+      '/24g start - 开始游戏',
+      '/24g difficulty - 修改难度',
+      '/sign - 每日签到'
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async startGame(e) {
+    const user = getUserData(e.user_id)
+    const config = this.difficulties[user.difficulty]
+    if (user.stamina < config.stamina) {
+      await e.reply([
+        '体力不足',
+        `当前体力: ${user.stamina}/${user.maxStamina}`,
+        `需要体力: ${config.stamina}`,
+        '体力恢复速度: 1点/分钟'
+      ].join('\n'), true)
+      return true
+    }
+
+    const numbers = generateNumbers(config.numCount)
+    const solution = solve24(numbers)
+
+    if (config.stamina > 0) {
+      user.stamina -= config.stamina
+    }
+
+    setActiveGame(e.group_id, e.user_id, {
+      difficulty: user.difficulty,
+      numbers,
+      solution,
+      startTime: Date.now()
+    })
+
+    let message = `以下数字是否可以组成24点?\n${numbers.join(', ')}\n`
+
+    if (config.needFormula) {
+      message += '回答指令-可以组成: /24g answer <算式>\n'
+      message += '回答指令-不能组成: /24g answer no\n'
+      message += '也可以直接发送算式或 no\n'
+      message += '回答示范: /24g answer 1+2*(3/4)'
+    } else {
+      message += '/24g answer y - 可以\n'
+      message += '/24g answer n - 不可以\n'
+      message += '也可以直接发送 y / n'
+    }
+
+    await e.reply(message, true)
     return true
   }
 
@@ -122,69 +191,6 @@ export class NeowPlugin extends plugin {
       ...buildUserInfoLines(user)
     ].join('\n'), true)
 
-    return true
-  }
-
-  async showMenu(e) {
-    const user = getUserData(e.user_id)
-    const config = this.difficulties[user.difficulty]
-
-    await e.reply([
-      '源至二十四点卡牌玩法',
-      '据说有点费脑子..?',
-      '',
-      '哦对了..千万不要蒙题.(凑近)因为会有可怕的事情发生——',
-      '',
-      `⚡ 当前体力: ${user.stamina}/${user.maxStamina} (${config.stamina}体力/局)`,
-      '/24g start - 开始游戏',
-      '/24g difficulty - 修改难度',
-      '/24g sign - 每日签到'
-    ].join('\n'), true)
-
-    return true
-  }
-
-  async startGame(e) {
-    const user = getUserData(e.user_id)
-    const config = this.difficulties[user.difficulty]
-    const gameKey = this.getGameKey(e.group_id, e.user_id)
-
-    if (user.stamina < config.stamina) {
-      await e.reply([
-        '体力不足',
-        `当前体力: ${user.stamina}/${user.maxStamina}`,
-        `需要体力: ${config.stamina}`,
-        '体力恢复速度: 1点/分钟'
-      ].join('\n'), true)
-      return true
-    }
-
-    const numbers = this.generateNumbers(config.numCount)
-    const solution = this.solve24(numbers)
-
-    if (config.stamina > 0) {
-      user.stamina -= config.stamina
-    }
-
-    this.games.set(gameKey, {
-      difficulty: user.difficulty,
-      numbers,
-      solution,
-      startTime: Date.now()
-    })
-
-    let message = `以下数字是否可以组成24点?\n${numbers.join(', ')}\n`
-
-    if (config.needFormula) {
-      message += '回答指令-可以组成: /24g answer <算式>\n'
-      message += '回答指令-不能组成: /24g answer no\n'
-      message += '回答示范: /24g answer 1+2*(3/4)'
-    } else {
-      message += '/24g answer y - 可以\n'
-      message += '/24g answer n - 不可以'
-    }
-
-    await e.reply(message, true)
     return true
   }
 
@@ -226,14 +232,13 @@ export class NeowPlugin extends plugin {
   }
 
   async submitAnswer(e) {
-    const gameKey = this.getGameKey(e.group_id, e.user_id)
-    const game = this.games.get(gameKey)
+    const game = getActiveGame(e.group_id, e.user_id)
 
     if (!game) {
       return false
     }
 
-    const answer = e.msg.replace(/^(?:\/|#)?24g\s+answer\s+/i, '').trim()
+    const answer = this.extractAnswer(e.msg)
     const config = this.difficulties[game.difficulty]
     const user = getUserData(e.user_id)
 
@@ -258,7 +263,7 @@ export class NeowPlugin extends plugin {
     }
 
     const elapsed = Math.floor((Date.now() - game.startTime) / 1000)
-    const rewardInfo = this.calculateRewards(game, config, elapsed)
+    const rewardInfo = calculateRewards(game, config, elapsed)
 
     if (isCorrect) {
       user.coins += rewardInfo.coinReward
@@ -281,95 +286,44 @@ export class NeowPlugin extends plugin {
       ].join('\n'), true)
     }
 
-    this.games.delete(gameKey)
+    deleteActiveGame(e.group_id, e.user_id)
     return true
   }
 
-  getGameKey(groupId, userId) {
-    return `${groupId}:${userId}`
+  async listenGameInput(e) {
+    const game = getActiveGame(e.group_id, e.user_id)
+
+    if (!game) {
+      return false
+    }
+
+    const msg = (e.msg || '').trim()
+    if (!msg) {
+      return false
+    }
+
+    if (/^(?:\/|#)?24g\s+answer\s+/i.test(msg)) {
+      return this.submitAnswer(e)
+    }
+
+    const config = this.difficulties[game.difficulty]
+
+    if (!config.needFormula && /^(?:y|n)$/i.test(msg)) {
+      const newEvent = { ...e, msg: `/24g answer ${msg}` }
+      return this.submitAnswer(newEvent)
+    }
+
+    if (config.needFormula && (/^no$/i.test(msg) || /^[\d+\-*/().\s]+$/.test(msg))) {
+      const newEvent = { ...e, msg: `/24g answer ${msg}` }
+      return this.submitAnswer(newEvent)
+    }
+
+    return false
   }
 
-  generateNumbers(count) {
-    if (Array.isArray(count)) {
-      count = count[Math.floor(Math.random() * count.length)]
-    }
-
-    const numbers = []
-    for (let i = 0; i < count; i++) {
-      numbers.push(Math.floor(Math.random() * 13) + 1)
-    }
-
-    return numbers
-  }
-
-  solve24(numbers) {
-    const solve = (nums, exprs) => {
-      if (nums.length === 1) {
-        return Math.abs(nums[0] - 24) < 1e-6 ? exprs[0] : null
-      }
-
-      for (let i = 0; i < nums.length; i++) {
-        for (let j = i + 1; j < nums.length; j++) {
-          const a = nums[i]
-          const b = nums[j]
-          const ea = exprs[i]
-          const eb = exprs[j]
-          const remaining = nums.filter((_, k) => k !== i && k !== j)
-          const remainingExprs = exprs.filter((_, k) => k !== i && k !== j)
-
-          const ops = [
-            [a + b, `(${ea}+${eb})`],
-            [a - b, `(${ea}-${eb})`],
-            [b - a, `(${eb}-${ea})`],
-            [a * b, `(${ea}*${eb})`]
-          ]
-
-          if (Math.abs(b) > 1e-9) ops.push([a / b, `(${ea}/${eb})`])
-          if (Math.abs(a) > 1e-9) ops.push([b / a, `(${eb}/${ea})`])
-
-          for (const [newNum, newExpr] of ops) {
-            if (Math.abs(newNum) > 1000) continue
-
-            const result = solve(
-              [...remaining, newNum],
-              [...remainingExprs, newExpr]
-            )
-
-            if (result) return result
-          }
-        }
-      }
-
-      return null
-    }
-
-    const nums = numbers.map(n => parseFloat(n))
-    const exprs = nums.map(n => n.toString())
-    return solve(nums, exprs)
-  }
-
-  rollReward(range) {
-    const [min, max] = range
-    return Math.floor(Math.random() * (max - min + 1)) + min
-  }
-
-  calculateRewards(game, config, elapsed) {
-    let coinReward = this.rollReward(config.coinRange)
-    let favorReward = this.rollReward(config.favorRange)
-
-    if (game.numbers.length > 4 && elapsed < 30) {
-      const timeRate = Math.max(0.2, elapsed / 30)
-      if (coinReward > 0) {
-        coinReward = Math.max(1, Math.floor(coinReward * timeRate))
-      }
-      if (favorReward > 0) {
-        favorReward = Math.max(1, Math.floor(favorReward * timeRate))
-      }
-    }
-
-    return {
-      coinReward,
-      favorReward
-    }
+  extractAnswer(msg) {
+    const raw = (msg || '').trim()
+    const commandAnswer = raw.replace(/^(?:\/|#)?24g\s+answer\s+/i, '').trim()
+    return commandAnswer || raw
   }
 }
