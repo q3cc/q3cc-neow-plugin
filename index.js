@@ -4,16 +4,19 @@ import { fileURLToPath, pathToFileURL } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const loggerInstance = globalThis.logger
+const loggerInstance = typeof logger !== 'undefined' ? logger : globalThis.logger
+const logInfo = loggerInstance?.info?.bind(loggerInstance) || console.log
+const logWarn = loggerInstance?.warn?.bind(loggerInstance) || console.warn
+const logError = loggerInstance?.error?.bind(loggerInstance) || console.error
 
-let pluginVersion = '0.0.6'
+let pluginVersion = '0.0.8'
 const packagePath = path.join(__dirname, 'package.json')
 
 if (fs.existsSync(packagePath)) {
   try {
     pluginVersion = JSON.parse(fs.readFileSync(packagePath, 'utf8')).version || pluginVersion
   } catch (error) {
-    loggerInstance?.error?.(`[neow] 读取 package.json 失败: ${error.message}`)
+    logError(`[neow] 读取 package.json 失败: ${error.message}`)
   }
 }
 
@@ -37,8 +40,8 @@ appFiles.forEach((file, index) => {
   const result = results[index]
 
   if (result.status !== 'fulfilled') {
-    loggerInstance?.error?.(`[neow] 载入插件文件失败: ${name}`)
-    loggerInstance?.error?.(result.reason)
+    logError(`[neow] 载入插件文件失败: ${name}`)
+    logError(result.reason)
     return
   }
 
@@ -46,19 +49,14 @@ appFiles.forEach((file, index) => {
   const exportKey = Object.keys(mod)[0]
 
   if (!exportKey) {
-    loggerInstance?.warn?.(`[neow] 插件文件未导出类: ${name}`)
+    logWarn(`[neow] 插件文件未导出类: ${name}`)
     return
   }
 
   apps[name] = mod[exportKey]
 })
 
-if (loggerInstance?.info) {
-  loggerInstance.info('---------^_^---------')
-  loggerInstance.info(`neow插件${Version.version}初始化~`)
-} else {
-  console.log('---------^_^---------')
-  console.log(`neow插件${Version.version}初始化~`)
-}
+logInfo('---------^_^---------')
+logInfo(`neow插件${Version.version}初始化~`)
 
 export { apps }

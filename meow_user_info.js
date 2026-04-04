@@ -1,5 +1,3 @@
-import plugin from '../../lib/plugins/plugin.js'
-
 const users = new Map()
 const FAVOR_LEVELS = [
   {

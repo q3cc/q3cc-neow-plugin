@@ -1,4 +1,3 @@
-import plugin from '../../lib/plugins/plugin.js'
 import { getUserData, syncUserData } from './meow_user_info.js'
 
 /**
