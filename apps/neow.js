@@ -84,7 +84,7 @@ export class NeowPlugin extends plugin {
           fnc: 'unbanAccount'
         },
         {
-          reg: /^(?:\/|#)?give(?:\s+.+)?\s*$/i,
+          reg: /^(?:\/|#)?givecoin(?:\s+.+)?\s*$/i,
           fnc: 'giveCoin'
         },
         {
@@ -424,11 +424,11 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const match = (e.msg || '').match(/^(?:\/|#)?give(?:\s+(\d+)\s+(\d+))?\s*$/i)
+    const match = (e.msg || '').match(/^(?:\/|#)?givecoin(?:\s+(\d+)\s+(\d+))?\s*$/i)
     if (!match || !match[1] || !match[2]) {
       await e.reply([
-        '/give <QQ> <数量>',
-        '示例: /give 123456789 50'
+        '/givecoin <QQ> <数量>',
+        '示例: /givecoin 123456789 50'
       ].join('\n'), true)
       return true
     }
