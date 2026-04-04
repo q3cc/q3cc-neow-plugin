@@ -3,7 +3,9 @@ import {
   syncUserData,
   buildHelpLines,
   buildUserInfoLines,
-  difficultyNames
+  difficultyNames,
+  recordDailySign,
+  getRandomSignPrompt
 } from '../utils/user-data.js'
 import {
   GAME24_DIFFICULTIES,
@@ -151,8 +153,7 @@ export class NeowPlugin extends plugin {
       message += '回答示范: /24g answer 1+2*(3/4)'
     } else {
       message += '/24g answer y - 可以\n'
-      message += '/24g answer n - 不可以\n'
-      message += '也可以直接发送 y / n'
+      message += '/24g answer n - 不可以'
     }
 
     await e.reply(message, true)
@@ -178,17 +179,20 @@ export class NeowPlugin extends plugin {
 
     user.coins += coinReward
     user.favor += favorReward
+    user.signCount = (user.signCount || 0) + 1
     user.lastSign = now
     syncUserData(user)
 
+    const signOrder = recordDailySign(e.user_id, now)
+    const stateLines = buildUserInfoLines(user)
+
     await e.reply([
-      '签到成功喵~',
+      `${getRandomSignPrompt()} 你是今天第 ${signOrder} 位签到的`,
+      `累计签到 ${user.signCount} 次`,
+      `获得了 ${coinReward} 枚Star币 和 来自大喵喵的 ${favorReward} 好感度`,
       '',
-      `获得 ${coinReward} Star币`,
-      `获得 ${favorReward} 好感度`,
-      '',
-      '当前状态:',
-      ...buildUserInfoLines(user)
+      stateLines[0],
+      ...stateLines.slice(1).map(line => `  ${line}`)
     ].join('\n'), true)
 
     return true
@@ -210,7 +214,8 @@ export class NeowPlugin extends plugin {
   }
 
   async setDifficulty(e) {
-    const difficulty = parseInt(e.msg.match(/\d+/)[0])
+    const match = (e.msg || '').match(/^(?:\/|#)?24g\s+difficulty\s+(\d+)\s*$/i)
+    const difficulty = match ? parseInt(match[1]) : NaN
 
     if (!(difficulty in this.difficulties)) {
       await e.reply('无效的难度等级\n可选: 0-练习, 1-普通, 2-困难, 3-极限', true)
@@ -307,11 +312,6 @@ export class NeowPlugin extends plugin {
     }
 
     const config = this.difficulties[game.difficulty]
-
-    if (!config.needFormula && /^(?:y|n)$/i.test(msg)) {
-      const newEvent = { ...e, msg: `/24g answer ${msg}` }
-      return this.submitAnswer(newEvent)
-    }
 
     if (config.needFormula && (/^no$/i.test(msg) || /^[\d+\-*/().\s]+$/.test(msg))) {
       const newEvent = { ...e, msg: `/24g answer ${msg}` }

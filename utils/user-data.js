@@ -1,4 +1,28 @@
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
 const users = new Map()
+const dailySignStats = new Map()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const signPromptPath = path.join(__dirname, '../resources/sign-prompts.json')
+const DEFAULT_SIGN_PROMPTS = {
+  prompts: [
+    '很勤快哦~ 大喵喵一早就把奖励给你准备好啦~',
+    '来得真早呀~ 今天也让大喵喵摸摸头喵~',
+    '今天也没鸽掉喵~ 这份认真要记进小本本里~',
+    '大喵喵已经等你啦~ 过来领取今日份的小惊喜喵~',
+    '脚步声一听就知道是你喵~ 今天也准时得很可爱~',
+    '一见到你就开心喵~ 连尾巴都忍不住晃起来啦~',
+    '今天也记得来打卡呀~ 真是让大喵喵省心的孩子喵~',
+    '哼哼，又被我逮到签到啦~ 这次可不许偷偷溜走喵~',
+    '主人今天也很准时喵~ 奖励已经在爪心里捧好啦~',
+    '这份认真值得夸夸喵~ 大喵喵可都看在眼里啦~'
+  ],
+}
+
+let signPromptConfig
 
 const FAVOR_LEVELS = [
   {
@@ -94,6 +118,7 @@ export function getUserData(userId) {
     users.set(userId, {
       coins: 0,
       favor: 0,
+      signCount: 0,
       stamina: 150,
       maxStamina: 150,
       difficulty: 1,
@@ -165,4 +190,36 @@ export function buildHelpLines() {
     '/sign - 每日签到',
     '/24g - 二十四点'
   ]
+}
+
+export function recordDailySign(userId, timestamp = Date.now()) {
+  const dayKey = new Date(timestamp).setHours(0, 0, 0, 0)
+  const stats = dailySignStats.get(dayKey) || {
+    count: 0,
+    users: new Set()
+  }
+
+  if (!stats.users.has(userId)) {
+    stats.users.add(userId)
+    stats.count += 1
+    dailySignStats.set(dayKey, stats)
+  }
+
+  return stats.count
+}
+
+export function getRandomSignPrompt() {
+  if (!signPromptConfig) {
+    try {
+      signPromptConfig = JSON.parse(fs.readFileSync(signPromptPath, 'utf8'))
+    } catch {
+      signPromptConfig = DEFAULT_SIGN_PROMPTS
+    }
+  }
+
+  const prompts = Array.isArray(signPromptConfig.prompts) && signPromptConfig.prompts.length
+    ? signPromptConfig.prompts
+    : DEFAULT_SIGN_PROMPTS.prompts
+
+  return prompts[Math.floor(Math.random() * prompts.length)]
 }
