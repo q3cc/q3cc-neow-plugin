@@ -38,7 +38,8 @@ import {
   getMlRemainingSeconds,
   isMlTimeout,
   shouldMlExplode,
-  calculateMlRewards
+  calculateMlRewards,
+  calculateMlPenalty
 } from '../utils/ml-game.js'
 import { renderMlImage } from '../utils/ml-render.js'
 
@@ -562,10 +563,12 @@ export class NeowPlugin extends plugin {
 
     const difficulty = ML_DIFFICULTIES[game.difficulty] || ML_DIFFICULTIES[1]
     if (isMlTimeout(game, difficulty)) {
+      const { penaltyLine } = this.applyMlFailurePenalty(e.user_id, difficulty)
       const lines = [
         '密码破译 - 失败',
         ...formatMlHistory(game.history),
         `时间到啦喵... 正确答案是 ${game.password}`,
+        penaltyLine,
         '/ml start - 再来一次'
       ]
       deleteMlGame(sessionId, e.user_id)
@@ -586,6 +589,7 @@ export class NeowPlugin extends plugin {
         ]
       }, lines.join('\n'), [
         `时间到啦喵... 正确答案是 ${game.password}`,
+        penaltyLine,
         '/ml start - 再来一次'
       ].join('\n'))
       return true
@@ -643,11 +647,13 @@ export class NeowPlugin extends plugin {
     }
 
     if (shouldMlExplode(game, difficulty)) {
+      const { penaltyLine } = this.applyMlFailurePenalty(e.user_id, difficulty)
       const lines = [
         '密码破译 - 失败',
         ...formatMlHistory(game.history),
-        '第 5 次之后，老旧的机器突然冒出一阵黑烟，直接炸机了喵...',
+        '第 5 次答错后，老旧的机器突然冒出一阵黑烟，直接炸机了喵...',
         `正确答案是 ${game.password}`,
+        penaltyLine,
         '/ml start - 再来一次'
       ]
       deleteMlGame(sessionId, e.user_id)
@@ -661,25 +667,28 @@ export class NeowPlugin extends plugin {
         ],
         history: game.history,
         summaryLines: [
-          '第 5 次之后，老旧的机器突然冒出一阵黑烟，直接炸机了喵...',
+          '第 5 次答错后，老旧的机器突然冒出一阵黑烟，直接炸机了喵...',
           `正确答案是 ${game.password}`
         ],
         footerLines: [
           '/ml start - 再来一次'
         ]
       }, lines.join('\n'), [
-        '第 5 次之后，老旧的机器突然冒出一阵黑烟，直接炸机了喵...',
+        '第 5 次答错后，老旧的机器突然冒出一阵黑烟，直接炸机了喵...',
         `正确答案是 ${game.password}`,
+        penaltyLine,
         '/ml start - 再来一次'
       ].join('\n'))
       return true
     }
 
     if (difficulty.maxAttempts && game.history.length >= difficulty.maxAttempts) {
+      const { penaltyLine } = this.applyMlFailurePenalty(e.user_id, difficulty)
       const lines = [
         '密码破译 - 失败',
         ...formatMlHistory(game.history),
         `次数用完啦... 正确答案是 ${game.password}`,
+        penaltyLine,
         '/ml start - 再来一次'
       ]
       deleteMlGame(sessionId, e.user_id)
@@ -700,6 +709,7 @@ export class NeowPlugin extends plugin {
         ]
       }, lines.join('\n'), [
         `次数用完啦... 正确答案是 ${game.password}`,
+        penaltyLine,
         '/ml start - 再来一次'
       ].join('\n'))
       return true
@@ -1294,6 +1304,21 @@ export class NeowPlugin extends plugin {
     return String(e.group_id || e.friend_id || `private:${e.user_id}`)
   }
 
+  applyMlFailurePenalty(userId, difficulty) {
+    const user = getUserData(userId)
+    const penalty = Math.min(user.coins, calculateMlPenalty(difficulty))
+
+    user.coins = Math.max(0, user.coins - penalty)
+    syncUserData(user, { persist: true })
+
+    return {
+      penalty,
+      penaltyLine: penalty > 0
+        ? `大喵喵开心地拿走了主人的 ${penalty} 枚 Star 币`
+        : '大喵喵本来想拿走几枚 Star 币, 结果发现主人口袋已经空空的喵...'
+    }
+  }
+
   async replyWithTimeout(e, message, quote = true, timeoutMs = 8000) {
     try {
       await Promise.race([
@@ -1317,9 +1342,19 @@ export class NeowPlugin extends plugin {
           ? `base64://${imageBuffer.toString('base64')}`
           : imageBuffer
 
-        await this.replyWithTimeout(e, segmentInstance.image(imagePayload), true)
+        const message = [segmentInstance.image(imagePayload)]
         if (imageText) {
-          await this.replyWithTimeout(e, imageText, true)
+          message.push({
+            type: 'text',
+            data: {
+              text: `\n${imageText}`
+            }
+          })
+        }
+
+        await this.replyWithTimeout(e, message, true)
+        if (imageText) {
+          return true
         }
         return true
       } catch (error) {

@@ -1,36 +1,39 @@
 export const ML_DIFFICULTIES = {
   0: {
     name: '简单',
-    desc: '额..应该不会失败吧',
+    desc: '时间不限, 但第 5 次答错会直接爆炸',
     stamina: 10,
     timeLimit: 0,
     maxAttempts: 0,
-    explodeAfter: 0,
-    explodeChance: 0,
+    explodeAfter: 5,
+    explodeChance: 1,
     coinRange: [1, 3],
-    favorRange: [1, 2]
+    favorRange: [1, 2],
+    penaltyRange: [1, 2]
   },
   1: {
     name: '普通',
-    desc: '第 5 次尝试之后可能会爆炸, 只有 2 分钟时间',
+    desc: '第 5 次答错会直接爆炸, 只有 2 分钟时间',
     stamina: 15,
     timeLimit: 120,
     maxAttempts: 0,
     explodeAfter: 5,
-    explodeChance: 0.35,
+    explodeChance: 1,
     coinRange: [2, 5],
-    favorRange: [1, 3]
+    favorRange: [1, 3],
+    penaltyRange: [2, 4]
   },
   2: {
     name: '困难',
-    desc: '你只有 5 次机会和 90 秒时间',
+    desc: '你只有 5 次机会和 90 秒时间, 第 5 次答错会直接爆炸',
     stamina: 20,
     timeLimit: 90,
     maxAttempts: 5,
-    explodeAfter: 0,
-    explodeChance: 0,
+    explodeAfter: 5,
+    explodeChance: 1,
     coinRange: [3, 7],
-    favorRange: [2, 5]
+    favorRange: [2, 5],
+    penaltyRange: [3, 5]
   },
   3: {
     name: '极限',
@@ -41,18 +44,20 @@ export const ML_DIFFICULTIES = {
     explodeAfter: 0,
     explodeChance: 0,
     coinRange: [5, 10],
-    favorRange: [3, 7]
+    favorRange: [3, 7],
+    penaltyRange: [4, 6]
   },
   4: {
     name: '另类极限',
-    desc: '你有无限次机会, 但是只有 15 秒时间',
+    desc: '你有无限次机会, 但第 5 次答错会直接爆炸, 并且只有 15 秒时间',
     stamina: 30,
     timeLimit: 15,
     maxAttempts: 0,
-    explodeAfter: 0,
-    explodeChance: 0,
+    explodeAfter: 5,
+    explodeChance: 1,
     coinRange: [6, 12],
-    favorRange: [3, 8]
+    favorRange: [3, 8],
+    penaltyRange: [5, 8]
   }
 }
 
@@ -144,11 +149,11 @@ export function isMlTimeout(game, difficulty) {
 }
 
 export function shouldMlExplode(game, difficulty) {
-  if (!difficulty.explodeAfter || !difficulty.explodeChance) {
+  if (!difficulty.explodeAfter) {
     return false
   }
 
-  return game.history.length > difficulty.explodeAfter && Math.random() < difficulty.explodeChance
+  return game.history.length >= difficulty.explodeAfter
 }
 
 export function calculateMlRewards(game, difficulty) {
@@ -160,4 +165,12 @@ export function calculateMlRewards(game, difficulty) {
   favorReward = Math.max(1, Math.floor(favorReward * tryRate))
 
   return { coinReward, favorReward }
+}
+
+export function calculateMlPenalty(difficulty) {
+  if (!difficulty?.penaltyRange) {
+    return 0
+  }
+
+  return rollReward(difficulty.penaltyRange)
 }
