@@ -1,0 +1,9622 @@
+{
+  "version": 1,
+  "bankId": 1,
+  "ratio": "0:10",
+  "total": 1000,
+  "solvable": 0,
+  "unsolvable": 1000,
+  "parts": [
+    {
+      "count": 3,
+      "total": 400,
+      "solvable": false
+    },
+    {
+      "count": 4,
+      "total": 600,
+      "solvable": false
+    }
+  ],
+  "items": [
+    {
+      "id": "1-0681",
+      "numbers": [
+        2,
+        7,
+        7,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0957",
+      "numbers": [
+        11,
+        4,
+        1,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0237",
+      "numbers": [
+        7,
+        2,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0025",
+      "numbers": [
+        6,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0171",
+      "numbers": [
+        11,
+        1,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0140",
+      "numbers": [
+        10,
+        7,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0518",
+      "numbers": [
+        1,
+        1,
+        1,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0836",
+      "numbers": [
+        9,
+        8,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0001",
+      "numbers": [
+        10,
+        2,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0954",
+      "numbers": [
+        6,
+        6,
+        11,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0691",
+      "numbers": [
+        11,
+        12,
+        5,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0252",
+      "numbers": [
+        6,
+        7,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0788",
+      "numbers": [
+        11,
+        3,
+        13,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0855",
+      "numbers": [
+        12,
+        9,
+        2,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0672",
+      "numbers": [
+        4,
+        6,
+        8,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0801",
+      "numbers": [
+        10,
+        11,
+        4,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0807",
+      "numbers": [
+        12,
+        7,
+        7,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0370",
+      "numbers": [
+        10,
+        11,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0917",
+      "numbers": [
+        2,
+        13,
+        12,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0273",
+      "numbers": [
+        6,
+        7,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0586",
+      "numbers": [
+        9,
+        13,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0544",
+      "numbers": [
+        11,
+        6,
+        10,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0092",
+      "numbers": [
+        4,
+        1,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0522",
+      "numbers": [
+        12,
+        13,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0594",
+      "numbers": [
+        10,
+        4,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0036",
+      "numbers": [
+        7,
+        4,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0225",
+      "numbers": [
+        7,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0646",
+      "numbers": [
+        1,
+        9,
+        13,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0014",
+      "numbers": [
+        7,
+        11,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0748",
+      "numbers": [
+        11,
+        6,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0946",
+      "numbers": [
+        11,
+        4,
+        10,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0840",
+      "numbers": [
+        10,
+        8,
+        10,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0644",
+      "numbers": [
+        10,
+        2,
+        12,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0376",
+      "numbers": [
+        11,
+        10,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0634",
+      "numbers": [
+        9,
+        6,
+        2,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0875",
+      "numbers": [
+        13,
+        11,
+        3,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0304",
+      "numbers": [
+        6,
+        6,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0619",
+      "numbers": [
+        10,
+        1,
+        1,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0183",
+      "numbers": [
+        8,
+        9,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0268",
+      "numbers": [
+        7,
+        4,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0501",
+      "numbers": [
+        7,
+        13,
+        8,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0547",
+      "numbers": [
+        13,
+        7,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0361",
+      "numbers": [
+        13,
+        13,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0534",
+      "numbers": [
+        8,
+        5,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0880",
+      "numbers": [
+        5,
+        1,
+        5,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0929",
+      "numbers": [
+        1,
+        13,
+        12,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0338",
+      "numbers": [
+        12,
+        10,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0979",
+      "numbers": [
+        11,
+        11,
+        8,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0970",
+      "numbers": [
+        13,
+        5,
+        3,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0625",
+      "numbers": [
+        1,
+        1,
+        1,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0056",
+      "numbers": [
+        8,
+        6,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0496",
+      "numbers": [
+        10,
+        5,
+        8,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0744",
+      "numbers": [
+        11,
+        6,
+        6,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0868",
+      "numbers": [
+        11,
+        7,
+        11,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0819",
+      "numbers": [
+        12,
+        7,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0667",
+      "numbers": [
+        13,
+        9,
+        5,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0096",
+      "numbers": [
+        1,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0806",
+      "numbers": [
+        4,
+        10,
+        3,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0193",
+      "numbers": [
+        10,
+        12,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0824",
+      "numbers": [
+        3,
+        10,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0104",
+      "numbers": [
+        9,
+        6,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0038",
+      "numbers": [
+        1,
+        5,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0045",
+      "numbers": [
+        5,
+        7,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0906",
+      "numbers": [
+        13,
+        5,
+        5,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0617",
+      "numbers": [
+        10,
+        6,
+        10,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0834",
+      "numbers": [
+        8,
+        7,
+        7,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0342",
+      "numbers": [
+        4,
+        13,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0463",
+      "numbers": [
+        7,
+        12,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0200",
+      "numbers": [
+        13,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0893",
+      "numbers": [
+        7,
+        11,
+        8,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0581",
+      "numbers": [
+        7,
+        7,
+        12,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0467",
+      "numbers": [
+        13,
+        7,
+        9,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0087",
+      "numbers": [
+        9,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0086",
+      "numbers": [
+        6,
+        4,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0132",
+      "numbers": [
+        4,
+        6,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0856",
+      "numbers": [
+        11,
+        4,
+        11,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0471",
+      "numbers": [
+        9,
+        13,
+        2,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0562",
+      "numbers": [
+        7,
+        7,
+        3,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0931",
+      "numbers": [
+        1,
+        13,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0948",
+      "numbers": [
+        9,
+        8,
+        9,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0403",
+      "numbers": [
+        11,
+        9,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0254",
+      "numbers": [
+        11,
+        10,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0555",
+      "numbers": [
+        3,
+        10,
+        13,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0459",
+      "numbers": [
+        13,
+        11,
+        7,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0735",
+      "numbers": [
+        7,
+        6,
+        13,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0823",
+      "numbers": [
+        4,
+        4,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0121",
+      "numbers": [
+        13,
+        11,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0975",
+      "numbers": [
+        6,
+        11,
+        9,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0205",
+      "numbers": [
+        13,
+        5,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0632",
+      "numbers": [
+        11,
+        13,
+        10,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0767",
+      "numbers": [
+        12,
+        11,
+        12,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0345",
+      "numbers": [
+        9,
+        13,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0409",
+      "numbers": [
+        9,
+        9,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0002",
+      "numbers": [
+        5,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0312",
+      "numbers": [
+        6,
+        4,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0387",
+      "numbers": [
+        3,
+        13,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0380",
+      "numbers": [
+        7,
+        6,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0328",
+      "numbers": [
+        2,
+        3,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0779",
+      "numbers": [
+        11,
+        10,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0396",
+      "numbers": [
+        7,
+        5,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0198",
+      "numbers": [
+        4,
+        2,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0157",
+      "numbers": [
+        13,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0156",
+      "numbers": [
+        3,
+        8,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0231",
+      "numbers": [
+        12,
+        6,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0292",
+      "numbers": [
+        13,
+        8,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0565",
+      "numbers": [
+        6,
+        5,
+        7,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0869",
+      "numbers": [
+        10,
+        3,
+        10,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0233",
+      "numbers": [
+        11,
+        10,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0066",
+      "numbers": [
+        2,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0300",
+      "numbers": [
+        8,
+        9,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0719",
+      "numbers": [
+        6,
+        7,
+        10,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0061",
+      "numbers": [
+        8,
+        9,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0786",
+      "numbers": [
+        10,
+        11,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0981",
+      "numbers": [
+        13,
+        6,
+        13,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0831",
+      "numbers": [
+        3,
+        1,
+        11,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0907",
+      "numbers": [
+        9,
+        13,
+        1,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0322",
+      "numbers": [
+        13,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0817",
+      "numbers": [
+        4,
+        11,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0488",
+      "numbers": [
+        8,
+        12,
+        5,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0368",
+      "numbers": [
+        7,
+        2,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0465",
+      "numbers": [
+        8,
+        10,
+        7,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0265",
+      "numbers": [
+        8,
+        5,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0336",
+      "numbers": [
+        12,
+        11,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0642",
+      "numbers": [
+        10,
+        8,
+        13,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0918",
+      "numbers": [
+        11,
+        10,
+        13,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0890",
+      "numbers": [
+        13,
+        7,
+        11,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0288",
+      "numbers": [
+        7,
+        5,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0451",
+      "numbers": [
+        10,
+        7,
+        7,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0580",
+      "numbers": [
+        2,
+        10,
+        13,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0391",
+      "numbers": [
+        13,
+        5,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0895",
+      "numbers": [
+        6,
+        13,
+        1,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0422",
+      "numbers": [
+        1,
+        3,
+        10,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0848",
+      "numbers": [
+        9,
+        5,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0977",
+      "numbers": [
+        10,
+        10,
+        11,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0950",
+      "numbers": [
+        6,
+        6,
+        5,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0486",
+      "numbers": [
+        10,
+        1,
+        7,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0455",
+      "numbers": [
+        6,
+        10,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0940",
+      "numbers": [
+        3,
+        7,
+        4,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0049",
+      "numbers": [
+        8,
+        7,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0469",
+      "numbers": [
+        7,
+        1,
+        1,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0993",
+      "numbers": [
+        1,
+        13,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0497",
+      "numbers": [
+        9,
+        1,
+        10,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0777",
+      "numbers": [
+        5,
+        13,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0881",
+      "numbers": [
+        11,
+        10,
+        9,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0143",
+      "numbers": [
+        7,
+        7,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0289",
+      "numbers": [
+        4,
+        7,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0877",
+      "numbers": [
+        9,
+        9,
+        10,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0960",
+      "numbers": [
+        5,
+        6,
+        12,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0579",
+      "numbers": [
+        7,
+        7,
+        7,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0360",
+      "numbers": [
+        1,
+        4,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0718",
+      "numbers": [
+        10,
+        1,
+        6,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0930",
+      "numbers": [
+        13,
+        13,
+        2,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0987",
+      "numbers": [
+        11,
+        11,
+        11,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0208",
+      "numbers": [
+        2,
+        1,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0378",
+      "numbers": [
+        12,
+        1,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0124",
+      "numbers": [
+        10,
+        13,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0546",
+      "numbers": [
+        7,
+        11,
+        11,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0974",
+      "numbers": [
+        1,
+        5,
+        7,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0238",
+      "numbers": [
+        3,
+        10,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0724",
+      "numbers": [
+        11,
+        13,
+        7,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0511",
+      "numbers": [
+        13,
+        7,
+        5,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0675",
+      "numbers": [
+        10,
+        13,
+        6,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0185",
+      "numbers": [
+        13,
+        5,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0170",
+      "numbers": [
+        13,
+        10,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0862",
+      "numbers": [
+        8,
+        10,
+        5,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0090",
+      "numbers": [
+        6,
+        6,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0609",
+      "numbers": [
+        8,
+        1,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0702",
+      "numbers": [
+        7,
+        6,
+        7,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0937",
+      "numbers": [
+        3,
+        11,
+        10,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0629",
+      "numbers": [
+        10,
+        5,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0909",
+      "numbers": [
+        11,
+        11,
+        12,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0425",
+      "numbers": [
+        7,
+        9,
+        11,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0665",
+      "numbers": [
+        1,
+        3,
+        3,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0980",
+      "numbers": [
+        8,
+        11,
+        11,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0202",
+      "numbers": [
+        7,
+        12,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0761",
+      "numbers": [
+        7,
+        5,
+        11,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0742",
+      "numbers": [
+        1,
+        11,
+        2,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0182",
+      "numbers": [
+        12,
+        5,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0712",
+      "numbers": [
+        1,
+        6,
+        1,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0024",
+      "numbers": [
+        8,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0242",
+      "numbers": [
+        1,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0227",
+      "numbers": [
+        9,
+        1,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0245",
+      "numbers": [
+        13,
+        4,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0424",
+      "numbers": [
+        3,
+        4,
+        8,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0578",
+      "numbers": [
+        7,
+        11,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0789",
+      "numbers": [
+        1,
+        2,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0461",
+      "numbers": [
+        1,
+        10,
+        6,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0020",
+      "numbers": [
+        13,
+        4,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0282",
+      "numbers": [
+        10,
+        8,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0406",
+      "numbers": [
+        13,
+        6,
+        7,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0606",
+      "numbers": [
+        8,
+        13,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0250",
+      "numbers": [
+        12,
+        11,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0778",
+      "numbers": [
+        1,
+        1,
+        2,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0389",
+      "numbers": [
+        10,
+        10,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0377",
+      "numbers": [
+        3,
+        8,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0149",
+      "numbers": [
+        1,
+        7,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0901",
+      "numbers": [
+        1,
+        11,
+        8,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0922",
+      "numbers": [
+        7,
+        7,
+        1,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0114",
+      "numbers": [
+        1,
+        2,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0055",
+      "numbers": [
+        4,
+        13,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0686",
+      "numbers": [
+        9,
+        10,
+        11,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0556",
+      "numbers": [
+        7,
+        11,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0485",
+      "numbers": [
+        11,
+        13,
+        12,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0301",
+      "numbers": [
+        7,
+        7,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0736",
+      "numbers": [
+        5,
+        13,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0204",
+      "numbers": [
+        4,
+        12,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0902",
+      "numbers": [
+        13,
+        10,
+        8,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0849",
+      "numbers": [
+        1,
+        13,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0291",
+      "numbers": [
+        5,
+        3,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0860",
+      "numbers": [
+        11,
+        11,
+        8,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0407",
+      "numbers": [
+        8,
+        7,
+        7,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0064",
+      "numbers": [
+        7,
+        11,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0935",
+      "numbers": [
+        10,
+        8,
+        11,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0123",
+      "numbers": [
+        8,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0366",
+      "numbers": [
+        2,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0866",
+      "numbers": [
+        1,
+        6,
+        13,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0206",
+      "numbers": [
+        13,
+        1,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0621",
+      "numbers": [
+        8,
+        7,
+        7,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0896",
+      "numbers": [
+        8,
+        10,
+        11,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0050",
+      "numbers": [
+        5,
+        3,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0795",
+      "numbers": [
+        10,
+        2,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0949",
+      "numbers": [
+        13,
+        10,
+        4,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0035",
+      "numbers": [
+        6,
+        7,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0582",
+      "numbers": [
+        8,
+        2,
+        12,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0503",
+      "numbers": [
+        13,
+        8,
+        11,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0971",
+      "numbers": [
+        5,
+        8,
+        12,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0006",
+      "numbers": [
+        5,
+        2,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0851",
+      "numbers": [
+        8,
+        10,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0190",
+      "numbers": [
+        5,
+        9,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0815",
+      "numbers": [
+        11,
+        4,
+        12,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0083",
+      "numbers": [
+        10,
+        13,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0147",
+      "numbers": [
+        5,
+        2,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0715",
+      "numbers": [
+        7,
+        10,
+        13,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0596",
+      "numbers": [
+        7,
+        12,
+        9,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0223",
+      "numbers": [
+        2,
+        1,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0766",
+      "numbers": [
+        7,
+        6,
+        8,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0754",
+      "numbers": [
+        10,
+        10,
+        4,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0571",
+      "numbers": [
+        11,
+        6,
+        5,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0537",
+      "numbers": [
+        3,
+        2,
+        4,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0669",
+      "numbers": [
+        1,
+        10,
+        6,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0437",
+      "numbers": [
+        8,
+        13,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0317",
+      "numbers": [
+        8,
+        8,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0412",
+      "numbers": [
+        13,
+        7,
+        7,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0449",
+      "numbers": [
+        3,
+        13,
+        8,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0060",
+      "numbers": [
+        11,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0374",
+      "numbers": [
+        4,
+        6,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0572",
+      "numbers": [
+        7,
+        6,
+        11,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0474",
+      "numbers": [
+        7,
+        8,
+        8,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0189",
+      "numbers": [
+        3,
+        5,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0529",
+      "numbers": [
+        9,
+        8,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0266",
+      "numbers": [
+        3,
+        5,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0677",
+      "numbers": [
+        6,
+        11,
+        6,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0431",
+      "numbers": [
+        9,
+        7,
+        12,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0188",
+      "numbers": [
+        4,
+        10,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0075",
+      "numbers": [
+        8,
+        3,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0919",
+      "numbers": [
+        10,
+        6,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0804",
+      "numbers": [
+        1,
+        8,
+        9,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0331",
+      "numbers": [
+        13,
+        10,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0355",
+      "numbers": [
+        13,
+        2,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0517",
+      "numbers": [
+        13,
+        11,
+        5,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0653",
+      "numbers": [
+        12,
+        1,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0713",
+      "numbers": [
+        3,
+        8,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0332",
+      "numbers": [
+        12,
+        9,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0678",
+      "numbers": [
+        8,
+        10,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0520",
+      "numbers": [
+        4,
+        3,
+        10,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0584",
+      "numbers": [
+        6,
+        11,
+        6,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0073",
+      "numbers": [
+        12,
+        9,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0759",
+      "numbers": [
+        5,
+        2,
+        13,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0383",
+      "numbers": [
+        4,
+        12,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0714",
+      "numbers": [
+        8,
+        10,
+        8,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0133",
+      "numbers": [
+        11,
+        8,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0825",
+      "numbers": [
+        12,
+        2,
+        12,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0201",
+      "numbers": [
+        8,
+        11,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0773",
+      "numbers": [
+        5,
+        9,
+        13,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0967",
+      "numbers": [
+        6,
+        11,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0515",
+      "numbers": [
+        10,
+        2,
+        13,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0093",
+      "numbers": [
+        11,
+        8,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0995",
+      "numbers": [
+        2,
+        9,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0943",
+      "numbers": [
+        7,
+        8,
+        7,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0784",
+      "numbers": [
+        4,
+        9,
+        2,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0912",
+      "numbers": [
+        12,
+        13,
+        12,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0650",
+      "numbers": [
+        12,
+        1,
+        8,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0616",
+      "numbers": [
+        11,
+        11,
+        5,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0939",
+      "numbers": [
+        1,
+        4,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0319",
+      "numbers": [
+        4,
+        7,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0353",
+      "numbers": [
+        4,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0502",
+      "numbers": [
+        1,
+        13,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0660",
+      "numbers": [
+        6,
+        13,
+        13,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0952",
+      "numbers": [
+        6,
+        8,
+        1,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0847",
+      "numbers": [
+        1,
+        1,
+        11,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0990",
+      "numbers": [
+        1,
+        1,
+        6,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0531",
+      "numbers": [
+        13,
+        11,
+        1,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0758",
+      "numbers": [
+        8,
+        3,
+        10,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0005",
+      "numbers": [
+        7,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0105",
+      "numbers": [
+        6,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0796",
+      "numbers": [
+        10,
+        5,
+        8,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0310",
+      "numbers": [
+        12,
+        4,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0015",
+      "numbers": [
+        11,
+        4,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0554",
+      "numbers": [
+        12,
+        7,
+        2,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0349",
+      "numbers": [
+        7,
+        11,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0226",
+      "numbers": [
+        5,
+        1,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0097",
+      "numbers": [
+        12,
+        2,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0222",
+      "numbers": [
+        4,
+        3,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0070",
+      "numbers": [
+        8,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0585",
+      "numbers": [
+        5,
+        11,
+        5,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0966",
+      "numbers": [
+        8,
+        9,
+        8,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0628",
+      "numbers": [
+        12,
+        11,
+        9,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0575",
+      "numbers": [
+        5,
+        11,
+        4,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0781",
+      "numbers": [
+        9,
+        13,
+        12,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0098",
+      "numbers": [
+        5,
+        3,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0209",
+      "numbers": [
+        9,
+        8,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0983",
+      "numbers": [
+        13,
+        8,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0611",
+      "numbers": [
+        7,
+        2,
+        2,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0191",
+      "numbers": [
+        12,
+        12,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0197",
+      "numbers": [
+        7,
+        13,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0397",
+      "numbers": [
+        6,
+        13,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0583",
+      "numbers": [
+        4,
+        7,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0899",
+      "numbers": [
+        4,
+        4,
+        5,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0069",
+      "numbers": [
+        2,
+        5,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0791",
+      "numbers": [
+        7,
+        7,
+        3,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0965",
+      "numbers": [
+        9,
+        8,
+        7,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0229",
+      "numbers": [
+        1,
+        13,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0186",
+      "numbers": [
+        4,
+        7,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0668",
+      "numbers": [
+        12,
+        13,
+        11,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0309",
+      "numbers": [
+        12,
+        1,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0733",
+      "numbers": [
+        7,
+        3,
+        6,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0945",
+      "numbers": [
+        11,
+        11,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0615",
+      "numbers": [
+        1,
+        11,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0004",
+      "numbers": [
+        12,
+        5,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0044",
+      "numbers": [
+        9,
+        13,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0962",
+      "numbers": [
+        10,
+        2,
+        2,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0769",
+      "numbers": [
+        11,
+        13,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0256",
+      "numbers": [
+        9,
+        7,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0181",
+      "numbers": [
+        9,
+        10,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0577",
+      "numbers": [
+        3,
+        11,
+        11,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0493",
+      "numbers": [
+        13,
+        12,
+        13,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0057",
+      "numbers": [
+        2,
+        1,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0923",
+      "numbers": [
+        6,
+        11,
+        4,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0623",
+      "numbers": [
+        7,
+        1,
+        6,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0705",
+      "numbers": [
+        9,
+        9,
+        10,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0408",
+      "numbers": [
+        11,
+        3,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0003",
+      "numbers": [
+        13,
+        8,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0613",
+      "numbers": [
+        10,
+        13,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0102",
+      "numbers": [
+        2,
+        3,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0040",
+      "numbers": [
+        13,
+        4,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0494",
+      "numbers": [
+        11,
+        12,
+        8,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0435",
+      "numbers": [
+        8,
+        2,
+        2,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0487",
+      "numbers": [
+        13,
+        13,
+        3,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0652",
+      "numbers": [
+        12,
+        5,
+        2,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0211",
+      "numbers": [
+        2,
+        8,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0454",
+      "numbers": [
+        10,
+        10,
+        1,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0447",
+      "numbers": [
+        2,
+        2,
+        1,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0203",
+      "numbers": [
+        3,
+        5,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0398",
+      "numbers": [
+        2,
+        4,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0810",
+      "numbers": [
+        13,
+        6,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0031",
+      "numbers": [
+        4,
+        9,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0679",
+      "numbers": [
+        12,
+        5,
+        5,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0723",
+      "numbers": [
+        10,
+        13,
+        1,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0358",
+      "numbers": [
+        2,
+        12,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0569",
+      "numbers": [
+        6,
+        9,
+        7,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0688",
+      "numbers": [
+        3,
+        11,
+        1,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0561",
+      "numbers": [
+        8,
+        9,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0021",
+      "numbers": [
+        3,
+        2,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0199",
+      "numbers": [
+        13,
+        3,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0741",
+      "numbers": [
+        4,
+        9,
+        9,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0117",
+      "numbers": [
+        11,
+        2,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0299",
+      "numbers": [
+        13,
+        3,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0604",
+      "numbers": [
+        9,
+        10,
+        8,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0535",
+      "numbers": [
+        7,
+        1,
+        7,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0341",
+      "numbers": [
+        13,
+        1,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0818",
+      "numbers": [
+        11,
+        12,
+        9,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0526",
+      "numbers": [
+        10,
+        11,
+        12,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0363",
+      "numbers": [
+        1,
+        4,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0560",
+      "numbers": [
+        10,
+        3,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0251",
+      "numbers": [
+        5,
+        6,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0563",
+      "numbers": [
+        12,
+        8,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0872",
+      "numbers": [
+        5,
+        5,
+        6,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0941",
+      "numbers": [
+        9,
+        5,
+        9,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0457",
+      "numbers": [
+        8,
+        1,
+        11,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0968",
+      "numbers": [
+        7,
+        5,
+        5,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0865",
+      "numbers": [
+        11,
+        11,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0905",
+      "numbers": [
+        7,
+        4,
+        4,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0953",
+      "numbers": [
+        7,
+        3,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0063",
+      "numbers": [
+        12,
+        8,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0464",
+      "numbers": [
+        9,
+        9,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0540",
+      "numbers": [
+        9,
+        13,
+        7,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0253",
+      "numbers": [
+        10,
+        7,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0297",
+      "numbers": [
+        9,
+        7,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0446",
+      "numbers": [
+        2,
+        2,
+        3,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0399",
+      "numbers": [
+        7,
+        8,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0138",
+      "numbers": [
+        3,
+        2,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0610",
+      "numbers": [
+        9,
+        13,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0600",
+      "numbers": [
+        13,
+        3,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0392",
+      "numbers": [
+        10,
+        2,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0305",
+      "numbers": [
+        13,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0690",
+      "numbers": [
+        3,
+        4,
+        11,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0797",
+      "numbers": [
+        13,
+        11,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0100",
+      "numbers": [
+        5,
+        8,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0362",
+      "numbers": [
+        10,
+        10,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0525",
+      "numbers": [
+        7,
+        8,
+        6,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0373",
+      "numbers": [
+        3,
+        11,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0835",
+      "numbers": [
+        13,
+        13,
+        8,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0320",
+      "numbers": [
+        12,
+        5,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0772",
+      "numbers": [
+        10,
+        3,
+        8,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0062",
+      "numbers": [
+        8,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0638",
+      "numbers": [
+        4,
+        4,
+        6,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0158",
+      "numbers": [
+        12,
+        13,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0739",
+      "numbers": [
+        10,
+        13,
+        3,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0721",
+      "numbers": [
+        5,
+        12,
+        10,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0232",
+      "numbers": [
+        2,
+        5,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0958",
+      "numbers": [
+        11,
+        8,
+        6,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0009",
+      "numbers": [
+        2,
+        12,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0153",
+      "numbers": [
+        7,
+        8,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0318",
+      "numbers": [
+        2,
+        2,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0174",
+      "numbers": [
+        7,
+        9,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0032",
+      "numbers": [
+        10,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0523",
+      "numbers": [
+        11,
+        13,
+        12,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0279",
+      "numbers": [
+        2,
+        3,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0107",
+      "numbers": [
+        3,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0731",
+      "numbers": [
+        5,
+        9,
+        11,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0129",
+      "numbers": [
+        9,
+        1,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0434",
+      "numbers": [
+        4,
+        13,
+        1,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0666",
+      "numbers": [
+        6,
+        13,
+        2,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0799",
+      "numbers": [
+        8,
+        13,
+        5,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0462",
+      "numbers": [
+        11,
+        4,
+        12,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0411",
+      "numbers": [
+        5,
+        11,
+        13,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0329",
+      "numbers": [
+        8,
+        12,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0883",
+      "numbers": [
+        4,
+        9,
+        13,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0973",
+      "numbers": [
+        10,
+        9,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0321",
+      "numbers": [
+        4,
+        8,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0275",
+      "numbers": [
+        8,
+        2,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0426",
+      "numbers": [
+        11,
+        6,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0369",
+      "numbers": [
+        11,
+        13,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0217",
+      "numbers": [
+        3,
+        13,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0694",
+      "numbers": [
+        13,
+        6,
+        7,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0992",
+      "numbers": [
+        8,
+        11,
+        13,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0590",
+      "numbers": [
+        3,
+        8,
+        8,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0760",
+      "numbers": [
+        1,
+        11,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0846",
+      "numbers": [
+        6,
+        4,
+        7,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0125",
+      "numbers": [
+        12,
+        12,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0964",
+      "numbers": [
+        11,
+        11,
+        8,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0541",
+      "numbers": [
+        8,
+        10,
+        1,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0135",
+      "numbers": [
+        3,
+        12,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0436",
+      "numbers": [
+        11,
+        2,
+        8,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0911",
+      "numbers": [
+        11,
+        13,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0631",
+      "numbers": [
+        10,
+        13,
+        13,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0889",
+      "numbers": [
+        11,
+        6,
+        11,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0689",
+      "numbers": [
+        3,
+        7,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0927",
+      "numbers": [
+        9,
+        10,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0852",
+      "numbers": [
+        5,
+        5,
+        9,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0142",
+      "numbers": [
+        1,
+        6,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0542",
+      "numbers": [
+        6,
+        10,
+        10,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-1000",
+      "numbers": [
+        12,
+        13,
+        6,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0438",
+      "numbers": [
+        11,
+        1,
+        7,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0903",
+      "numbers": [
+        4,
+        10,
+        11,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0998",
+      "numbers": [
+        10,
+        1,
+        8,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0178",
+      "numbers": [
+        2,
+        13,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0505",
+      "numbers": [
+        1,
+        1,
+        6,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0743",
+      "numbers": [
+        6,
+        11,
+        8,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0673",
+      "numbers": [
+        2,
+        2,
+        5,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0175",
+      "numbers": [
+        13,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0612",
+      "numbers": [
+        12,
+        12,
+        10,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0187",
+      "numbers": [
+        6,
+        2,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0195",
+      "numbers": [
+        4,
+        5,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0870",
+      "numbers": [
+        5,
+        3,
+        9,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0323",
+      "numbers": [
+        11,
+        8,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0155",
+      "numbers": [
+        12,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0924",
+      "numbers": [
+        13,
+        7,
+        5,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0800",
+      "numbers": [
+        10,
+        12,
+        3,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0986",
+      "numbers": [
+        1,
+        13,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0536",
+      "numbers": [
+        7,
+        12,
+        7,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0898",
+      "numbers": [
+        13,
+        7,
+        11,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0111",
+      "numbers": [
+        11,
+        10,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0154",
+      "numbers": [
+        5,
+        12,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0099",
+      "numbers": [
+        3,
+        8,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0196",
+      "numbers": [
+        9,
+        4,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0591",
+      "numbers": [
+        5,
+        13,
+        11,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0827",
+      "numbers": [
+        10,
+        2,
+        13,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0685",
+      "numbers": [
+        11,
+        11,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0240",
+      "numbers": [
+        13,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0770",
+      "numbers": [
+        7,
+        10,
+        12,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0151",
+      "numbers": [
+        6,
+        7,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0557",
+      "numbers": [
+        4,
+        3,
+        3,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0350",
+      "numbers": [
+        8,
+        11,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0564",
+      "numbers": [
+        2,
+        11,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0413",
+      "numbers": [
+        11,
+        13,
+        13,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0382",
+      "numbers": [
+        12,
+        2,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0046",
+      "numbers": [
+        2,
+        11,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0224",
+      "numbers": [
+        6,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0315",
+      "numbers": [
+        7,
+        5,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0726",
+      "numbers": [
+        5,
+        9,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0633",
+      "numbers": [
+        3,
+        12,
+        11,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0509",
+      "numbers": [
+        5,
+        4,
+        5,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0727",
+      "numbers": [
+        10,
+        9,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0445",
+      "numbers": [
+        7,
+        13,
+        7,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0928",
+      "numbers": [
+        9,
+        5,
+        11,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0576",
+      "numbers": [
+        4,
+        13,
+        11,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0414",
+      "numbers": [
+        7,
+        7,
+        2,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0755",
+      "numbers": [
+        7,
+        9,
+        12,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0218",
+      "numbers": [
+        3,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0762",
+      "numbers": [
+        5,
+        12,
+        2,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0343",
+      "numbers": [
+        3,
+        3,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0051",
+      "numbers": [
+        6,
+        2,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0717",
+      "numbers": [
+        13,
+        7,
+        5,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0089",
+      "numbers": [
+        7,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0701",
+      "numbers": [
+        10,
+        3,
+        9,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0750",
+      "numbers": [
+        1,
+        13,
+        7,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0684",
+      "numbers": [
+        2,
+        13,
+        4,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0552",
+      "numbers": [
+        2,
+        3,
+        3,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0662",
+      "numbers": [
+        13,
+        7,
+        12,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0722",
+      "numbers": [
+        6,
+        11,
+        10,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0456",
+      "numbers": [
+        13,
+        10,
+        1,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0863",
+      "numbers": [
+        2,
+        11,
+        3,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0249",
+      "numbers": [
+        2,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0982",
+      "numbers": [
+        10,
+        9,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0030",
+      "numbers": [
+        9,
+        12,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0921",
+      "numbers": [
+        13,
+        11,
+        8,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0516",
+      "numbers": [
+        13,
+        9,
+        13,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0427",
+      "numbers": [
+        1,
+        10,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0549",
+      "numbers": [
+        13,
+        8,
+        11,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0710",
+      "numbers": [
+        7,
+        1,
+        13,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0028",
+      "numbers": [
+        13,
+        3,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0961",
+      "numbers": [
+        5,
+        7,
+        5,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0757",
+      "numbers": [
+        8,
+        9,
+        9,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0164",
+      "numbers": [
+        9,
+        12,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0278",
+      "numbers": [
+        7,
+        3,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0602",
+      "numbers": [
+        8,
+        3,
+        5,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0841",
+      "numbers": [
+        11,
+        11,
+        6,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0095",
+      "numbers": [
+        8,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0395",
+      "numbers": [
+        12,
+        8,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0904",
+      "numbers": [
+        12,
+        13,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0325",
+      "numbers": [
+        3,
+        2,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0306",
+      "numbers": [
+        1,
+        10,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0022",
+      "numbers": [
+        11,
+        11,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0207",
+      "numbers": [
+        1,
+        12,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0257",
+      "numbers": [
+        12,
+        3,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0598",
+      "numbers": [
+        13,
+        11,
+        11,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0900",
+      "numbers": [
+        1,
+        10,
+        11,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0443",
+      "numbers": [
+        8,
+        8,
+        7,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0730",
+      "numbers": [
+        11,
+        11,
+        7,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0339",
+      "numbers": [
+        11,
+        11,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0131",
+      "numbers": [
+        6,
+        1,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0925",
+      "numbers": [
+        12,
+        5,
+        10,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0027",
+      "numbers": [
+        3,
+        12,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0599",
+      "numbers": [
+        9,
+        12,
+        2,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0247",
+      "numbers": [
+        9,
+        2,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0452",
+      "numbers": [
+        12,
+        12,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0019",
+      "numbers": [
+        5,
+        13,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0272",
+      "numbers": [
+        6,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0139",
+      "numbers": [
+        2,
+        12,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0605",
+      "numbers": [
+        4,
+        13,
+        2,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0716",
+      "numbers": [
+        13,
+        1,
+        7,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0984",
+      "numbers": [
+        13,
+        10,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0468",
+      "numbers": [
+        3,
+        9,
+        5,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0670",
+      "numbers": [
+        11,
+        10,
+        8,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0790",
+      "numbers": [
+        1,
+        7,
+        3,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0394",
+      "numbers": [
+        7,
+        5,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0969",
+      "numbers": [
+        10,
+        13,
+        4,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0661",
+      "numbers": [
+        9,
+        13,
+        7,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0533",
+      "numbers": [
+        3,
+        10,
+        12,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0234",
+      "numbers": [
+        7,
+        7,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0811",
+      "numbers": [
+        13,
+        13,
+        3,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0936",
+      "numbers": [
+        13,
+        1,
+        4,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0934",
+      "numbers": [
+        9,
+        5,
+        5,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0108",
+      "numbers": [
+        1,
+        1,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0886",
+      "numbers": [
+        7,
+        7,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0751",
+      "numbers": [
+        9,
+        2,
+        2,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0127",
+      "numbers": [
+        9,
+        2,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0864",
+      "numbers": [
+        12,
+        1,
+        1,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0173",
+      "numbers": [
+        2,
+        2,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0367",
+      "numbers": [
+        1,
+        11,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0978",
+      "numbers": [
+        7,
+        1,
+        8,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0894",
+      "numbers": [
+        9,
+        13,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0603",
+      "numbers": [
+        13,
+        10,
+        4,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0654",
+      "numbers": [
+        9,
+        9,
+        5,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0626",
+      "numbers": [
+        9,
+        6,
+        7,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0483",
+      "numbers": [
+        11,
+        13,
+        11,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0832",
+      "numbers": [
+        5,
+        13,
+        12,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0179",
+      "numbers": [
+        10,
+        13,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0141",
+      "numbers": [
+        9,
+        12,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0079",
+      "numbers": [
+        2,
+        2,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0593",
+      "numbers": [
+        1,
+        8,
+        11,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0972",
+      "numbers": [
+        4,
+        10,
+        7,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0112",
+      "numbers": [
+        2,
+        10,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0052",
+      "numbers": [
+        10,
+        4,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0843",
+      "numbers": [
+        13,
+        4,
+        7,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0566",
+      "numbers": [
+        9,
+        7,
+        12,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0521",
+      "numbers": [
+        1,
+        6,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0259",
+      "numbers": [
+        13,
+        8,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0708",
+      "numbers": [
+        1,
+        11,
+        9,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0809",
+      "numbers": [
+        11,
+        9,
+        6,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0607",
+      "numbers": [
+        9,
+        2,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0082",
+      "numbers": [
+        4,
+        11,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0326",
+      "numbers": [
+        3,
+        11,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0548",
+      "numbers": [
+        3,
+        12,
+        10,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0134",
+      "numbers": [
+        1,
+        10,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0696",
+      "numbers": [
+        10,
+        11,
+        5,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0620",
+      "numbers": [
+        2,
+        1,
+        2,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0054",
+      "numbers": [
+        11,
+        2,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0106",
+      "numbers": [
+        9,
+        6,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0989",
+      "numbers": [
+        8,
+        11,
+        13,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0470",
+      "numbers": [
+        9,
+        9,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0048",
+      "numbers": [
+        5,
+        8,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0243",
+      "numbers": [
+        10,
+        11,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0230",
+      "numbers": [
+        3,
+        7,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0780",
+      "numbers": [
+        12,
+        13,
+        4,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0148",
+      "numbers": [
+        4,
+        11,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0126",
+      "numbers": [
+        9,
+        2,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0659",
+      "numbers": [
+        7,
+        9,
+        9,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0622",
+      "numbers": [
+        3,
+        13,
+        11,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0545",
+      "numbers": [
+        7,
+        12,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0752",
+      "numbers": [
+        11,
+        13,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0820",
+      "numbers": [
+        10,
+        13,
+        10,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0212",
+      "numbers": [
+        5,
+        12,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0737",
+      "numbers": [
+        10,
+        5,
+        10,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0421",
+      "numbers": [
+        12,
+        13,
+        1,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0682",
+      "numbers": [
+        4,
+        4,
+        13,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0813",
+      "numbers": [
+        7,
+        11,
+        6,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0077",
+      "numbers": [
+        11,
+        12,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0043",
+      "numbers": [
+        7,
+        13,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0390",
+      "numbers": [
+        11,
+        1,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0210",
+      "numbers": [
+        6,
+        1,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0037",
+      "numbers": [
+        6,
+        6,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0597",
+      "numbers": [
+        2,
+        13,
+        11,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0296",
+      "numbers": [
+        5,
+        6,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0641",
+      "numbers": [
+        4,
+        3,
+        7,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0814",
+      "numbers": [
+        1,
+        10,
+        11,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0120",
+      "numbers": [
+        8,
+        1,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0592",
+      "numbers": [
+        2,
+        10,
+        1,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0553",
+      "numbers": [
+        3,
+        13,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0128",
+      "numbers": [
+        13,
+        13,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0532",
+      "numbers": [
+        13,
+        11,
+        5,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0144",
+      "numbers": [
+        11,
+        5,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0429",
+      "numbers": [
+        7,
+        6,
+        7,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0172",
+      "numbers": [
+        9,
+        4,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0480",
+      "numbers": [
+        11,
+        11,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0419",
+      "numbers": [
+        6,
+        4,
+        8,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0284",
+      "numbers": [
+        9,
+        9,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0897",
+      "numbers": [
+        4,
+        12,
+        11,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0281",
+      "numbers": [
+        7,
+        9,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0118",
+      "numbers": [
+        8,
+        11,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0029",
+      "numbers": [
+        10,
+        11,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0271",
+      "numbers": [
+        7,
+        9,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0816",
+      "numbers": [
+        11,
+        12,
+        7,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0857",
+      "numbers": [
+        5,
+        9,
+        7,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0402",
+      "numbers": [
+        10,
+        13,
+        1,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0010",
+      "numbers": [
+        13,
+        10,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0262",
+      "numbers": [
+        6,
+        12,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0550",
+      "numbers": [
+        9,
+        10,
+        4,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0763",
+      "numbers": [
+        13,
+        8,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0874",
+      "numbers": [
+        5,
+        7,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0334",
+      "numbers": [
+        13,
+        3,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0871",
+      "numbers": [
+        13,
+        13,
+        8,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0707",
+      "numbers": [
+        5,
+        13,
+        7,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0166",
+      "numbers": [
+        2,
+        7,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0645",
+      "numbers": [
+        7,
+        10,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0388",
+      "numbers": [
+        5,
+        5,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0891",
+      "numbers": [
+        1,
+        2,
+        10,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0802",
+      "numbers": [
+        7,
+        9,
+        7,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0047",
+      "numbers": [
+        7,
+        1,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0428",
+      "numbers": [
+        1,
+        9,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0375",
+      "numbers": [
+        1,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0627",
+      "numbers": [
+        11,
+        6,
+        7,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0410",
+      "numbers": [
+        9,
+        2,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0228",
+      "numbers": [
+        10,
+        10,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0058",
+      "numbers": [
+        6,
+        8,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0418",
+      "numbers": [
+        11,
+        11,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0738",
+      "numbers": [
+        2,
+        3,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0495",
+      "numbers": [
+        6,
+        5,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0417",
+      "numbers": [
+        7,
+        13,
+        7,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0478",
+      "numbers": [
+        8,
+        11,
+        12,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0384",
+      "numbers": [
+        7,
+        1,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0442",
+      "numbers": [
+        2,
+        2,
+        6,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0837",
+      "numbers": [
+        9,
+        7,
+        10,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0812",
+      "numbers": [
+        3,
+        12,
+        10,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0444",
+      "numbers": [
+        10,
+        12,
+        12,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0415",
+      "numbers": [
+        3,
+        7,
+        10,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0364",
+      "numbers": [
+        6,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0559",
+      "numbers": [
+        6,
+        7,
+        6,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0115",
+      "numbers": [
+        7,
+        10,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0270",
+      "numbers": [
+        11,
+        11,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0184",
+      "numbers": [
+        10,
+        7,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0290",
+      "numbers": [
+        1,
+        5,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0357",
+      "numbers": [
+        2,
+        3,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0908",
+      "numbers": [
+        13,
+        12,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0316",
+      "numbers": [
+        4,
+        6,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0782",
+      "numbers": [
+        7,
+        12,
+        5,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0450",
+      "numbers": [
+        1,
+        9,
+        2,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0643",
+      "numbers": [
+        8,
+        6,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0879",
+      "numbers": [
+        9,
+        8,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0264",
+      "numbers": [
+        3,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0286",
+      "numbers": [
+        10,
+        5,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0477",
+      "numbers": [
+        9,
+        10,
+        9,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0481",
+      "numbers": [
+        12,
+        9,
+        10,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0510",
+      "numbers": [
+        12,
+        10,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0524",
+      "numbers": [
+        13,
+        6,
+        11,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0680",
+      "numbers": [
+        5,
+        10,
+        9,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0430",
+      "numbers": [
+        13,
+        5,
+        6,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0491",
+      "numbers": [
+        4,
+        2,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0337",
+      "numbers": [
+        5,
+        6,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0283",
+      "numbers": [
+        5,
+        12,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0335",
+      "numbers": [
+        4,
+        5,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0830",
+      "numbers": [
+        2,
+        13,
+        1,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0416",
+      "numbers": [
+        10,
+        1,
+        4,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0039",
+      "numbers": [
+        3,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0588",
+      "numbers": [
+        13,
+        3,
+        11,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0910",
+      "numbers": [
+        3,
+        13,
+        13,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0327",
+      "numbers": [
+        11,
+        11,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0261",
+      "numbers": [
+        1,
+        3,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0302",
+      "numbers": [
+        9,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0359",
+      "numbers": [
+        9,
+        13,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0059",
+      "numbers": [
+        10,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0215",
+      "numbers": [
+        2,
+        3,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0489",
+      "numbers": [
+        6,
+        3,
+        7,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0352",
+      "numbers": [
+        4,
+        3,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0152",
+      "numbers": [
+        3,
+        10,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0955",
+      "numbers": [
+        8,
+        1,
+        6,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0423",
+      "numbers": [
+        7,
+        5,
+        5,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0192",
+      "numbers": [
+        6,
+        10,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0695",
+      "numbers": [
+        10,
+        9,
+        10,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0162",
+      "numbers": [
+        3,
+        10,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0071",
+      "numbers": [
+        2,
+        8,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0693",
+      "numbers": [
+        9,
+        7,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0285",
+      "numbers": [
+        2,
+        9,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0119",
+      "numbers": [
+        1,
+        7,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0838",
+      "numbers": [
+        6,
+        7,
+        1,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0466",
+      "numbers": [
+        6,
+        1,
+        6,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0574",
+      "numbers": [
+        1,
+        4,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0194",
+      "numbers": [
+        13,
+        6,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0854",
+      "numbers": [
+        5,
+        6,
+        5,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0997",
+      "numbers": [
+        11,
+        11,
+        8,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0476",
+      "numbers": [
+        7,
+        6,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0892",
+      "numbers": [
+        1,
+        1,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0538",
+      "numbers": [
+        13,
+        7,
+        6,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0220",
+      "numbers": [
+        2,
+        2,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0492",
+      "numbers": [
+        11,
+        12,
+        11,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0347",
+      "numbers": [
+        1,
+        5,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0026",
+      "numbers": [
+        12,
+        1,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0169",
+      "numbers": [
+        4,
+        11,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0084",
+      "numbers": [
+        12,
+        2,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0753",
+      "numbers": [
+        11,
+        9,
+        5,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0076",
+      "numbers": [
+        5,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0663",
+      "numbers": [
+        8,
+        4,
+        13,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0765",
+      "numbers": [
+        2,
+        7,
+        9,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0639",
+      "numbers": [
+        1,
+        5,
+        2,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0674",
+      "numbers": [
+        9,
+        1,
+        13,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0728",
+      "numbers": [
+        7,
+        13,
+        3,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0803",
+      "numbers": [
+        6,
+        7,
+        7,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0267",
+      "numbers": [
+        13,
+        1,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0248",
+      "numbers": [
+        10,
+        7,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0867",
+      "numbers": [
+        6,
+        11,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0988",
+      "numbers": [
+        10,
+        11,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0996",
+      "numbers": [
+        1,
+        1,
+        4,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0926",
+      "numbers": [
+        11,
+        1,
+        10,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0354",
+      "numbers": [
+        5,
+        8,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0698",
+      "numbers": [
+        9,
+        12,
+        13,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0116",
+      "numbers": [
+        6,
+        6,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0539",
+      "numbers": [
+        4,
+        5,
+        12,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0942",
+      "numbers": [
+        3,
+        10,
+        11,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0959",
+      "numbers": [
+        5,
+        11,
+        6,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0570",
+      "numbers": [
+        2,
+        12,
+        5,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0640",
+      "numbers": [
+        11,
+        10,
+        6,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0008",
+      "numbers": [
+        3,
+        7,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0346",
+      "numbers": [
+        8,
+        7,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0885",
+      "numbers": [
+        1,
+        11,
+        7,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0787",
+      "numbers": [
+        6,
+        8,
+        11,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0307",
+      "numbers": [
+        7,
+        7,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0573",
+      "numbers": [
+        3,
+        3,
+        3,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0985",
+      "numbers": [
+        10,
+        7,
+        11,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0528",
+      "numbers": [
+        1,
+        13,
+        10,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0122",
+      "numbers": [
+        5,
+        8,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0826",
+      "numbers": [
+        10,
+        10,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0303",
+      "numbers": [
+        13,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0703",
+      "numbers": [
+        1,
+        1,
+        2,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0567",
+      "numbers": [
+        1,
+        12,
+        11,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0269",
+      "numbers": [
+        6,
+        5,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0498",
+      "numbers": [
+        7,
+        9,
+        11,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0882",
+      "numbers": [
+        1,
+        7,
+        11,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0260",
+      "numbers": [
+        3,
+        10,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0635",
+      "numbers": [
+        1,
+        7,
+        7,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0440",
+      "numbers": [
+        4,
+        1,
+        10,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0255",
+      "numbers": [
+        6,
+        13,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0007",
+      "numbers": [
+        13,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0859",
+      "numbers": [
+        8,
+        10,
+        9,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0340",
+      "numbers": [
+        10,
+        3,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0513",
+      "numbers": [
+        10,
+        8,
+        2,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0448",
+      "numbers": [
+        11,
+        7,
+        8,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0720",
+      "numbers": [
+        8,
+        13,
+        12,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0365",
+      "numbers": [
+        8,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0853",
+      "numbers": [
+        11,
+        13,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0768",
+      "numbers": [
+        5,
+        7,
+        12,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0180",
+      "numbers": [
+        11,
+        9,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0053",
+      "numbers": [
+        2,
+        11,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0475",
+      "numbers": [
+        10,
+        6,
+        5,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0858",
+      "numbers": [
+        9,
+        12,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0136",
+      "numbers": [
+        4,
+        11,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0783",
+      "numbers": [
+        2,
+        2,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0506",
+      "numbers": [
+        3,
+        7,
+        6,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0244",
+      "numbers": [
+        8,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0401",
+      "numbers": [
+        10,
+        6,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0379",
+      "numbers": [
+        12,
+        7,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0500",
+      "numbers": [
+        1,
+        12,
+        1,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0657",
+      "numbers": [
+        13,
+        13,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0293",
+      "numbers": [
+        3,
+        4,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0085",
+      "numbers": [
+        5,
+        6,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0687",
+      "numbers": [
+        1,
+        3,
+        7,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0348",
+      "numbers": [
+        3,
+        13,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0219",
+      "numbers": [
+        4,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0740",
+      "numbers": [
+        1,
+        10,
+        2,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0873",
+      "numbers": [
+        12,
+        2,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0214",
+      "numbers": [
+        6,
+        8,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0420",
+      "numbers": [
+        1,
+        9,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0551",
+      "numbers": [
+        13,
+        9,
+        12,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0308",
+      "numbers": [
+        10,
+        6,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0568",
+      "numbers": [
+        13,
+        13,
+        12,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0295",
+      "numbers": [
+        5,
+        10,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0330",
+      "numbers": [
+        5,
+        1,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0664",
+      "numbers": [
+        9,
+        12,
+        2,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0034",
+      "numbers": [
+        11,
+        10,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0587",
+      "numbers": [
+        1,
+        1,
+        5,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0213",
+      "numbers": [
+        4,
+        11,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0236",
+      "numbers": [
+        3,
+        7,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0776",
+      "numbers": [
+        2,
+        12,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0624",
+      "numbers": [
+        7,
+        6,
+        8,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0601",
+      "numbers": [
+        4,
+        6,
+        6,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0508",
+      "numbers": [
+        8,
+        8,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0453",
+      "numbers": [
+        10,
+        3,
+        5,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0850",
+      "numbers": [
+        5,
+        1,
+        7,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0764",
+      "numbers": [
+        6,
+        13,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0833",
+      "numbers": [
+        13,
+        13,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0113",
+      "numbers": [
+        8,
+        10,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0994",
+      "numbers": [
+        8,
+        9,
+        5,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0439",
+      "numbers": [
+        12,
+        12,
+        8,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0512",
+      "numbers": [
+        12,
+        9,
+        13,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0704",
+      "numbers": [
+        11,
+        13,
+        10,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0023",
+      "numbers": [
+        9,
+        4,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0683",
+      "numbers": [
+        9,
+        7,
+        9,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0351",
+      "numbers": [
+        13,
+        6,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0078",
+      "numbers": [
+        12,
+        12,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0745",
+      "numbers": [
+        9,
+        3,
+        2,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0845",
+      "numbers": [
+        4,
+        13,
+        10,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0991",
+      "numbers": [
+        11,
+        6,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0137",
+      "numbers": [
+        4,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0400",
+      "numbers": [
+        3,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0507",
+      "numbers": [
+        5,
+        10,
+        11,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0914",
+      "numbers": [
+        11,
+        6,
+        11,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0878",
+      "numbers": [
+        6,
+        2,
+        2,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0963",
+      "numbers": [
+        12,
+        12,
+        2,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0013",
+      "numbers": [
+        3,
+        12,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0067",
+      "numbers": [
+        6,
+        8,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0324",
+      "numbers": [
+        5,
+        1,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0884",
+      "numbers": [
+        9,
+        4,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0263",
+      "numbers": [
+        11,
+        8,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0932",
+      "numbers": [
+        7,
+        5,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0110",
+      "numbers": [
+        4,
+        5,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0808",
+      "numbers": [
+        9,
+        4,
+        4,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0771",
+      "numbers": [
+        10,
+        2,
+        8,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0482",
+      "numbers": [
+        4,
+        10,
+        3,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0822",
+      "numbers": [
+        5,
+        3,
+        7,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0473",
+      "numbers": [
+        13,
+        10,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0405",
+      "numbers": [
+        11,
+        10,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0130",
+      "numbers": [
+        3,
+        12,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0729",
+      "numbers": [
+        13,
+        7,
+        4,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0805",
+      "numbers": [
+        10,
+        2,
+        11,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0706",
+      "numbers": [
+        9,
+        5,
+        13,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0749",
+      "numbers": [
+        10,
+        11,
+        11,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0938",
+      "numbers": [
+        2,
+        11,
+        8,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0793",
+      "numbers": [
+        1,
+        3,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0012",
+      "numbers": [
+        5,
+        1,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0530",
+      "numbers": [
+        4,
+        4,
+        10,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0314",
+      "numbers": [
+        4,
+        12,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0913",
+      "numbers": [
+        1,
+        5,
+        1,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0630",
+      "numbers": [
+        11,
+        8,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0499",
+      "numbers": [
+        8,
+        10,
+        10,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0011",
+      "numbers": [
+        1,
+        2,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0433",
+      "numbers": [
+        11,
+        12,
+        5,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0944",
+      "numbers": [
+        5,
+        5,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0176",
+      "numbers": [
+        2,
+        13,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0956",
+      "numbers": [
+        10,
+        13,
+        3,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0844",
+      "numbers": [
+        10,
+        13,
+        7,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0699",
+      "numbers": [
+        1,
+        10,
+        1,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0235",
+      "numbers": [
+        6,
+        12,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0145",
+      "numbers": [
+        6,
+        13,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0920",
+      "numbers": [
+        7,
+        7,
+        6,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0033",
+      "numbers": [
+        9,
+        10,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0543",
+      "numbers": [
+        12,
+        10,
+        10,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0504",
+      "numbers": [
+        1,
+        1,
+        10,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0676",
+      "numbers": [
+        6,
+        13,
+        8,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0700",
+      "numbers": [
+        5,
+        12,
+        7,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0774",
+      "numbers": [
+        11,
+        4,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0294",
+      "numbers": [
+        11,
+        8,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0091",
+      "numbers": [
+        6,
+        6,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0887",
+      "numbers": [
+        9,
+        13,
+        7,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0999",
+      "numbers": [
+        6,
+        6,
+        4,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0385",
+      "numbers": [
+        6,
+        13,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0042",
+      "numbers": [
+        5,
+        2,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0976",
+      "numbers": [
+        6,
+        7,
+        3,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0648",
+      "numbers": [
+        5,
+        10,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0472",
+      "numbers": [
+        2,
+        11,
+        7,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0490",
+      "numbers": [
+        7,
+        4,
+        7,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0458",
+      "numbers": [
+        5,
+        2,
+        2,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0711",
+      "numbers": [
+        11,
+        1,
+        8,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0618",
+      "numbers": [
+        12,
+        10,
+        11,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0146",
+      "numbers": [
+        7,
+        7,
+        3
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0746",
+      "numbers": [
+        4,
+        6,
+        9,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0842",
+      "numbers": [
+        8,
+        9,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0393",
+      "numbers": [
+        8,
+        3,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0484",
+      "numbers": [
+        10,
+        11,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0161",
+      "numbers": [
+        4,
+        10,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0614",
+      "numbers": [
+        7,
+        5,
+        12,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0647",
+      "numbers": [
+        8,
+        10,
+        4,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0861",
+      "numbers": [
+        7,
+        2,
+        8,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0333",
+      "numbers": [
+        8,
+        5,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0072",
+      "numbers": [
+        1,
+        11,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0101",
+      "numbers": [
+        13,
+        12,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0441",
+      "numbers": [
+        2,
+        5,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0168",
+      "numbers": [
+        9,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0280",
+      "numbers": [
+        3,
+        3,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0277",
+      "numbers": [
+        3,
+        8,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0216",
+      "numbers": [
+        1,
+        1,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0821",
+      "numbers": [
+        1,
+        1,
+        9,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0041",
+      "numbers": [
+        9,
+        9,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0356",
+      "numbers": [
+        7,
+        4,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0018",
+      "numbers": [
+        6,
+        11,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0655",
+      "numbers": [
+        1,
+        9,
+        4,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0527",
+      "numbers": [
+        5,
+        13,
+        1,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0828",
+      "numbers": [
+        13,
+        10,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0608",
+      "numbers": [
+        13,
+        13,
+        12,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0241",
+      "numbers": [
+        9,
+        9,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0088",
+      "numbers": [
+        13,
+        5,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0167",
+      "numbers": [
+        1,
+        1,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0656",
+      "numbers": [
+        11,
+        8,
+        13,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0080",
+      "numbers": [
+        12,
+        6,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0637",
+      "numbers": [
+        12,
+        8,
+        13,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0775",
+      "numbers": [
+        10,
+        11,
+        3,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0165",
+      "numbers": [
+        10,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0649",
+      "numbers": [
+        3,
+        13,
+        1,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0933",
+      "numbers": [
+        4,
+        13,
+        9,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0177",
+      "numbers": [
+        4,
+        5,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0159",
+      "numbers": [
+        9,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0276",
+      "numbers": [
+        3,
+        1,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0150",
+      "numbers": [
+        8,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0658",
+      "numbers": [
+        4,
+        12,
+        13,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0068",
+      "numbers": [
+        11,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0298",
+      "numbers": [
+        11,
+        3,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0404",
+      "numbers": [
+        9,
+        5,
+        8,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0595",
+      "numbers": [
+        8,
+        5,
+        11,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0697",
+      "numbers": [
+        1,
+        1,
+        13,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0798",
+      "numbers": [
+        9,
+        6,
+        11,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0479",
+      "numbers": [
+        12,
+        13,
+        11,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0794",
+      "numbers": [
+        4,
+        11,
+        4,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0344",
+      "numbers": [
+        12,
+        4,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0017",
+      "numbers": [
+        13,
+        12,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0109",
+      "numbers": [
+        9,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0246",
+      "numbers": [
+        8,
+        2,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0460",
+      "numbers": [
+        11,
+        10,
+        10,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0514",
+      "numbers": [
+        4,
+        6,
+        6,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0915",
+      "numbers": [
+        13,
+        1,
+        6,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0386",
+      "numbers": [
+        1,
+        2,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0829",
+      "numbers": [
+        9,
+        13,
+        12,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0951",
+      "numbers": [
+        12,
+        9,
+        13,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0785",
+      "numbers": [
+        11,
+        13,
+        5,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0876",
+      "numbers": [
+        9,
+        6,
+        13,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0519",
+      "numbers": [
+        3,
+        1,
+        3,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0371",
+      "numbers": [
+        8,
+        3,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0103",
+      "numbers": [
+        9,
+        4,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0016",
+      "numbers": [
+        13,
+        12,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0636",
+      "numbers": [
+        2,
+        12,
+        8,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0692",
+      "numbers": [
+        12,
+        3,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0725",
+      "numbers": [
+        10,
+        10,
+        8,
+        1
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0163",
+      "numbers": [
+        13,
+        11,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0671",
+      "numbers": [
+        12,
+        13,
+        4,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0709",
+      "numbers": [
+        13,
+        13,
+        6,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0747",
+      "numbers": [
+        11,
+        8,
+        8,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0916",
+      "numbers": [
+        11,
+        8,
+        9,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0372",
+      "numbers": [
+        1,
+        1,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0313",
+      "numbers": [
+        5,
+        3,
+        2
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0311",
+      "numbers": [
+        13,
+        9,
+        12
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0239",
+      "numbers": [
+        3,
+        7,
+        10
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0792",
+      "numbers": [
+        13,
+        10,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0381",
+      "numbers": [
+        6,
+        8,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0734",
+      "numbers": [
+        4,
+        8,
+        11,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0081",
+      "numbers": [
+        2,
+        6,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0258",
+      "numbers": [
+        13,
+        12,
+        4
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0221",
+      "numbers": [
+        8,
+        2,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0651",
+      "numbers": [
+        1,
+        7,
+        1,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0756",
+      "numbers": [
+        10,
+        3,
+        1,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0558",
+      "numbers": [
+        9,
+        11,
+        5,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0094",
+      "numbers": [
+        2,
+        9,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0947",
+      "numbers": [
+        5,
+        5,
+        2,
+        6
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0839",
+      "numbers": [
+        1,
+        11,
+        13,
+        5
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0589",
+      "numbers": [
+        7,
+        7,
+        10,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0432",
+      "numbers": [
+        8,
+        11,
+        13,
+        11
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0732",
+      "numbers": [
+        8,
+        9,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0065",
+      "numbers": [
+        8,
+        13,
+        8
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0888",
+      "numbers": [
+        9,
+        1,
+        9,
+        13
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0074",
+      "numbers": [
+        2,
+        9,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0160",
+      "numbers": [
+        12,
+        13,
+        7
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0274",
+      "numbers": [
+        11,
+        9,
+        9
+      ],
+      "solution": null
+    },
+    {
+      "id": "1-0287",
+      "numbers": [
+        4,
+        13,
+        11
+      ],
+      "solution": null
+    }
+  ]
+}

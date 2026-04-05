@@ -5,7 +5,10 @@
   - `index.js`: plugin entry that loads files from `apps/`.
   - `apps/neow.js`: the active Yunzai plugin class and command routing.
   - `utils/user-data.js`: shared account state, favor tiers, stamina recovery, `/nhelp` text, `/ping`, `/my`, and sign-in helpers.
-  - `utils/game24.js`: 24-point difficulty config, solver, game key helpers, and reward logic.
+  - `utils/game24.js`: 24-point difficulty config, question-bank routing, anti-cheat reward logic, and game key helpers.
+  - `utils/ml-game.js`: password game rules, history formatting, and reward logic.
+  - `resources/game24-bank-*.json`: 24-point question banks; do not hand-edit generated entries unless necessary.
+  - `scripts/generate-game24-bank.mjs`: generates a single 24-point bank at a time.
   - `SPEC.md`: behavior contract for commands, favor, stamina, and 24-point rules.
 - Keep plugin entry logic in `apps/` and reusable state/game helpers in `utils/`. Add tests under `tests/` if you introduce them.
 
@@ -16,6 +19,8 @@
   - `node --check apps/neow.js`
   - `node --check utils/user-data.js`
   - `node --check utils/game24.js`
+  - `node --check utils/ml-game.js`
+  - `node --check scripts/generate-game24-bank.mjs`
 - Manually verify the bot flows after edits: `/nhelp`, `/my`, `/sign`, `/24g`, `/24g difficulty`, `/24g start`, and `/24g answer ...`.
 
 ## Coding Style & Naming Conventions
@@ -30,7 +35,9 @@
 - At minimum, run the two syntax checks and exercise both yes/no and formula-answer paths in a bot sandbox.
 
 ## Commit & Pull Request Guidelines
-- This snapshot has no `.git` metadata, so use short imperative commits with scope, for example: `feat: adjust 24g reward ranges`.
+- Use Chinese commit messages and keep them specific, for example: `优化24点题库与密码破译规则`.
+- Every user-visible change must be reflected in `CHANGELOG.md` with detailed bullet logs. Prefer explicit entries such as `[优化] 猜密码游戏每个数字现在不会重复` and `[优化] 现在使用题库进行提升速度`.
+- Stage only task-related files with explicit paths. Never include temporary references like `1.txt`.
 - PRs should summarize gameplay impact, list changed commands, and include sample chat output when reply text or menus change.
 
 ## Security & Configuration Tips

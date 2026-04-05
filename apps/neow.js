@@ -25,8 +25,7 @@ import {
   getActiveGame,
   setActiveGame,
   deleteActiveGame,
-  generateNumbers,
-  solve24,
+  getRandomQuestion,
   calculateRewards
 } from '../utils/game24.js'
 import {
@@ -47,6 +46,7 @@ const loggerInstance = (typeof Bot !== 'undefined' && Bot?.logger)
   || (typeof logger !== 'undefined' ? logger : null)
   || globalThis.logger
 const logInfo = loggerInstance?.info?.bind(loggerInstance) || console.log
+const logWarn = loggerInstance?.warn?.bind(loggerInstance) || console.warn
 
 export class NeowPlugin extends plugin {
   constructor() {
@@ -379,7 +379,17 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const activeGame = getMlGame(e.group_id, e.user_id)
+    const sessionId = this.getSessionId(e)
+    const active24Game = getActiveGame(sessionId, e.user_id)
+    if (active24Game) {
+      await e.reply([
+        '主人现在正在玩 24 点喵~',
+        '先完成当前的 `/24g answer ...`，再来开启密码破译吧~'
+      ].join('\n'), true)
+      return true
+    }
+
+    const activeGame = getMlGame(sessionId, e.user_id)
     if (activeGame) {
       await e.reply([
         '主人已经有一局进行中的密码破译啦喵~',
@@ -404,14 +414,14 @@ export class NeowPlugin extends plugin {
     user.stamina -= difficulty.stamina
     syncUserData(user, { persist: true })
 
-    setMlGame(e.group_id, e.user_id, {
+    setMlGame(sessionId, e.user_id, {
       password: createPassword(),
       difficulty: user.mlDifficulty,
       history: [],
       startTime: Date.now()
     })
 
-    await e.reply([
+    await this.replyWithTimeout(e, [
       '密码破译开始喵~',
       '我已经把四位密码锁好了。',
       '请使用 /ml <任意四位数字> 开始破译',
@@ -475,7 +485,8 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const game = getMlGame(e.group_id, e.user_id)
+    const sessionId = this.getSessionId(e)
+    const game = getMlGame(sessionId, e.user_id)
     if (!game) {
       return false
     }
@@ -488,8 +499,8 @@ export class NeowPlugin extends plugin {
         `时间到啦喵... 正确答案是 ${game.password}`,
         '/ml start - 再来一次'
       ]
-      deleteMlGame(e.group_id, e.user_id)
-      await e.reply(lines.join('\n'), true)
+      deleteMlGame(sessionId, e.user_id)
+      await this.replyWithTimeout(e, lines.join('\n'), true)
       return true
     }
 
@@ -518,8 +529,8 @@ export class NeowPlugin extends plugin {
         '/ml start - 再来一次'
       ]
 
-      deleteMlGame(e.group_id, e.user_id)
-      await e.reply(lines.join('\n'), true)
+      deleteMlGame(sessionId, e.user_id)
+      await this.replyWithTimeout(e, lines.join('\n'), true)
       return true
     }
 
@@ -531,8 +542,8 @@ export class NeowPlugin extends plugin {
         `正确答案是 ${game.password}`,
         '/ml start - 再来一次'
       ]
-      deleteMlGame(e.group_id, e.user_id)
-      await e.reply(lines.join('\n'), true)
+      deleteMlGame(sessionId, e.user_id)
+      await this.replyWithTimeout(e, lines.join('\n'), true)
       return true
     }
 
@@ -543,8 +554,8 @@ export class NeowPlugin extends plugin {
         `次数用完啦... 正确答案是 ${game.password}`,
         '/ml start - 再来一次'
       ]
-      deleteMlGame(e.group_id, e.user_id)
-      await e.reply(lines.join('\n'), true)
+      deleteMlGame(sessionId, e.user_id)
+      await this.replyWithTimeout(e, lines.join('\n'), true)
       return true
     }
 
@@ -560,7 +571,7 @@ export class NeowPlugin extends plugin {
     lines.push('使用: /ml <任意四位数字> 以继续破译')
     lines.push('例如: /ml 1234')
 
-    await e.reply(lines.join('\n'), true)
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 
@@ -859,7 +870,17 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const activeGame = getActiveGame(e.group_id, e.user_id)
+    const sessionId = this.getSessionId(e)
+    const activeMlGame = getMlGame(sessionId, e.user_id)
+    if (activeMlGame) {
+      await e.reply([
+        '主人现在正在进行密码破译喵~',
+        '先把这局 `/ml` 结束掉，再来开启新的 24 点吧~'
+      ].join('\n'), true)
+      return true
+    }
+
+    const activeGame = getActiveGame(sessionId, e.user_id)
     if (activeGame) {
       await e.reply([
         '主人已经有一局进行中的24点啦喵~',
@@ -880,16 +901,19 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const numbers = generateNumbers(config.numCount)
-    const solution = solve24(numbers)
+    const question = getRandomQuestion(config)
+    const numbers = question.numbers
+    const solution = question.solution
 
     if (config.stamina > 0) {
       user.stamina -= config.stamina
       syncUserData(user, { persist: true })
     }
 
-    setActiveGame(e.group_id, e.user_id, {
+    setActiveGame(sessionId, e.user_id, {
       difficulty: user.difficulty,
+      bankId: question.bankId,
+      questionId: question.questionId,
       numbers,
       solution,
       startTime: Date.now()
@@ -906,7 +930,7 @@ export class NeowPlugin extends plugin {
       message += '/24g answer n - 不可以'
     }
 
-    await e.reply(message, true)
+    await this.replyWithTimeout(e, message, true)
     return true
   }
 
@@ -999,7 +1023,8 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const game = getActiveGame(e.group_id, e.user_id)
+    const sessionId = this.getSessionId(e)
+    const game = getActiveGame(sessionId, e.user_id)
 
     if (!game) {
       return false
@@ -1037,7 +1062,7 @@ export class NeowPlugin extends plugin {
       user.favor += rewardInfo.favorReward
       syncUserData(user, { persist: true })
 
-      await e.reply([
+      await this.replyWithTimeout(e, [
         '回答正确喵~',
         `用时 ${elapsed} 秒`,
         `你获得了 ${rewardInfo.coinReward} 枚 Star 币和来自大喵喵的 ${rewardInfo.favorReward} 点好感度`
@@ -1047,14 +1072,14 @@ export class NeowPlugin extends plugin {
       user.coins = Math.max(0, user.coins - penalty)
       syncUserData(user, { persist: true })
 
-      await e.reply([
+      await this.replyWithTimeout(e, [
         '恭喜主人...答错啦!',
         `大喵喵开心地拿走了主人的 ${penalty} 枚 Star 币`,
         `正确答案: ${correctAnswer} (可能非唯一解)`
       ].join('\n'), true)
     }
 
-    deleteActiveGame(e.group_id, e.user_id)
+    deleteActiveGame(sessionId, e.user_id)
     return true
   }
 
@@ -1101,5 +1126,22 @@ export class NeowPlugin extends plugin {
     const raw = (msg || '').trim()
     const commandAnswer = raw.replace(/^(?:\/|#)?24g\s+answer\s+/i, '').trim()
     return commandAnswer || raw
+  }
+
+  getSessionId(e) {
+    return String(e.group_id || e.friend_id || `private:${e.user_id}`)
+  }
+
+  async replyWithTimeout(e, message, quote = true, timeoutMs = 8000) {
+    try {
+      await Promise.race([
+        e.reply(message, quote),
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`reply timeout after ${timeoutMs}ms`)), timeoutMs)
+        })
+      ])
+    } catch (error) {
+      logWarn(`[neow][reply-timeout] group=${e.group_id || 'private'} user=${e.user_id} msg=${JSON.stringify(e.msg)} error=${error?.message || error}`)
+    }
   }
 }

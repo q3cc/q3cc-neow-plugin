@@ -80,17 +80,45 @@ export function deleteMlGame(groupId, userId) {
 }
 
 export function createPassword() {
-  return Array.from({ length: 4 }, () => Math.floor(Math.random() * 10)).join('')
+  const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+  for (let i = digits.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[digits[i], digits[j]] = [digits[j], digits[i]]
+  }
+
+  return digits.slice(0, 4).join('')
 }
 
 export function evaluatePasswordGuess(answer, guess) {
-  return guess.split('').map((digit, index) => {
-    if (digit === answer[index]) {
-      return '🟢'
+  const answerDigits = answer.split('')
+  const guessDigits = guess.split('')
+  const marks = Array(guessDigits.length).fill('🔴')
+  const usedAnswer = Array(answerDigits.length).fill(false)
+
+  for (let i = 0; i < guessDigits.length; i++) {
+    if (guessDigits[i] === answerDigits[i]) {
+      marks[i] = '🟢'
+      usedAnswer[i] = true
+    }
+  }
+
+  for (let i = 0; i < guessDigits.length; i++) {
+    if (marks[i] === '🟢') {
+      continue
     }
 
-    return answer.includes(digit) ? '🟠' : '🔴'
-  })
+    const hitIndex = answerDigits.findIndex((digit, index) =>
+      !usedAnswer[index] && digit === guessDigits[i]
+    )
+
+    if (hitIndex !== -1) {
+      marks[i] = '🟠'
+      usedAnswer[hitIndex] = true
+    }
+  }
+
+  return marks
 }
 
 export function formatMlHistory(history) {

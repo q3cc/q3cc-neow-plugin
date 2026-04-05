@@ -1,4 +1,5 @@
 import fs from 'fs'
+import fsp from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -28,6 +29,12 @@ const DEFAULT_SIGN_PROMPTS = {
 
 let signPromptConfig
 let pokeActionConfig
+let usersDirty = false
+let usersWriting = false
+let usersFlushPromise = Promise.resolve()
+let signStatsDirty = false
+let signStatsWriting = false
+let signStatsFlushPromise = Promise.resolve()
 
 const DEFAULT_POKE_ACTIONS = {
   actions: [
@@ -63,27 +70,85 @@ function ensureDataDir() {
   }
 }
 
-function saveUsers() {
-  ensureDataDir()
-
-  const payload = Object.fromEntries(
-    [...users.entries()].map(([userId, user]) => [userId, user])
-  )
-
-  fs.writeFileSync(usersPath, JSON.stringify(payload, null, 2), 'utf8')
+async function ensureDataDirAsync() {
+  await fsp.mkdir(dataDirPath, { recursive: true })
 }
 
-function saveSignStats() {
-  ensureDataDir()
+function serializeUsers() {
+  return JSON.stringify(Object.fromEntries(
+    [...users.entries()].map(([userId, user]) => [userId, user])
+  ), null, 2)
+}
 
-  const payload = Object.fromEntries(
+function serializeSignStats() {
+  return JSON.stringify(Object.fromEntries(
     [...dailySignStats.entries()].map(([dayKey, stats]) => [dayKey, {
       count: stats.count,
       users: [...stats.users]
     }])
-  )
+  ), null, 2)
+}
 
-  fs.writeFileSync(signStatsPath, JSON.stringify(payload, null, 2), 'utf8')
+async function flushUsers() {
+  if (usersWriting) {
+    return usersFlushPromise
+  }
+
+  usersWriting = true
+  usersFlushPromise = (async () => {
+    try {
+      await ensureDataDirAsync()
+      while (usersDirty) {
+        usersDirty = false
+        await fsp.writeFile(usersPath, serializeUsers(), 'utf8')
+      }
+    } catch (error) {
+      console.error('[neow] 保存用户数据失败:', error)
+    } finally {
+      usersWriting = false
+      if (usersDirty) {
+        void flushUsers()
+      }
+    }
+  })()
+
+  return usersFlushPromise
+}
+
+async function flushSignStats() {
+  if (signStatsWriting) {
+    return signStatsFlushPromise
+  }
+
+  signStatsWriting = true
+  signStatsFlushPromise = (async () => {
+    try {
+      await ensureDataDirAsync()
+      while (signStatsDirty) {
+        signStatsDirty = false
+        await fsp.writeFile(signStatsPath, serializeSignStats(), 'utf8')
+      }
+    } catch (error) {
+      console.error('[neow] 保存签到数据失败:', error)
+    } finally {
+      signStatsWriting = false
+      if (signStatsDirty) {
+        void flushSignStats()
+      }
+    }
+  })()
+
+  return signStatsFlushPromise
+}
+
+function saveUsers() {
+  usersDirty = true
+  return flushUsers()
+}
+
+function saveSignStats() {
+  signStatsDirty = true
+  return flushSignStats()
 }
 
 function loadPersistedData() {
