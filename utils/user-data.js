@@ -56,6 +56,7 @@ function createDefaultUser() {
     maxStamina: 150,
     difficulty: 1,
     mlDifficulty: 1,
+    wordleDifficulty: 1,
     adminUntil: 0,
     suCode: '',
     suCodeExpire: 0,
@@ -364,6 +365,7 @@ export function syncUserData(user, options = {}) {
   const beforeFavor = user.favor
   const beforeMaxStamina = user.maxStamina
   const beforeStamina = user.stamina
+  const beforeWordleDifficulty = user.wordleDifficulty
   const beforeAdminUntil = user.adminUntil || 0
   const beforeSuCode = user.suCode || ''
   const beforeSuCodeExpire = user.suCodeExpire || 0
@@ -380,6 +382,10 @@ export function syncUserData(user, options = {}) {
     user.stamina = user.maxStamina
   }
 
+  if (!Number.isInteger(user.wordleDifficulty)) {
+    user.wordleDifficulty = 1
+  }
+
   if (user.stamina > user.maxStamina) {
     user.stamina = user.maxStamina
   }
@@ -390,6 +396,7 @@ export function syncUserData(user, options = {}) {
   const changed = beforeFavor !== user.favor ||
     beforeMaxStamina !== user.maxStamina ||
     beforeStamina !== user.stamina ||
+    beforeWordleDifficulty !== user.wordleDifficulty ||
     beforeAdminUntil !== (user.adminUntil || 0) ||
     beforeSuCode !== (user.suCode || '') ||
     beforeSuCodeExpire !== (user.suCodeExpire || 0) ||
@@ -571,6 +578,7 @@ export function buildHelpLines(options = {}) {
     '/transfer - 转赠 Star 币',
     '/sign - 每日签到',
     '/ml - 密码破译',
+    '/wordle - 猜单词',
     '/24g - 二十四点'
   ]
 

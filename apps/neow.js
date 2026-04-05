@@ -41,6 +41,21 @@ import {
   calculateMlRewards,
   calculateMlPenalty
 } from '../utils/ml-game.js'
+import {
+  WORDLE_DIFFICULTIES,
+  getWordleGame,
+  setWordleGame,
+  deleteWordleGame,
+  getRandomWordleWord,
+  isValidWordleWord,
+  normalizeWordleGuess,
+  evaluateWordleGuess,
+  formatWordleHistory,
+  getWordleRemainingSeconds,
+  isWordleTimeout,
+  calculateWordleRewards,
+  calculateWordlePenalty
+} from '../utils/wordle-game.js'
 import { renderMlImage } from '../utils/ml-render.js'
 
 const loggerInstance = (typeof Bot !== 'undefined' && Bot?.logger)
@@ -141,6 +156,26 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?ml\s+(\d{4})\s*$/i,
           fnc: 'submitMlAnswer'
+        },
+        {
+          reg: /^(?:\/|#)?(?:wordle|wd)\s*$/i,
+          fnc: 'showWordleMenu'
+        },
+        {
+          reg: /^(?:\/|#)?(?:wordle|wd)\s+start\s*$/i,
+          fnc: 'startWordleGame'
+        },
+        {
+          reg: /^(?:\/|#)?(?:wordle|wd)\s+difficulty\s*$/i,
+          fnc: 'showWordleDifficultyMenu'
+        },
+        {
+          reg: /^(?:\/|#)?(?:wordle|wd)\s+difficulty\s+(\d+)\s*$/i,
+          fnc: 'setWordleDifficulty'
+        },
+        {
+          reg: /^(?:\/|#)?(?:wordle|wd)\s+([a-zA-Z]{5})\s*$/i,
+          fnc: 'submitWordleAnswer'
         },
         {
           reg: /^(?:\/|#)?24g\s*$/i,
@@ -403,6 +438,15 @@ export class NeowPlugin extends plugin {
       await e.reply([
         '主人现在正在玩 24 点喵~',
         '先完成当前的 `/24g answer ...`，再来开启密码破译吧~'
+      ].join('\n'), true)
+      return true
+    }
+
+    const activeWordleGame = getWordleGame(sessionId, e.user_id)
+    if (activeWordleGame) {
+      await e.reply([
+        '主人现在正在玩猜单词喵~',
+        '先把这局 `/wordle` 结束掉，再来开启密码破译吧~'
       ].join('\n'), true)
       return true
     }
@@ -747,6 +791,251 @@ export class NeowPlugin extends plugin {
     return true
   }
 
+  async showWordleMenu(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const difficulty = WORDLE_DIFFICULTIES[user.wordleDifficulty] || WORDLE_DIFFICULTIES[1]
+
+    await e.reply([
+      '来和大喵喵玩 Wordle 猜单词喵~',
+      '我会藏好一个 5 字母英文单词，主人来把它找出来吧~',
+      '',
+      `⚡ 当前体力: ${user.stamina}/${user.maxStamina} (${difficulty.stamina}体力/局)`,
+      '/wordle start - 开始游戏',
+      '/wordle difficulty - 修改难度'
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async startWordleGame(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const sessionId = this.getSessionId(e)
+    const activeMlGame = getMlGame(sessionId, e.user_id)
+    if (activeMlGame) {
+      await e.reply([
+        '主人现在正在进行密码破译喵~',
+        '先把这局 `/ml` 结束掉，再来开启 Wordle 吧~'
+      ].join('\n'), true)
+      return true
+    }
+
+    const active24Game = getActiveGame(sessionId, e.user_id)
+    if (active24Game) {
+      await e.reply([
+        '主人现在正在玩 24 点喵~',
+        '先完成当前的 `/24g answer ...`，再来开启 Wordle 吧~'
+      ].join('\n'), true)
+      return true
+    }
+
+    const activeWordleGame = getWordleGame(sessionId, e.user_id)
+    if (activeWordleGame) {
+      await e.reply([
+        '主人已经有一局进行中的 Wordle 啦喵~',
+        '继续猜单词，或者等这局结束后再来一局吧~'
+      ].join('\n'), true)
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const difficulty = WORDLE_DIFFICULTIES[user.wordleDifficulty] || WORDLE_DIFFICULTIES[1]
+
+    if (user.stamina < difficulty.stamina) {
+      await e.reply([
+        '体力不足',
+        `当前体力: ${user.stamina}/${user.maxStamina}`,
+        `需要体力: ${difficulty.stamina}`,
+        '体力恢复速度: 1点/分钟'
+      ].join('\n'), true)
+      return true
+    }
+
+    user.stamina -= difficulty.stamina
+    syncUserData(user, { persist: true })
+
+    setWordleGame(sessionId, e.user_id, {
+      answer: getRandomWordleWord(),
+      difficulty: user.wordleDifficulty,
+      history: [],
+      startTime: Date.now()
+    })
+
+    await e.reply([
+      'Wordle 开始喵~',
+      '大喵喵已经藏好了一个 5 字母单词。',
+      '请使用 /wordle <单词> 开始猜测',
+      '例如: /wordle apple'
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async showWordleDifficultyMenu(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const difficulty = WORDLE_DIFFICULTIES[user.wordleDifficulty] || WORDLE_DIFFICULTIES[1]
+
+    await e.reply([
+      `当前难度: ${difficulty.name}`,
+      '',
+      '/wordle difficulty 0 - 简单 (10体力/局, 8次机会, 无时限)',
+      '/wordle difficulty 1 - 普通 (15体力/局, 6次机会, 180秒)',
+      '/wordle difficulty 2 - 困难 (20体力/局, 5次机会, 120秒)',
+      '/wordle difficulty 3 - 极限 (25体力/局, 4次机会, 60秒)'
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async setWordleDifficulty(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?(?:wordle|wd)\s+difficulty\s+(\d+)\s*$/i)
+    const difficultyId = match ? parseInt(match[1]) : NaN
+
+    if (!(difficultyId in WORDLE_DIFFICULTIES)) {
+      await e.reply('无效的难度等级\n可选: 0-简单, 1-普通, 2-困难, 3-极限', true)
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    user.wordleDifficulty = difficultyId
+    saveUserData()
+
+    const difficulty = WORDLE_DIFFICULTIES[difficultyId]
+    await e.reply([
+      `Wordle 难度已设置为: ${difficulty.name}`,
+      difficulty.desc,
+      `消耗体力: ${difficulty.stamina}`
+    ].join('\n'), true)
+    return true
+  }
+
+  async submitWordleAnswer(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const sessionId = this.getSessionId(e)
+    const game = getWordleGame(sessionId, e.user_id)
+    if (!game) {
+      return false
+    }
+
+    const difficulty = WORDLE_DIFFICULTIES[game.difficulty] || WORDLE_DIFFICULTIES[1]
+    if (isWordleTimeout(game, difficulty)) {
+      const { penaltyLine } = this.applyWordleFailurePenalty(e.user_id, difficulty)
+      const lines = [
+        'Wordle - 失败',
+        ...formatWordleHistory(game.history),
+        `时间到啦喵... 正确答案是 ${game.answer}`,
+        penaltyLine,
+        '/wordle start - 再来一次'
+      ]
+      deleteWordleGame(sessionId, e.user_id)
+      await this.replyMlCard(e, {
+        history: game.history
+      }, lines.join('\n'), [
+        `时间到啦喵... 正确答案是 ${game.answer}`,
+        penaltyLine,
+        '/wordle start - 再来一次'
+      ].join('\n'))
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?(?:wordle|wd)\s+([a-zA-Z]{5})\s*$/i)
+    const guess = normalizeWordleGuess(match?.[1])
+    if (!guess || !/^[A-Z]{5}$/.test(guess)) {
+      return false
+    }
+
+    if (!isValidWordleWord(guess)) {
+      await e.reply('这个单词不在大喵喵的小词典里喵，换一个 5 字母单词试试看吧~', true)
+      return true
+    }
+
+    const marks = evaluateWordleGuess(game.answer, guess)
+    game.history.push({ guess, marks })
+
+    if (guess === game.answer) {
+      const user = getUserData(e.user_id)
+      const rewards = calculateWordleRewards(game, difficulty)
+
+      user.coins += rewards.coinReward
+      user.favor += rewards.favorReward
+      syncUserData(user, { persist: true })
+
+      const lines = [
+        'Wordle - 成功',
+        ...formatWordleHistory(game.history),
+        `总共试了 ${game.history.length} 次`,
+        `游戏机吐出了 ${rewards.coinReward} 枚 Star 币, 同时还获得了来自大喵喵的 ${rewards.favorReward} 点好感度`,
+        '/wordle start - 再来一次'
+      ]
+
+      deleteWordleGame(sessionId, e.user_id)
+      await this.replyMlCard(e, {
+        history: game.history
+      }, lines.join('\n'), [
+        `总共试了 ${game.history.length} 次`,
+        `游戏机吐出了 ${rewards.coinReward} 枚 Star 币, 同时还获得了来自大喵喵的 ${rewards.favorReward} 点好感度`,
+        '/wordle start - 再来一次'
+      ].join('\n'))
+      return true
+    }
+
+    if (difficulty.maxAttempts && game.history.length >= difficulty.maxAttempts) {
+      const { penaltyLine } = this.applyWordleFailurePenalty(e.user_id, difficulty)
+      const lines = [
+        'Wordle - 失败',
+        ...formatWordleHistory(game.history),
+        `次数用完啦... 正确答案是 ${game.answer}`,
+        penaltyLine,
+        '/wordle start - 再来一次'
+      ]
+
+      deleteWordleGame(sessionId, e.user_id)
+      await this.replyMlCard(e, {
+        history: game.history
+      }, lines.join('\n'), [
+        `次数用完啦... 正确答案是 ${game.answer}`,
+        penaltyLine,
+        '/wordle start - 再来一次'
+      ].join('\n'))
+      return true
+    }
+
+    const remainSeconds = getWordleRemainingSeconds(game, difficulty)
+    const fallbackLines = []
+    if (remainSeconds !== null) {
+      fallbackLines.push(`剩余时间 ${remainSeconds} 秒`)
+    } else {
+      fallbackLines.push(`已尝试 ${game.history.length}/${difficulty.maxAttempts} 次`)
+    }
+
+    fallbackLines.push(...formatWordleHistory(game.history))
+    fallbackLines.push('继续输入 /wordle <单词> 以继续猜测')
+
+    await this.replyMlCard(e, {
+      history: game.history
+    }, fallbackLines.join('\n'), remainSeconds !== null
+      ? `剩余时间 ${remainSeconds} 秒`
+      : `已尝试 ${game.history.length}/${difficulty.maxAttempts} 次`)
+    return true
+  }
+
   async setCoin(e) {
     if (!await this.ensureUsable(e)) {
       return true
@@ -1052,6 +1341,15 @@ export class NeowPlugin extends plugin {
       return true
     }
 
+    const activeWordleGame = getWordleGame(sessionId, e.user_id)
+    if (activeWordleGame) {
+      await e.reply([
+        '主人现在正在玩猜单词喵~',
+        '先把这局 `/wordle` 结束掉，再来开启新的 24 点吧~'
+      ].join('\n'), true)
+      return true
+    }
+
     const activeGame = getActiveGame(sessionId, e.user_id)
     if (activeGame) {
       await e.reply([
@@ -1307,6 +1605,21 @@ export class NeowPlugin extends plugin {
   applyMlFailurePenalty(userId, difficulty) {
     const user = getUserData(userId)
     const penalty = Math.min(user.coins, calculateMlPenalty(difficulty))
+
+    user.coins = Math.max(0, user.coins - penalty)
+    syncUserData(user, { persist: true })
+
+    return {
+      penalty,
+      penaltyLine: penalty > 0
+        ? `大喵喵开心地拿走了主人的 ${penalty} 枚 Star 币`
+        : '大喵喵本来想拿走几枚 Star 币, 结果发现主人口袋已经空空的喵...'
+    }
+  }
+
+  applyWordleFailurePenalty(userId, difficulty) {
+    const user = getUserData(userId)
+    const penalty = Math.min(user.coins, calculateWordlePenalty(difficulty))
 
     user.coins = Math.max(0, user.coins - penalty)
     syncUserData(user, { persist: true })

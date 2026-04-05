@@ -1,6 +1,6 @@
 # q3cc-neow-plugin
 
-一个带有“大喵喵”风格文案的游戏插件，目前主要提供账号信息系统、24 点题库玩法与密码破译玩法。
+一个带有“大喵喵”风格文案的游戏插件，目前主要提供账号信息系统、24 点题库玩法、密码破译玩法与 Wordle 猜单词玩法。
 
 当前版本：`v0.0.11`
 
@@ -11,6 +11,7 @@
 - 在线检查：`/ping`
 - 每日签到：`/sign`（兼容 `/签到`、`/qd`、`/checkin`）
 - 密码破译：`/ml`
+- Wordle 猜单词：`/wordle`
 - 24 点菜单：`/24g`
 - 24 点开局、五组题库抽题、难度切换、答题
 - 好感度、体力、Star币 统一管理
@@ -30,6 +31,11 @@
 - `/ml difficulty` - 查看破译难度菜单
 - `/ml difficulty <0-4>` - 设置破译难度
 - `/ml <四位数字>` - 提交四位密码
+- `/wordle` - 查看 Wordle 菜单
+- `/wordle start` - 开始一局 Wordle
+- `/wordle difficulty` - 查看 Wordle 难度菜单
+- `/wordle difficulty <0-3>` - 设置 Wordle 难度
+- `/wordle <五字母单词>` - 提交本局猜测
 
 ### 24 点指令
 
@@ -69,6 +75,17 @@
 - 成功破译后会获得 `Star 币` 与好感度奖励
 - 失败后会随机扣除一部分 `Star 币`
 
+## Wordle 规则
+
+- 输入格式：`/wordle <五字母英文单词>`
+- 每局会随机生成一个 `5` 字母英文单词
+- `🟢` 表示字母和位置都正确
+- `🟠` 表示字母存在但位置不对
+- `🔴` 表示该字母不存在于答案中
+- 不同难度拥有不同的体力消耗、时限与尝试次数限制
+- 成功猜出后会获得 `Star 币` 与好感度奖励
+- 失败后会随机扣除一部分 `Star 币`
+
 ## 文件结构
 
 - `index.js` - 插件入口与版本日志
@@ -76,6 +93,8 @@
 - `utils/user-data.js` - 用户数据、UID 分配、好感度、体力、签到、帮助文案
 - `utils/game24.js` - 24 点玩法配置、题库读取与奖励计算
 - `utils/ml-game.js` - 密码破译玩法配置、状态与奖励计算
+- `utils/wordle-game.js` - Wordle 猜单词配置、词库校验、状态与奖励计算
+- `resources/wordle-words.json` - Wordle 词库
 - `scripts/generate-game24-bank.mjs` - 24 点单个题库生成脚本
 - `SPEC.md` - 当前规则说明
 - `AGENTS.md` - 协作与贡献说明
@@ -101,4 +120,5 @@ node --check apps/neow.js
 node --check utils/user-data.js
 node --check utils/game24.js
 node --check utils/ml-game.js
+node --check utils/wordle-game.js
 ```
