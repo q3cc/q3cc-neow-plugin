@@ -213,7 +213,7 @@ const FAVOR_LEVELS = [
     desc: '主人已经是大喵喵的普通朋友啦喵，有空就要来陪我玩，不许偷偷溜走哦~',
     nextLevel: '朋友之上, 恋人可及',
     nextFavor: 1000,
-    maxStamina: 180
+    maxStamina: 270
   },
   {
     minFavor: 100,
@@ -221,7 +221,7 @@ const FAVOR_LEVELS = [
     desc: '和主人说话的时候，大喵喵总有种坠进温柔梦里的感觉喵，心口都软绵绵的~',
     nextLevel: '普通朋友',
     nextFavor: 200,
-    maxStamina: 150
+    maxStamina: 220
   },
   {
     minFavor: 30,
@@ -229,7 +229,7 @@ const FAVOR_LEVELS = [
     desc: '大喵喵已经记住主人的气味啦喵，下次再来时可不许装作不认识我哦~',
     nextLevel: '如堕潜梦',
     nextFavor: 100,
-    maxStamina: 150
+    maxStamina: 180
   },
   {
     minFavor: 0,

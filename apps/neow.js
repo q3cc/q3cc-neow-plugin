@@ -4,7 +4,6 @@ import {
   saveUserData,
   buildHelpLines,
   buildUserInfoLines,
-  difficultyNames,
   recordDailySign,
   getRandomSignPrompt,
   getRandomPokeAction,
@@ -287,11 +286,8 @@ export class NeowPlugin extends plugin {
     const user = getUserData(e.user_id)
 
     await e.reply([
-      '大喵喵的个人信息面板',
-      '',
       `账号ID: ${e.user_id}`,
       ...buildUserInfoLines(user, {
-        difficultyName: difficultyNames[user.difficulty] || difficultyNames[1],
         includeRegisterTime: true
       })
     ].join('\n'), true)

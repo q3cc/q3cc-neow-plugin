@@ -9,7 +9,7 @@ const logInfo = loggerInstance?.info?.bind(loggerInstance) || console.log
 const logWarn = loggerInstance?.warn?.bind(loggerInstance) || console.warn
 const logError = loggerInstance?.error?.bind(loggerInstance) || console.error
 
-let pluginVersion = '0.0.10'
+let pluginVersion = '0.0.11'
 const packagePath = path.join(__dirname, 'package.json')
 
 if (fs.existsSync(packagePath)) {
