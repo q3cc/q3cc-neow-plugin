@@ -123,7 +123,7 @@ export function evaluatePasswordGuess(answer, guess) {
 
 export function formatMlHistory(history) {
   return history.map((item, index) =>
-    `  第${index}次输入: ${item.guess.split('').map((digit, i) => `${digit}${item.marks[i]}`).join(' | ')}`
+    `  第${index + 1}次输入: ${item.guess.split('').map((digit, i) => `${digit}${item.marks[i]}`).join(' | ')}`
   )
 }
 

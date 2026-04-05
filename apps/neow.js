@@ -40,12 +40,14 @@ import {
   shouldMlExplode,
   calculateMlRewards
 } from '../utils/ml-game.js'
+import { renderMlImage } from '../utils/ml-render.js'
 
 const loggerInstance = (typeof Bot !== 'undefined' && Bot?.logger)
   || (typeof logger !== 'undefined' ? logger : null)
   || globalThis.logger
 const logInfo = loggerInstance?.info?.bind(loggerInstance) || console.log
 const logWarn = loggerInstance?.warn?.bind(loggerInstance) || console.warn
+const segmentInstance = typeof segment !== 'undefined' ? segment : globalThis.segment
 
 export class NeowPlugin extends plugin {
   constructor() {
@@ -357,15 +359,34 @@ export class NeowPlugin extends plugin {
     const user = getUserData(e.user_id)
     const difficulty = ML_DIFFICULTIES[user.mlDifficulty] || ML_DIFFICULTIES[1]
 
-    await e.reply([
+    const lines = [
       '你在整理旧物的时候，翻出了一台布满灰尘的破译机。',
       '大喵喵拍了拍机身，屏幕竟然真的亮了起来喵~',
       '只要成功破译密码，好像就能得到一点奖励呢。',
+      `⚡ 当前体力: ${user.stamina}/${user.maxStamina}`
+    ]
+
+    await this.replyMlCard(e, {
+      title: '密码破译',
+      subtitle: '旧机器已经亮起来啦喵，来试试看能不能把密码拆开吧~',
+      theme: 'info',
+      chips: [
+        `当前体力 ${user.stamina}/${user.maxStamina}`,
+        `${difficulty.name}难度`,
+        `${difficulty.stamina}体力/局`
+      ],
+      lines,
+      footerLines: [
+        '/ml start - 开始游戏',
+        '/ml difficulty - 修改难度'
+      ]
+    }, [
+      ...lines,
       '',
       `⚡ 当前体力: ${user.stamina}/${user.maxStamina} (${difficulty.stamina}体力/局)`,
       '/ml start - 开始游戏',
       '/ml difficulty - 修改难度'
-    ].join('\n'), true)
+    ].join('\n'))
 
     return true
   }
@@ -417,12 +438,29 @@ export class NeowPlugin extends plugin {
       startTime: Date.now()
     })
 
-    await this.replyWithTimeout(e, [
+    await this.replyMlCard(e, {
+      title: '密码破译开始喵~',
+      subtitle: '大喵喵已经把四位密码锁好了，快来试第一下吧~',
+      theme: 'warn',
+      chips: [
+        `${difficulty.name}难度`,
+        `${difficulty.stamina}体力/局`
+      ],
+      lines: [
+        '我已经把四位密码锁好了。',
+        '请使用 /ml <任意四位数字> 开始破译',
+        '例如: /ml 1234'
+      ],
+      footerLines: [
+        '/ml 1234',
+        '/ml start - 再来一局'
+      ]
+    }, [
       '密码破译开始喵~',
       '我已经把四位密码锁好了。',
       '请使用 /ml <任意四位数字> 开始破译',
       '例如: /ml 1234'
-    ].join('\n'), true)
+    ].join('\n'))
 
     return true
   }
@@ -435,10 +473,29 @@ export class NeowPlugin extends plugin {
     const user = getUserData(e.user_id)
     const difficulty = ML_DIFFICULTIES[user.mlDifficulty] || ML_DIFFICULTIES[1]
 
-    await e.reply([
+    const difficultyLines = Object.entries(ML_DIFFICULTIES).map(([, item]) => `${item.name}: ${item.desc}`)
+
+    await this.replyMlCard(e, {
+      title: '密码破译难度菜单',
+      subtitle: '不同难度会影响时限、机会和奖励喵~',
+      theme: 'info',
+      chips: [
+        `当前难度 ${difficulty.name}`,
+        `${difficulty.stamina}体力/局`
+      ],
+      lines: difficultyLines,
+      footerLines: [
+        '所选难度越高, 消耗体力越多, 奖励越丰富',
+        '/ml difficulty 0 - 简单',
+        '/ml difficulty 1 - 普通',
+        '/ml difficulty 2 - 困难',
+        '/ml difficulty 3 - 极限',
+        '/ml difficulty 4 - 另类极限'
+      ]
+    }, [
       `主人当前的难度为: ${difficulty.name}`,
       '',
-      ...Object.entries(ML_DIFFICULTIES).map(([, item]) => `${item.name}: ${item.desc}`),
+      ...difficultyLines,
       '',
       '所选难度越高, 消耗体力越多, 奖励越丰富',
       '/ml difficulty 0 - 简单',
@@ -446,7 +503,7 @@ export class NeowPlugin extends plugin {
       '/ml difficulty 2 - 困难',
       '/ml difficulty 3 - 极限',
       '/ml difficulty 4 - 另类极限'
-    ].join('\n'), true)
+    ].join('\n'))
     return true
   }
 
@@ -468,11 +525,27 @@ export class NeowPlugin extends plugin {
     saveUserData()
 
     const difficulty = ML_DIFFICULTIES[difficultyId]
-    await e.reply([
+    await this.replyMlCard(e, {
+      title: '难度设置完成',
+      subtitle: '大喵喵已经把破译机调到新的模式啦喵~',
+      theme: 'success',
+      chips: [
+        `${difficulty.name}难度`,
+        `${difficulty.stamina}体力/局`
+      ],
+      lines: [
+        difficulty.desc,
+        `消耗体力: ${difficulty.stamina}`
+      ],
+      footerLines: [
+        '/ml start - 开始游戏',
+        '/ml difficulty - 查看难度菜单'
+      ]
+    }, [
       `密码破译难度已设置为: ${difficulty.name}`,
       difficulty.desc,
       `消耗体力: ${difficulty.stamina}`
-    ].join('\n'), true)
+    ].join('\n'))
     return true
   }
 
@@ -496,7 +569,22 @@ export class NeowPlugin extends plugin {
         '/ml start - 再来一次'
       ]
       deleteMlGame(sessionId, e.user_id)
-      await this.replyWithTimeout(e, lines.join('\n'), true)
+      await this.replyMlCard(e, {
+        title: '密码破译 - 失败',
+        subtitle: '时间到啦喵，这台老机器已经不肯再等啦~',
+        theme: 'danger',
+        chips: [
+          `${difficulty.name}难度`,
+          '时间耗尽'
+        ],
+        history: game.history,
+        summaryLines: [
+          `正确答案是 ${game.password}`
+        ],
+        footerLines: [
+          '/ml start - 再来一次'
+        ]
+      }, lines.join('\n'))
       return true
     }
 
@@ -526,7 +614,24 @@ export class NeowPlugin extends plugin {
       ]
 
       deleteMlGame(sessionId, e.user_id)
-      await this.replyWithTimeout(e, lines.join('\n'), true)
+      await this.replyMlCard(e, {
+        title: '密码破译 - 成功',
+        subtitle: '喀哒一声，锁芯真的被主人拆开啦喵~',
+        theme: 'success',
+        chips: [
+          `${difficulty.name}难度`,
+          `共 ${game.history.length} 次`
+        ],
+        history: game.history,
+        summaryLines: [
+          `总共试了 ${game.history.length} 次`,
+          `获得 ${rewards.coinReward} 枚 Star 币`,
+          `获得来自大喵喵的 ${rewards.favorReward} 点好感度`
+        ],
+        footerLines: [
+          '/ml start - 再来一次'
+        ]
+      }, lines.join('\n'))
       return true
     }
 
@@ -539,7 +644,23 @@ export class NeowPlugin extends plugin {
         '/ml start - 再来一次'
       ]
       deleteMlGame(sessionId, e.user_id)
-      await this.replyWithTimeout(e, lines.join('\n'), true)
+      await this.replyMlCard(e, {
+        title: '密码破译 - 失败',
+        subtitle: '这台老机器被你逼急了，直接炸机给你看喵...',
+        theme: 'danger',
+        chips: [
+          `${difficulty.name}难度`,
+          '炸机失败'
+        ],
+        history: game.history,
+        summaryLines: [
+          '第 5 次之后，老旧的机器突然冒出一阵黑烟，直接炸机了喵...',
+          `正确答案是 ${game.password}`
+        ],
+        footerLines: [
+          '/ml start - 再来一次'
+        ]
+      }, lines.join('\n'))
       return true
     }
 
@@ -551,7 +672,22 @@ export class NeowPlugin extends plugin {
         '/ml start - 再来一次'
       ]
       deleteMlGame(sessionId, e.user_id)
-      await this.replyWithTimeout(e, lines.join('\n'), true)
+      await this.replyMlCard(e, {
+        title: '密码破译 - 失败',
+        subtitle: '机会已经用完了喵，这次只能先看到这里啦~',
+        theme: 'danger',
+        chips: [
+          `${difficulty.name}难度`,
+          `已用 ${game.history.length} 次`
+        ],
+        history: game.history,
+        summaryLines: [
+          `次数用完啦... 正确答案是 ${game.password}`
+        ],
+        footerLines: [
+          '/ml start - 再来一次'
+        ]
+      }, lines.join('\n'))
       return true
     }
 
@@ -567,7 +703,21 @@ export class NeowPlugin extends plugin {
     lines.push('使用: /ml <任意四位数字> 以继续破译')
     lines.push('例如: /ml 1234')
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
+    await this.replyMlCard(e, {
+      title: remainSeconds !== null ? '密码破译 - 剩余时间' : '密码破译 - 正在进行',
+      subtitle: '继续试试看吧喵，也许下一次就能戳中真正的密码了~',
+      theme: 'info',
+      chips: [
+        `${difficulty.name}难度`,
+        remainSeconds !== null ? `剩余 ${remainSeconds} 秒` : '无时间限制',
+        `已尝试 ${game.history.length} 次`
+      ],
+      history: game.history,
+      footerLines: [
+        '使用: /ml <任意四位数字> 以继续破译',
+        '例如: /ml 1234'
+      ]
+    }, lines.join('\n'))
     return true
   }
 
@@ -1139,5 +1289,36 @@ export class NeowPlugin extends plugin {
     } catch (error) {
       logWarn(`[neow][reply-timeout] group=${e.group_id || 'private'} user=${e.user_id} msg=${JSON.stringify(e.msg)} error=${error?.message || error}`)
     }
+  }
+
+  async replyMlCard(e, card, fallbackText) {
+    const shouldRenderImage = Array.isArray(card?.history) && card.history.length > 0
+    const imageBuffer = await renderMlImage(card)
+    const shouldAppendTextAfterImage = shouldRenderImage
+
+    if (imageBuffer && segmentInstance?.image) {
+      try {
+        const imagePayload = Buffer.isBuffer(imageBuffer)
+          ? `base64://${imageBuffer.toString('base64')}`
+          : imageBuffer
+
+        await this.replyWithTimeout(e, segmentInstance.image(imagePayload), true)
+        if (shouldAppendTextAfterImage && fallbackText) {
+          await this.replyWithTimeout(e, fallbackText, true)
+        }
+        return true
+      } catch (error) {
+        logWarn(`[neow][ml-render] 图片发送失败，已降级为文本发送: ${error?.message || error}`)
+      }
+    }
+
+    if (!imageBuffer && shouldRenderImage) {
+      logWarn('[neow][ml-render] 图片渲染失败，已降级为文本发送')
+    } else if (!segmentInstance?.image) {
+      logWarn('[neow][ml-render] 当前环境不支持图片消息，已降级为文本发送')
+    }
+
+    await this.replyWithTimeout(e, fallbackText, true)
+    return true
   }
 }
