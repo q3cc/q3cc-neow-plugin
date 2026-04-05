@@ -584,7 +584,10 @@ export class NeowPlugin extends plugin {
         footerLines: [
           '/ml start - 再来一次'
         ]
-      }, lines.join('\n'))
+      }, lines.join('\n'), [
+        `时间到啦喵... 正确答案是 ${game.password}`,
+        '/ml start - 再来一次'
+      ].join('\n'))
       return true
     }
 
@@ -631,7 +634,11 @@ export class NeowPlugin extends plugin {
         footerLines: [
           '/ml start - 再来一次'
         ]
-      }, lines.join('\n'))
+      }, lines.join('\n'), [
+        `总共试了 ${game.history.length} 次`,
+        `游戏机吐出了 ${rewards.coinReward} 枚 Star 币, 同时还获得了来自大喵喵的 ${rewards.favorReward} 点好感度`,
+        '/ml start - 再来一次'
+      ].join('\n'))
       return true
     }
 
@@ -660,7 +667,11 @@ export class NeowPlugin extends plugin {
         footerLines: [
           '/ml start - 再来一次'
         ]
-      }, lines.join('\n'))
+      }, lines.join('\n'), [
+        '第 5 次之后，老旧的机器突然冒出一阵黑烟，直接炸机了喵...',
+        `正确答案是 ${game.password}`,
+        '/ml start - 再来一次'
+      ].join('\n'))
       return true
     }
 
@@ -687,7 +698,10 @@ export class NeowPlugin extends plugin {
         footerLines: [
           '/ml start - 再来一次'
         ]
-      }, lines.join('\n'))
+      }, lines.join('\n'), [
+        `次数用完啦... 正确答案是 ${game.password}`,
+        '/ml start - 再来一次'
+      ].join('\n'))
       return true
     }
 
@@ -717,7 +731,9 @@ export class NeowPlugin extends plugin {
         '使用: /ml <任意四位数字> 以继续破译',
         '例如: /ml 1234'
       ]
-    }, lines.join('\n'))
+    }, lines.join('\n'), remainSeconds !== null
+      ? `剩余时间 ${remainSeconds} 秒`
+      : `已尝试 ${game.history.length} 次`)
     return true
   }
 
@@ -1291,10 +1307,9 @@ export class NeowPlugin extends plugin {
     }
   }
 
-  async replyMlCard(e, card, fallbackText) {
+  async replyMlCard(e, card, fallbackText, imageText = '') {
     const shouldRenderImage = Array.isArray(card?.history) && card.history.length > 0
     const imageBuffer = await renderMlImage(card)
-    const shouldAppendTextAfterImage = shouldRenderImage
 
     if (imageBuffer && segmentInstance?.image) {
       try {
@@ -1303,8 +1318,8 @@ export class NeowPlugin extends plugin {
           : imageBuffer
 
         await this.replyWithTimeout(e, segmentInstance.image(imagePayload), true)
-        if (shouldAppendTextAfterImage && fallbackText) {
-          await this.replyWithTimeout(e, fallbackText, true)
+        if (imageText) {
+          await this.replyWithTimeout(e, imageText, true)
         }
         return true
       } catch (error) {
