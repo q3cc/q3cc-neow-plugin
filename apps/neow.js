@@ -286,7 +286,7 @@ export class NeowPlugin extends plugin {
     const user = getUserData(e.user_id)
 
     await e.reply([
-      `账号ID: ${e.user_id}`,
+      `UID: ${user.uid}`,
       ...buildUserInfoLines(user, {
         includeRegisterTime: true
       })

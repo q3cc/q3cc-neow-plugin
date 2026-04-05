@@ -35,6 +35,7 @@ let usersFlushPromise = Promise.resolve()
 let signStatsDirty = false
 let signStatsWriting = false
 let signStatsFlushPromise = Promise.resolve()
+let nextUid = 1
 
 const DEFAULT_POKE_ACTIONS = {
   actions: [
@@ -47,6 +48,7 @@ const DEFAULT_POKE_ACTIONS = {
 
 function createDefaultUser() {
   return {
+    uid: 0,
     coins: 0,
     favor: 0,
     signCount: 0,
@@ -152,6 +154,8 @@ function saveSignStats() {
 }
 
 function loadPersistedData() {
+  let uidChanged = false
+
   try {
     if (fs.existsSync(usersPath)) {
       const rawUsers = JSON.parse(fs.readFileSync(usersPath, 'utf8'))
@@ -162,6 +166,8 @@ function loadPersistedData() {
   } catch {
     users.clear()
   }
+
+  uidChanged = assignMissingUids() || uidChanged
 
   try {
     if (fs.existsSync(signStatsPath)) {
@@ -179,6 +185,10 @@ function loadPersistedData() {
     }
   } catch {
     dailySignStats.clear()
+  }
+
+  if (uidChanged) {
+    saveUsers()
   }
 }
 
@@ -250,6 +260,67 @@ export const difficultyNames = {
 
 function normalizeUserId(userId) {
   return String(userId)
+}
+
+function parseRegisterTime(registerTime) {
+  const parsed = Date.parse(registerTime || '')
+  return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER
+}
+
+function hasValidUid(user) {
+  return Number.isInteger(user?.uid) && user.uid > 0
+}
+
+function assignMissingUids() {
+  let changed = false
+  const usedUids = new Set()
+
+  for (const user of users.values()) {
+    if (hasValidUid(user)) {
+      usedUids.add(user.uid)
+    }
+  }
+
+  const pendingUsers = [...users.entries()]
+    .filter(([, user]) => !hasValidUid(user))
+    .sort(([leftId, leftUser], [rightId, rightUser]) => {
+      const timeDiff = parseRegisterTime(leftUser.registerTime) - parseRegisterTime(rightUser.registerTime)
+      if (timeDiff !== 0) {
+        return timeDiff
+      }
+
+      return leftId.localeCompare(rightId, 'zh-CN')
+    })
+
+  let uidCursor = 1
+  for (const [, user] of pendingUsers) {
+    while (usedUids.has(uidCursor)) {
+      uidCursor++
+    }
+
+    user.uid = uidCursor
+    usedUids.add(uidCursor)
+    uidCursor++
+    changed = true
+  }
+
+  nextUid = usedUids.size
+    ? Math.max(...usedUids) + 1
+    : 1
+
+  return changed
+}
+
+function ensureUserUid(user) {
+  if (hasValidUid(user)) {
+    if (user.uid >= nextUid) {
+      nextUid = user.uid + 1
+    }
+    return false
+  }
+
+  user.uid = nextUid++
+  return true
 }
 
 function getFavorTier(favor) {
@@ -342,10 +413,11 @@ export function getUserData(userId) {
 
   const user = users.get(normalizedUserId)
   const now = Date.now()
+  const uidAssigned = ensureUserUid(user)
 
   syncUserData(user, { persist: true })
 
-  if (created) {
+  if (created || uidAssigned) {
     saveUsers()
   }
 

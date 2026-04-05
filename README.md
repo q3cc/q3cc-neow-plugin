@@ -71,7 +71,7 @@
 
 - `index.js` - 插件入口与版本日志
 - `apps/neow.js` - Yunzai 实际注册的主插件类
-- `utils/user-data.js` - 用户数据、好感度、体力、签到、帮助文案
+- `utils/user-data.js` - 用户数据、UID 分配、好感度、体力、签到、帮助文案
 - `utils/game24.js` - 24 点玩法配置、题库读取与奖励计算
 - `utils/ml-game.js` - 密码破译玩法配置、状态与奖励计算
 - `scripts/generate-game24-bank.mjs` - 24 点单个题库生成脚本
