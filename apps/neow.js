@@ -57,6 +57,7 @@ import {
   calculateWordlePenalty
 } from '../utils/wordle-game.js'
 import { renderMlImage } from '../utils/ml-render.js'
+import { renderWordleImage } from '../utils/wordle-render.js'
 
 const loggerInstance = (typeof Bot !== 'undefined' && Bot?.logger)
   || (typeof logger !== 'undefined' ? logger : null)
@@ -945,8 +946,9 @@ export class NeowPlugin extends plugin {
         '/wordle start - 再来一次'
       ]
       deleteWordleGame(sessionId, e.user_id)
-      await this.replyMlCard(e, {
-        history: game.history
+      await this.replyWordleCard(e, {
+        history: game.history,
+        maxAttempts: difficulty.maxAttempts
       }, lines.join('\n'), [
         `时间到啦喵... 正确答案是 ${game.answer}`,
         penaltyLine,
@@ -986,8 +988,9 @@ export class NeowPlugin extends plugin {
       ]
 
       deleteWordleGame(sessionId, e.user_id)
-      await this.replyMlCard(e, {
-        history: game.history
+      await this.replyWordleCard(e, {
+        history: game.history,
+        maxAttempts: difficulty.maxAttempts
       }, lines.join('\n'), [
         `总共试了 ${game.history.length} 次`,
         `游戏机吐出了 ${rewards.coinReward} 枚 Star 币, 同时还获得了来自大喵喵的 ${rewards.favorReward} 点好感度`,
@@ -1007,8 +1010,9 @@ export class NeowPlugin extends plugin {
       ]
 
       deleteWordleGame(sessionId, e.user_id)
-      await this.replyMlCard(e, {
-        history: game.history
+      await this.replyWordleCard(e, {
+        history: game.history,
+        maxAttempts: difficulty.maxAttempts
       }, lines.join('\n'), [
         `次数用完啦... 正确答案是 ${game.answer}`,
         penaltyLine,
@@ -1028,8 +1032,9 @@ export class NeowPlugin extends plugin {
     fallbackLines.push(...formatWordleHistory(game.history))
     fallbackLines.push('继续输入 /wordle <单词> 以继续猜测')
 
-    await this.replyMlCard(e, {
-      history: game.history
+    await this.replyWordleCard(e, {
+      history: game.history,
+      maxAttempts: difficulty.maxAttempts
     }, fallbackLines.join('\n'), remainSeconds !== null
       ? `剩余时间 ${remainSeconds} 秒`
       : `已尝试 ${game.history.length}/${difficulty.maxAttempts} 次`)
@@ -1645,9 +1650,9 @@ export class NeowPlugin extends plugin {
     }
   }
 
-  async replyMlCard(e, card, fallbackText, imageText = '') {
+  async replyRenderedCard(e, card, fallbackText, imageText = '', renderer) {
     const shouldRenderImage = Array.isArray(card?.history) && card.history.length > 0
-    const imageBuffer = await renderMlImage(card)
+    const imageBuffer = await renderer(card)
 
     if (imageBuffer && segmentInstance?.image) {
       try {
@@ -1683,5 +1688,13 @@ export class NeowPlugin extends plugin {
 
     await this.replyWithTimeout(e, fallbackText, true)
     return true
+  }
+
+  async replyMlCard(e, card, fallbackText, imageText = '') {
+    return this.replyRenderedCard(e, card, fallbackText, imageText, renderMlImage)
+  }
+
+  async replyWordleCard(e, card, fallbackText, imageText = '') {
+    return this.replyRenderedCard(e, card, fallbackText, imageText, renderWordleImage)
   }
 }

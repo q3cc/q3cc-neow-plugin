@@ -93,7 +93,10 @@
 - `utils/user-data.js` - 用户数据、UID 分配、好感度、体力、签到、帮助文案
 - `utils/game24.js` - 24 点玩法配置、题库读取与奖励计算
 - `utils/ml-game.js` - 密码破译玩法配置、状态与奖励计算
+- `utils/ml-render.js` - 密码破译棋盘图片渲染
 - `utils/wordle-game.js` - Wordle 猜单词配置、词库校验、状态与奖励计算
+- `utils/wordle-render.js` - Wordle 棋盘与键盘图片渲染
+- `utils/render-browser.js` - Puppeteer 浏览器实例复用
 - `resources/wordle-words.json` - Wordle 词库
 - `scripts/generate-game24-bank.mjs` - 24 点单个题库生成脚本
 - `SPEC.md` - 当前规则说明
@@ -120,5 +123,8 @@ node --check apps/neow.js
 node --check utils/user-data.js
 node --check utils/game24.js
 node --check utils/ml-game.js
+node --check utils/ml-render.js
 node --check utils/wordle-game.js
+node --check utils/wordle-render.js
+node --check utils/render-browser.js
 ```
