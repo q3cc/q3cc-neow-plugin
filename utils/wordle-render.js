@@ -116,7 +116,7 @@ function buildWordleHtml(card) {
       .canvas {
         width: 560px;
         margin: 0 auto;
-        padding: 4px 0 12px;
+        padding: 20px 0 30px;
       }
       .board {
         display: flex;
@@ -163,7 +163,7 @@ function buildWordleHtml(card) {
         color: #ffffff;
       }
       .keyboard {
-        margin-top: 38px;
+        margin-top: 42px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -205,12 +205,21 @@ function buildWordleHtml(card) {
         background: #d3d6da;
         color: #1a1a1b;
       }
+      .footer {
+        margin-top: 28px;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #7f858c;
+        text-align: center;
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
     <div class="canvas">
       <div class="board">${renderBoard(card.history, maxAttempts)}</div>
       <div class="keyboard">${renderKeyboard(card.history)}</div>
+      <div class="footer"><strong>${escapeHtml(card.footerText || 'q3cc-neow-plugin')}</strong></div>
     </div>
   </body>
   </html>`
