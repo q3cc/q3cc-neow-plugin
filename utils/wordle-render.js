@@ -108,28 +108,29 @@ function buildWordleHtml(card) {
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        padding: 18px 20px 22px;
+        padding: 30px 24px 38px;
         font-family: Inter, "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
         background: #ffffff;
         color: #1a1a1b;
       }
       .canvas {
-        width: 460px;
+        width: 560px;
         margin: 0 auto;
+        padding: 4px 0 12px;
       }
       .board {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 10px;
       }
       .board-row {
         display: flex;
-        gap: 6px;
+        gap: 10px;
       }
       .tile {
-        width: 56px;
-        height: 56px;
+        width: 78px;
+        height: 78px;
         border: 2px solid #d3d6da;
         border-radius: 2px;
         display: flex;
@@ -140,7 +141,7 @@ function buildWordleHtml(card) {
       }
       .tile span {
         display: block;
-        font-size: 31px;
+        font-size: 34px;
         line-height: 1;
         font-weight: 700;
         letter-spacing: 0.02em;
@@ -162,7 +163,7 @@ function buildWordleHtml(card) {
         color: #ffffff;
       }
       .keyboard {
-        margin-top: 18px;
+        margin-top: 38px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -175,19 +176,19 @@ function buildWordleHtml(card) {
       .row-offset-1 { padding-left: 18px; }
       .row-offset-2 { padding-left: 34px; }
       .key {
-        min-width: 34px;
-        height: 48px;
-        padding: 0 7px;
-        border-radius: 4px;
-        background: #818384;
-        color: #ffffff;
+        min-width: 48px;
+        height: 58px;
+        padding: 0 10px;
+        border-radius: 6px;
+        background: #d3d6da;
+        color: #1a1a1b;
         display: flex;
         align-items: center;
         justify-content: center;
       }
       .key span {
         display: block;
-        font-size: 20px;
+        font-size: 22px;
         line-height: 1;
         font-weight: 600;
         text-transform: uppercase;
@@ -195,7 +196,15 @@ function buildWordleHtml(card) {
       .key.green { background: #6aaa64; }
       .key.yellow { background: #c9b458; }
       .key.gray { background: #787c7e; }
-      .key.empty { background: #818384; }
+      .key.green,
+      .key.yellow,
+      .key.gray {
+        color: #ffffff;
+      }
+      .key.empty {
+        background: #d3d6da;
+        color: #1a1a1b;
+      }
     </style>
   </head>
   <body>
@@ -219,7 +228,7 @@ export async function renderWordleImage(card) {
     page = await browser.newPage()
     await page.setViewport({
       width: 720,
-      height: 1200,
+      height: 1600,
       deviceScaleFactor: 2
     })
 

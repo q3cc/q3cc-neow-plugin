@@ -36,6 +36,9 @@
 
 ## Commit & Pull Request Guidelines
 - Use Chinese commit messages and keep them specific, for example: `优化24点题库与密码破译规则`.
+- Commit titles and bodies must match the actual staged diff of the current task; never reuse unrelated historical example content as the real commit message.
+- If the user says a commit is only a “示例 commit”, treat it as a format reference unless they explicitly ask to use that exact title/body.
+- Prefer commit messages in this structure: one concise Chinese title, plus a body with specific bullet-style lines such as `[优化] ...`、`[修复] ...`、`[维护] ...`、`[文档] ...`, and every line must correspond to the current commit.
 - Every user-visible change must be reflected in `CHANGELOG.md` with detailed bullet logs. Prefer explicit entries such as `[优化] 猜密码游戏每个数字现在不会重复` and `[优化] 现在使用题库进行提升速度`.
 - Stage only task-related files with explicit paths. Never include temporary references like `1.txt`.
 - PRs should summarize gameplay impact, list changed commands, and include sample chat output when reply text or menus change.
