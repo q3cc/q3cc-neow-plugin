@@ -1,6 +1,6 @@
 # q3cc-neow-plugin
 
-一个带有“大喵喵”风格文案的游戏插件，目前主要提供账号信息系统、24 点题库玩法、密码破译玩法与 Wordle 猜单词玩法。
+一个带有“大喵喵”风格文案的游戏插件，目前主要提供账号信息系统、24 点题库玩法、密码破译玩法、Wordle 猜单词玩法与多人数字炸弹玩法。
 
 当前版本：`v0.0.11`
 
@@ -12,6 +12,7 @@
 - 每日签到：`/sign`（兼容 `/签到`、`/qd`、`/checkin`）
 - 密码破译：`/ml`
 - Wordle 猜单词：`/wordle`
+- 数字炸弹：`/boom`
 - 24 点菜单：`/24g`
 - 24 点开局、五组题库抽题、难度切换、答题
 - 好感度、体力、Star币 统一管理
@@ -36,6 +37,15 @@
 - `/wordle difficulty` - 查看 Wordle 难度菜单
 - `/wordle difficulty <0-3>` - 设置 Wordle 难度
 - `/wordle <五字母单词>` - 提交本局猜测
+- `/boom` - 查看数字炸弹菜单或当前房间状态
+- `/boom create` - 创建数字炸弹房间（兼容 `/boom creat`）
+- `/boom join` - 加入当前群的数字炸弹房间
+- `/boom start` - 房主开启 15 秒倒计时
+- `/boom leave` - 退出房间，若已开局则视为主动 boom
+- `/boom cancel` - 房主取消当前数字炸弹房间
+- `/boom difficulty` - 查看数字炸弹难度菜单
+- `/boom difficulty <0-3>` - 设置数字炸弹难度
+- `/boom <数字>` - 在自己回合提交数字猜测
 
 ### 24 点指令
 
@@ -86,6 +96,19 @@
 - 成功猜出后会获得 `Star 币` 与好感度奖励
 - 失败后会随机扣除一部分 `Star 币`
 
+## 数字炸弹规则
+
+- 仅支持群聊游玩，至少需要 `2` 人参与
+- 建房指令：`/boom create`，加入指令：`/boom join`
+- 房主使用 `/boom start` 后会进入 `15` 秒倒计时，倒计时内仍可继续加入
+- 房间创建后若 `30` 分钟内仍未正式开始，会自动取消
+- 玩家需要至少 `40` 枚 `Star 币` 才能建房或加入
+- 开局时会按每位玩家的数字炸弹难度随机扣除部分 `Star 币` 填入奖池
+- 炸弹固定藏在 `1-100` 之间，玩家按回合猜测 `/boom <数字>`
+- 若猜中炸弹，则该玩家当场 `boom`，本局立刻结束
+- 所有未爆玩家平分当前奖池，不额外发放好感度
+- 数字炸弹与 `/ml`、`/wordle`、`/24g` 互斥，参加房间后不能再开启这三类游戏
+
 ## 文件结构
 
 - `index.js` - 插件入口与版本日志
@@ -96,6 +119,7 @@
 - `utils/ml-render.js` - 密码破译棋盘图片渲染
 - `utils/wordle-game.js` - Wordle 猜单词配置、词库校验、状态与奖励计算
 - `utils/wordle-render.js` - Wordle 棋盘与键盘图片渲染
+- `utils/boom-game.js` - 数字炸弹房间状态、回合规则与奖池结算
 - `utils/render-browser.js` - Puppeteer 浏览器实例复用
 - `resources/wordle-words.json` - Wordle 词库
 - `scripts/generate-game24-bank.mjs` - 24 点单个题库生成脚本
@@ -124,7 +148,9 @@ node --check utils/user-data.js
 node --check utils/game24.js
 node --check utils/ml-game.js
 node --check utils/ml-render.js
+node --check utils/boom-game.js
 node --check utils/wordle-game.js
 node --check utils/wordle-render.js
 node --check utils/render-browser.js
+node --test tests/boom-game.test.js
 ```

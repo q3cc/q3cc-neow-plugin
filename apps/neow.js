@@ -56,12 +56,36 @@ import {
   calculateWordleRewards,
   calculateWordlePenalty
 } from '../utils/wordle-game.js'
+import {
+  BOOM_COUNTDOWN_MS,
+  BOOM_DIFFICULTIES,
+  BOOM_MAX_PLAYERS,
+  BOOM_MIN_COINS,
+  BOOM_ROOM_IDLE_MS,
+  addBoomPlayer,
+  applyBoomGuess,
+  createBoomRoom,
+  deleteBoomRoom,
+  getBoomCurrentPlayerId,
+  getBoomGuessRange,
+  getBoomRoom,
+  isBoomRoomIdleActive,
+  isBoomCountdownActive,
+  isBoomParticipant,
+  prepareBoomStart,
+  removeBoomPlayer,
+  setBoomCountdown,
+  setBoomRoomIdle,
+  settleBoomRoom,
+  startBoomGame
+} from '../utils/boom-game.js'
 import { renderMlImage } from '../utils/ml-render.js'
 import { renderWordleImage } from '../utils/wordle-render.js'
 
 const loggerInstance = (typeof Bot !== 'undefined' && Bot?.logger)
   || (typeof logger !== 'undefined' ? logger : null)
   || globalThis.logger
+const botInstance = typeof Bot !== 'undefined' ? Bot : globalThis.Bot
 const logInfo = loggerInstance?.info?.bind(loggerInstance) || console.log
 const logWarn = loggerInstance?.warn?.bind(loggerInstance) || console.warn
 const segmentInstance = typeof segment !== 'undefined' ? segment : globalThis.segment
@@ -177,6 +201,42 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?(?:wordle|wd)\s+([a-zA-Z]{5})\s*$/i,
           fnc: 'submitWordleAnswer'
+        },
+        {
+          reg: /^(?:\/|#)?boom\s*$/i,
+          fnc: 'showBoomMenu'
+        },
+        {
+          reg: /^(?:\/|#)?boom\s+difficulty\s*$/i,
+          fnc: 'showBoomDifficultyMenu'
+        },
+        {
+          reg: /^(?:\/|#)?boom\s+difficulty\s+(\d+)\s*$/i,
+          fnc: 'setBoomDifficulty'
+        },
+        {
+          reg: /^(?:\/|#)?boom\s+creat(?:e)?\s*$/i,
+          fnc: 'createBoomGameRoom'
+        },
+        {
+          reg: /^(?:\/|#)?boom\s+join\s*$/i,
+          fnc: 'joinBoomGameRoom'
+        },
+        {
+          reg: /^(?:\/|#)?boom\s+leave\s*$/i,
+          fnc: 'leaveBoomGameRoom'
+        },
+        {
+          reg: /^(?:\/|#)?boom\s+start\s*$/i,
+          fnc: 'startBoomCountdown'
+        },
+        {
+          reg: /^(?:\/|#)?boom\s+cancel\s*$/i,
+          fnc: 'cancelBoomGameRoom'
+        },
+        {
+          reg: /^(?:\/|#)?boom\s+(\d+)\s*$/i,
+          fnc: 'submitBoomGuess'
         },
         {
           reg: /^(?:\/|#)?24g\s*$/i,
@@ -434,6 +494,10 @@ export class NeowPlugin extends plugin {
     }
 
     const sessionId = this.getSessionId(e)
+    if (!this.ensureNoBoomConflict(e, sessionId, '开启密码破译', '/boom - 查看数字炸弹房间状态')) {
+      return true
+    }
+
     const active24Game = getActiveGame(sessionId, e.user_id)
     if (active24Game) {
       await e.reply([
@@ -818,6 +882,10 @@ export class NeowPlugin extends plugin {
     }
 
     const sessionId = this.getSessionId(e)
+    if (!this.ensureNoBoomConflict(e, sessionId, '开启 Wordle', '/boom - 查看数字炸弹房间状态')) {
+      return true
+    }
+
     const activeMlGame = getMlGame(sessionId, e.user_id)
     if (activeMlGame) {
       await e.reply([
@@ -1038,6 +1106,411 @@ export class NeowPlugin extends plugin {
     }, fallbackLines.join('\n'), remainSeconds !== null
       ? `剩余时间 ${remainSeconds} 秒`
       : `已尝试 ${game.history.length}/${difficulty.maxAttempts} 次`)
+    return true
+  }
+
+  async showBoomMenu(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureBoomGroupOnly(e)) {
+      return true
+    }
+
+    const sessionId = this.getSessionId(e)
+    const room = getBoomRoom(sessionId)
+
+    if (room) {
+      await e.reply(this.formatBoomRoomLines(room).join('\n'), true)
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const difficulty = BOOM_DIFFICULTIES[user.boomDifficulty] || BOOM_DIFFICULTIES[1]
+
+    await e.reply([
+      '来和大家一起玩数字炸弹喵~',
+      '至少 2 个人才能开玩，炸到的人会当场 boom！',
+      '',
+      `当前 Star 币: ${user.coins}`,
+      `当前难度: ${difficulty.name} (名义 ${difficulty.stakeLabel} 档, 实际入池 ${difficulty.stakeRange[0]}-${difficulty.stakeRange[1]})`,
+      `入场条件: 至少 ${BOOM_MIN_COINS} 枚 Star 币`,
+      '/boom create - 创建房间',
+      '/boom join - 加入房间',
+      '/boom difficulty - 修改难度'
+    ].join('\n'), true)
+    return true
+  }
+
+  async showBoomDifficultyMenu(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureBoomGroupOnly(e)) {
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const difficulty = BOOM_DIFFICULTIES[user.boomDifficulty] || BOOM_DIFFICULTIES[1]
+
+    await e.reply([
+      `当前难度: ${difficulty.name}`,
+      '',
+      '/boom difficulty 0 - 简单 (名义 10 档, 实际入池 3-6)',
+      '/boom difficulty 1 - 普通 (名义 20 档, 实际入池 5-8)',
+      '/boom difficulty 2 - 困难 (名义 30 档, 实际入池 7-11)',
+      '/boom difficulty 3 - 极限 (名义 40 档, 实际入池 9-14)',
+      '',
+      '实际扣币会在开局时随机结算，且始终小于 15'
+    ].join('\n'), true)
+    return true
+  }
+
+  async setBoomDifficulty(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureBoomGroupOnly(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?boom\s+difficulty\s+(\d+)\s*$/i)
+    const difficultyId = match ? parseInt(match[1]) : NaN
+
+    if (!(difficultyId in BOOM_DIFFICULTIES)) {
+      await e.reply('无效的难度等级\n可选: 0-简单, 1-普通, 2-困难, 3-极限', true)
+      return true
+    }
+
+    const sessionId = this.getSessionId(e)
+    const room = getBoomRoom(sessionId)
+    const user = getUserData(e.user_id)
+    const difficulty = BOOM_DIFFICULTIES[difficultyId]
+
+    user.boomDifficulty = difficultyId
+    saveUserData()
+
+    const lines = [
+      `数字炸弹难度已设置为: ${difficulty.name}`,
+      `名义档位: ${difficulty.stakeLabel}`,
+      `实际入池: ${difficulty.stakeRange[0]}-${difficulty.stakeRange[1]}`
+    ]
+
+    if (room && isBoomParticipant(room, e.user_id)) {
+      lines.push('当前房间仍按加入时记录的难度结算，下次建房或加入新房间时生效喵~')
+    }
+
+    await e.reply(lines.join('\n'), true)
+    return true
+  }
+
+  async createBoomGameRoom(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureBoomGroupOnly(e)) {
+      return true
+    }
+
+    const sessionId = this.getSessionId(e)
+    if (!await this.ensureBoomAvailable(e, sessionId)) {
+      return true
+    }
+
+    const existsRoom = getBoomRoom(sessionId)
+    if (existsRoom) {
+      if (isBoomParticipant(existsRoom, e.user_id)) {
+        await e.reply('主人已经在这间数字炸弹房里啦喵~ 直接用 /boom 查看房间状态吧~', true)
+      } else {
+        await e.reply('当前群已经有一间数字炸弹房啦喵~ 先加入或等这局结束吧~', true)
+      }
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    if (user.coins < BOOM_MIN_COINS) {
+      await e.reply(`至少要有 ${BOOM_MIN_COINS} 枚 Star 币才能玩数字炸弹喵~`, true)
+      return true
+    }
+
+    const room = createBoomRoom(sessionId, e.group_id, e.user_id, user.boomDifficulty)
+    const roomId = room.roomId
+    let roomIdleToken = 0
+    const roomIdleTimer = setTimeout(() => {
+      void this.handleBoomRoomIdleTimeout(sessionId, roomId, roomIdleToken, e.group_id)
+    }, BOOM_ROOM_IDLE_MS)
+    roomIdleToken = setBoomRoomIdle(room, roomIdleTimer, BOOM_ROOM_IDLE_MS)
+    const difficulty = BOOM_DIFFICULTIES[user.boomDifficulty] || BOOM_DIFFICULTIES[1]
+
+    await e.reply([
+      '数字炸弹房间创建成功喵~',
+      `房主: ${this.getBoomPlayerLabel(e.user_id)}`,
+      `当前人数: ${room.players.length}/${BOOM_MAX_PLAYERS}`,
+      `未开始超过 ${Math.floor(BOOM_ROOM_IDLE_MS / 60000)} 分钟会自动取消`,
+      `你的难度: ${difficulty.name} (实际入池 ${difficulty.stakeRange[0]}-${difficulty.stakeRange[1]})`,
+      `/boom join - 让其他人加入`,
+      `/boom start - 开启 15 秒倒计时`
+    ].join('\n'), true)
+    return true
+  }
+
+  async joinBoomGameRoom(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureBoomGroupOnly(e)) {
+      return true
+    }
+
+    const sessionId = this.getSessionId(e)
+    const room = getBoomRoom(sessionId)
+    if (!room) {
+      await e.reply('当前群还没有数字炸弹房喵~ 先用 /boom create 建一个吧~', true)
+      return true
+    }
+
+    if (!await this.ensureBoomAvailable(e, sessionId)) {
+      return true
+    }
+
+    if (room.status === 'active') {
+      await e.reply('这局数字炸弹已经开始啦喵~ 等下一局再加入吧~', true)
+      return true
+    }
+
+    if (isBoomParticipant(room, e.user_id)) {
+      await e.reply('主人已经在这间数字炸弹房里啦喵~', true)
+      return true
+    }
+
+    if (room.players.length >= BOOM_MAX_PLAYERS) {
+      await e.reply(`房间已经满员啦喵~ 最多只能 ${BOOM_MAX_PLAYERS} 个人一起玩`, true)
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    if (user.coins < BOOM_MIN_COINS) {
+      await e.reply(`至少要有 ${BOOM_MIN_COINS} 枚 Star 币才能加入数字炸弹喵~`, true)
+      return true
+    }
+
+    addBoomPlayer(room, e.user_id, user.boomDifficulty)
+    const difficulty = BOOM_DIFFICULTIES[user.boomDifficulty] || BOOM_DIFFICULTIES[1]
+    const lines = [
+      `${this.getBoomPlayerLabel(e.user_id)} 加入了数字炸弹房喵~`,
+      `当前人数: ${room.players.length}/${BOOM_MAX_PLAYERS}`,
+      `当前难度: ${difficulty.name} (实际入池 ${difficulty.stakeRange[0]}-${difficulty.stakeRange[1]})`
+    ]
+
+    if (room.status === 'countdown') {
+      lines.push(`倒计时还剩 ${this.getBoomCountdownSeconds(room)} 秒，快抓紧上车喵~`)
+    } else {
+      lines.push('房主可以使用 /boom start 开启 15 秒倒计时')
+    }
+
+    await e.reply(lines.join('\n'), true)
+    return true
+  }
+
+  async leaveBoomGameRoom(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureBoomGroupOnly(e)) {
+      return true
+    }
+
+    const sessionId = this.getSessionId(e)
+    const room = getBoomRoom(sessionId)
+    if (!room || !isBoomParticipant(room, e.user_id)) {
+      await e.reply('主人当前不在数字炸弹房里喵~', true)
+      return true
+    }
+
+    if (room.status === 'active') {
+      await this.finishBoomGame(sessionId, room, e.user_id, {
+        reason: 'leave'
+      })
+      return true
+    }
+
+    const { newHostId } = removeBoomPlayer(room, e.user_id)
+    const lines = [`${this.getBoomPlayerLabel(e.user_id)} 离开了数字炸弹房喵~`]
+
+    if (!room.players.length) {
+      deleteBoomRoom(sessionId)
+      lines.push('房间里已经没人啦喵，数字炸弹房已自动关闭~')
+      await e.reply(lines.join('\n'), true)
+      return true
+    }
+
+    lines.push(`当前人数: ${room.players.length}/${BOOM_MAX_PLAYERS}`)
+
+    if (newHostId) {
+      lines.push(`新房主: ${this.getBoomPlayerLabel(newHostId)}`)
+    }
+
+    if (room.status === 'countdown') {
+      lines.push(`当前倒计时还剩 ${this.getBoomCountdownSeconds(room)} 秒`)
+    }
+
+    await e.reply(lines.join('\n'), true)
+    return true
+  }
+
+  async startBoomCountdown(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureBoomGroupOnly(e)) {
+      return true
+    }
+
+    const sessionId = this.getSessionId(e)
+    const room = getBoomRoom(sessionId)
+    if (!room) {
+      await e.reply('当前群还没有数字炸弹房喵~ 先用 /boom create 建一个吧~', true)
+      return true
+    }
+
+    if (!isBoomParticipant(room, e.user_id)) {
+      await e.reply('主人不在这间数字炸弹房里喵，不能帮忙开局哦~', true)
+      return true
+    }
+
+    if (room.hostId !== String(e.user_id)) {
+      await e.reply('只有房主才能开启数字炸弹倒计时喵~', true)
+      return true
+    }
+
+    if (room.status === 'active') {
+      await e.reply('这局数字炸弹已经开始啦喵~', true)
+      return true
+    }
+
+    if (room.status === 'countdown') {
+      await e.reply(`倒计时已经开始啦喵~ 还剩 ${this.getBoomCountdownSeconds(room)} 秒`, true)
+      return true
+    }
+
+    const roomId = room.roomId
+    let countdownToken = 0
+    const timer = setTimeout(() => {
+      void this.handleBoomCountdownEnd(sessionId, roomId, countdownToken, e.group_id)
+    }, BOOM_COUNTDOWN_MS)
+
+    countdownToken = setBoomCountdown(room, timer, BOOM_COUNTDOWN_MS)
+
+    await e.reply([
+      '数字炸弹倒计时开始啦喵~',
+      `剩余 ${Math.floor(BOOM_COUNTDOWN_MS / 1000)} 秒可继续用 /boom join 加入`,
+      `当前人数: ${room.players.length}/${BOOM_MAX_PLAYERS}`,
+      '倒计时结束时人数不足 2 会自动取消本房间'
+    ].join('\n'), true)
+    return true
+  }
+
+  async cancelBoomGameRoom(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureBoomGroupOnly(e)) {
+      return true
+    }
+
+    const sessionId = this.getSessionId(e)
+    const room = getBoomRoom(sessionId)
+    if (!room) {
+      await e.reply('当前群还没有数字炸弹房喵~', true)
+      return true
+    }
+
+    if (room.hostId !== String(e.user_id)) {
+      await e.reply('只有房主才能取消数字炸弹房喵~', true)
+      return true
+    }
+
+    if (room.status === 'active') {
+      await e.reply('这局数字炸弹已经开始啦喵，不能直接取消，只能继续猜或用 /boom leave 主动 boom~', true)
+      return true
+    }
+
+    deleteBoomRoom(sessionId)
+    await e.reply('数字炸弹房已取消喵~ 大家下次再玩吧~', true)
+    return true
+  }
+
+  async submitBoomGuess(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureBoomGroupOnly(e)) {
+      return true
+    }
+
+    const sessionId = this.getSessionId(e)
+    const room = getBoomRoom(sessionId)
+    if (!room) {
+      await e.reply('当前没有数字炸弹房喵~', true)
+      return true
+    }
+
+    if (!isBoomParticipant(room, e.user_id)) {
+      await e.reply('主人没在这局数字炸弹里喵~', true)
+      return true
+    }
+
+    if (room.status !== 'active') {
+      await e.reply('这局数字炸弹还没正式开始喵~ 先等房主 /boom start 吧~', true)
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?boom\s+(\d+)\s*$/i)
+    const guess = match ? parseInt(match[1]) : NaN
+    const result = applyBoomGuess(room, e.user_id, guess)
+
+    if (!result.ok) {
+      if (result.reason === 'not_turn') {
+        await e.reply(`现在还没轮到主人喵~ 先等 ${this.getBoomPlayerLabel(result.currentPlayerId)} 出手吧~`, true)
+        return true
+      }
+
+      if (result.reason === 'out_of_range') {
+        await e.reply(`这个数字超出当前可猜范围啦喵~ 现在只能猜 ${result.range.min}-${result.range.max}`, true)
+        return true
+      }
+
+      await e.reply('这个输入不对喵，记得使用 /boom <数字> 来猜~', true)
+      return true
+    }
+
+    if (result.result === 'boom') {
+      await this.finishBoomGame(sessionId, room, e.user_id, {
+        reason: 'guess',
+        guess
+      })
+      return true
+    }
+
+    const hintLine = result.direction === 'higher'
+      ? '还不够大喵，炸弹在更高一点的位置~'
+      : '太大啦喵，炸弹躲在更低一点的位置~'
+
+    await e.reply([
+      `${this.getBoomPlayerLabel(e.user_id)} 猜了 ${guess}`,
+      hintLine,
+      `当前区间: ${result.range.min}-${result.range.max}`,
+      `轮到 ${this.getBoomPlayerLabel(result.nextPlayerId)} 了喵~`
+    ].join('\n'), true)
     return true
   }
 
@@ -1337,6 +1810,10 @@ export class NeowPlugin extends plugin {
     }
 
     const sessionId = this.getSessionId(e)
+    if (!this.ensureNoBoomConflict(e, sessionId, '开启新的 24 点', '/boom - 查看数字炸弹房间状态')) {
+      return true
+    }
+
     const activeMlGame = getMlGame(sessionId, e.user_id)
     if (activeMlGame) {
       await e.reply([
@@ -1595,6 +2072,256 @@ export class NeowPlugin extends plugin {
       remainText
     ].join('\n'), true)
     return false
+  }
+
+  async ensureBoomGroupOnly(e) {
+    if (e.group_id) {
+      return true
+    }
+
+    await e.reply('数字炸弹至少需要两人，只能在群聊中游玩喵~', true)
+    return false
+  }
+
+  async ensureBoomAvailable(e, sessionId) {
+    const activeMlGame = getMlGame(sessionId, e.user_id)
+    if (activeMlGame) {
+      await e.reply([
+        '主人现在正在进行密码破译喵~',
+        '先把这局 `/ml` 结束掉，再来玩数字炸弹吧~'
+      ].join('\n'), true)
+      return false
+    }
+
+    const activeWordleGame = getWordleGame(sessionId, e.user_id)
+    if (activeWordleGame) {
+      await e.reply([
+        '主人现在正在玩猜单词喵~',
+        '先把这局 `/wordle` 结束掉，再来玩数字炸弹吧~'
+      ].join('\n'), true)
+      return false
+    }
+
+    const active24Game = getActiveGame(sessionId, e.user_id)
+    if (active24Game) {
+      await e.reply([
+        '主人现在正在玩 24 点喵~',
+        '先完成当前的 `/24g answer ...`，再来玩数字炸弹吧~'
+      ].join('\n'), true)
+      return false
+    }
+
+    return true
+  }
+
+  ensureNoBoomConflict(e, sessionId, gameLabel, commandText) {
+    const room = getBoomRoom(sessionId)
+    if (!room || !isBoomParticipant(room, e.user_id)) {
+      return true
+    }
+
+    const statusText = room.status === 'active'
+      ? '正在参加一局数字炸弹'
+      : '已经在数字炸弹房里等开局了'
+
+    this.replyWithTimeout(e, [
+      `主人${statusText}喵~`,
+      `先把这局 \`/boom\` 处理完，再来${gameLabel}吧~`,
+      commandText
+    ].join('\n'), true)
+    return false
+  }
+
+  getBoomPlayerLabel(userId) {
+    const user = getUserData(userId)
+    return `UID ${user.uid}`
+  }
+
+  getBoomCountdownSeconds(room) {
+    if (!room?.countdownEndsAt) {
+      return 0
+    }
+
+    return Math.max(0, Math.ceil((room.countdownEndsAt - Date.now()) / 1000))
+  }
+
+  getBoomRoomIdleSeconds(room) {
+    if (!room?.roomIdleEndsAt || room.status === 'active') {
+      return 0
+    }
+
+    return Math.max(0, Math.ceil((room.roomIdleEndsAt - Date.now()) / 1000))
+  }
+
+  formatBoomPlayerLine(player, index, room) {
+    const lineParts = [`${index + 1}. ${this.getBoomPlayerLabel(player.userId)}`]
+
+    if (player.userId === room.hostId) {
+      lineParts.push('(房主)')
+    }
+
+    lineParts.push(`- ${player.difficultyName}`)
+
+    if (room.status === 'active') {
+      lineParts.push(`- 已入池 ${player.actualStake}`)
+    }
+
+    if (player.eliminated) {
+      lineParts.push('- 已 boom')
+    }
+
+    return lineParts.join(' ')
+  }
+
+  formatBoomRoomLines(room) {
+    const lines = ['数字炸弹房间']
+    const statusText = room.status === 'active'
+      ? '进行中'
+      : room.status === 'countdown'
+        ? '倒计时中'
+        : '等待中'
+
+    lines.push(`状态: ${statusText}`)
+    lines.push(`房主: ${this.getBoomPlayerLabel(room.hostId)}`)
+    lines.push(`人数: ${room.players.length}/${BOOM_MAX_PLAYERS}`)
+
+    if (room.status !== 'active') {
+      lines.push(`未开始剩余: ${this.getBoomRoomIdleSeconds(room)} 秒`)
+    }
+
+    if (room.status === 'countdown') {
+      lines.push(`开局倒计时: ${this.getBoomCountdownSeconds(room)} 秒`)
+    }
+
+    if (room.status === 'active') {
+      const range = getBoomGuessRange(room)
+      lines.push(`当前区间: ${range.min}-${range.max}`)
+      lines.push(`当前奖池: ${room.prizePool} 枚 Star 币`)
+      lines.push(`轮到: ${this.getBoomPlayerLabel(getBoomCurrentPlayerId(room))}`)
+    }
+
+    lines.push('', '玩家列表:')
+    lines.push(...room.players.map((player, index) => this.formatBoomPlayerLine(player, index, room)))
+
+    if (room.status === 'lobby') {
+      lines.push('', '/boom join - 加入房间', '/boom start - 房主开启倒计时')
+    } else if (room.status === 'countdown') {
+      lines.push('', '/boom join - 趁倒计时继续加入', '/boom leave - 退出当前房间')
+    } else {
+      lines.push('', '使用 /boom <数字> 继续猜测', '例如: /boom 56')
+    }
+
+    return lines
+  }
+
+  async sendGroupMessage(groupId, message) {
+    if (!groupId) {
+      return false
+    }
+
+    try {
+      const group = botInstance?.pickGroup?.(Number(groupId))
+      if (group?.sendMsg) {
+        await group.sendMsg(message)
+        return true
+      }
+    } catch (error) {
+      logWarn(`[neow][boom-send] 群消息发送失败: ${error?.message || error}`)
+    }
+
+    return false
+  }
+
+  async handleBoomRoomIdleTimeout(sessionId, roomId, roomIdleToken, groupId) {
+    if (!isBoomRoomIdleActive(sessionId, roomId, roomIdleToken)) {
+      return
+    }
+
+    deleteBoomRoom(sessionId)
+    await this.sendGroupMessage(groupId, '数字炸弹房超过 30 分钟还没开始，已自动取消喵~')
+  }
+
+  async handleBoomCountdownEnd(sessionId, roomId, countdownToken, groupId) {
+    if (!isBoomCountdownActive(sessionId, roomId, countdownToken)) {
+      return
+    }
+
+    const room = getBoomRoom(sessionId)
+    if (!room) {
+      return
+    }
+
+    const startInfo = prepareBoomStart(room, userId => getUserData(userId).coins)
+    const lines = []
+
+    if (startInfo.removedPlayers.length) {
+      lines.push(`开局前被移出房间: ${startInfo.removedPlayers.map(player => this.getBoomPlayerLabel(player.userId)).join('、')}`)
+      lines.push(`原因: 需要至少 ${BOOM_MIN_COINS} 枚 Star 币才能继续游玩`)
+    }
+
+    if (startInfo.hostTransferredTo) {
+      lines.push(`房主已转交给 ${this.getBoomPlayerLabel(startInfo.hostTransferredTo)}`)
+    }
+
+    if (!startInfo.canStart) {
+      deleteBoomRoom(sessionId)
+      lines.push('数字炸弹房人数不足 2，已自动取消喵~')
+      await this.sendGroupMessage(groupId, lines.join('\n'))
+      return
+    }
+
+    for (const player of room.players) {
+      const user = getUserData(player.userId)
+      user.coins = Math.max(0, user.coins - player.actualStake)
+      syncUserData(user)
+    }
+    saveUserData()
+
+    startBoomGame(room)
+    const currentPlayerId = getBoomCurrentPlayerId(room)
+
+    lines.push('数字炸弹开始啦喵~')
+    lines.push(`本局奖池: ${room.prizePool} 枚 Star 币`)
+    lines.push(`出手顺序: ${room.turnOrder.map(userId => this.getBoomPlayerLabel(userId)).join(' -> ')}`)
+    lines.push('炸弹已经藏在 1-100 之间了喵，踩中的人会当场 boom！')
+    lines.push(`先手: ${this.getBoomPlayerLabel(currentPlayerId)}`)
+    lines.push('请使用 /boom <数字> 开始猜测')
+
+    await this.sendGroupMessage(groupId, lines.join('\n'))
+  }
+
+  async finishBoomGame(sessionId, room, loserId, options = {}) {
+    const result = settleBoomRoom(room, loserId)
+
+    for (const winnerId of result.winnerIds) {
+      const user = getUserData(winnerId)
+      user.coins += result.payouts[winnerId] || 0
+      syncUserData(user)
+    }
+    saveUserData()
+
+    const lines = ['BOOM!!!']
+
+    if (options.reason === 'leave') {
+      lines.push(`${this.getBoomPlayerLabel(loserId)} 主动抱走了炸弹，当场 boom 了喵...`)
+    } else {
+      lines.push(`${this.getBoomPlayerLabel(loserId)} 猜中了炸弹 ${options.guess}，直接 boom 了喵!`)
+    }
+
+    lines.push(`本局奖池: ${room.prizePool} 枚 Star 币`)
+    lines.push(`炸弹数字: ${room.bombNumber}`)
+
+    if (!result.winnerIds.length) {
+      lines.push('这局没有幸存者喵... 奖池被系统吞掉了')
+    } else {
+      lines.push('幸存玩家分到的 Star 币:')
+      lines.push(...result.winnerIds.map(userId =>
+        `  ${this.getBoomPlayerLabel(userId)}: ${result.payouts[userId]}`
+      ))
+    }
+
+    deleteBoomRoom(sessionId)
+    await this.sendGroupMessage(room.groupId, lines.join('\n'))
   }
 
   extractAnswer(msg) {
