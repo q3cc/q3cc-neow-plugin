@@ -4,6 +4,7 @@ export const WORDLE_DIFFICULTIES = {
   0: {
     name: '简单',
     desc: '8 次机会, 无时间限制',
+    wordSource: '高考基础词库',
     stamina: 10,
     maxAttempts: 8,
     timeLimit: 0,
@@ -14,6 +15,7 @@ export const WORDLE_DIFFICULTIES = {
   1: {
     name: '普通',
     desc: '6 次机会, 180 秒时间',
+    wordSource: '高考基础 + 四级附加',
     stamina: 15,
     maxAttempts: 6,
     timeLimit: 180,
@@ -24,6 +26,7 @@ export const WORDLE_DIFFICULTIES = {
   2: {
     name: '困难',
     desc: '5 次机会, 120 秒时间',
+    wordSource: '高考基础 + 四级附加 + 六级附加',
     stamina: 20,
     maxAttempts: 5,
     timeLimit: 120,
@@ -34,6 +37,7 @@ export const WORDLE_DIFFICULTIES = {
   3: {
     name: '极限',
     desc: '4 次机会, 60 秒时间',
+    wordSource: '原版 Wordle 词库',
     stamina: 25,
     maxAttempts: 4,
     timeLimit: 60,
@@ -44,18 +48,45 @@ export const WORDLE_DIFFICULTIES = {
 }
 
 const wordleGames = new Map()
-const wordsPath = new URL('../resources/wordle-words.json', import.meta.url)
-const wordList = loadWordList()
-const wordSet = new Set(wordList)
+const answerWordsPath = new URL('../resources/wordle-words.json', import.meta.url)
+const allowedGuessWordsPath = new URL('../resources/wordle-allowed-guesses.json', import.meta.url)
+const gaokaoWordsPath = new URL('../resources/wordle-cn-gaokao-words.json', import.meta.url)
+const cet4WordsPath = new URL('../resources/wordle-cn-cet4-words.json', import.meta.url)
+const cet6WordsPath = new URL('../resources/wordle-cn-cet6-words.json', import.meta.url)
+const fallbackAnswerWords = ['APPLE', 'HOUSE', 'TRAIN', 'WORLD', 'SMILE']
+const answerWordList = loadWordList(answerWordsPath, fallbackAnswerWords)
+const allowedGuessWordList = loadWordList(allowedGuessWordsPath)
+const gaokaoWordList = loadWordList(gaokaoWordsPath)
+const cet4ExtraWordList = loadWordList(cet4WordsPath)
+const cet6ExtraWordList = loadWordList(cet6WordsPath)
+const cet4WordList = [...gaokaoWordList, ...cet4ExtraWordList]
+const cet6WordList = [...cet4WordList, ...cet6ExtraWordList]
+const difficultyWordListMap = {
+  0: gaokaoWordList,
+  1: cet4WordList,
+  2: cet6WordList
+}
+const wordSet = new Set([
+  ...answerWordList,
+  ...allowedGuessWordList,
+  ...gaokaoWordList,
+  ...cet4ExtraWordList,
+  ...cet6ExtraWordList
+])
 
-function loadWordList() {
+function normalizeWordList(raw) {
+  return [...new Set((Array.isArray(raw) ? raw : [])
+    .map(word => String(word || '').trim().toUpperCase())
+    .filter(word => /^[A-Z]{5}$/.test(word)))]
+}
+
+function loadWordList(fileUrl, fallback = []) {
   try {
-    const raw = JSON.parse(fs.readFileSync(wordsPath, 'utf8'))
-    return raw
-      .map(word => String(word || '').trim().toUpperCase())
-      .filter(word => /^[A-Z]{5}$/.test(word))
+    const raw = JSON.parse(fs.readFileSync(fileUrl, 'utf8'))
+    const words = normalizeWordList(raw)
+    return words.length ? words : normalizeWordList(fallback)
   } catch {
-    return ['APPLE', 'HOUSE', 'TRAIN', 'WORLD', 'SMILE']
+    return normalizeWordList(fallback)
   }
 }
 
@@ -80,8 +111,14 @@ export function deleteWordleGame(sessionId, userId) {
   wordleGames.delete(getWordleKey(sessionId, userId))
 }
 
-export function getRandomWordleWord() {
-  return wordList[Math.floor(Math.random() * wordList.length)]
+export function getWordleAnswerPool(difficultyId) {
+  const difficultyPool = difficultyWordListMap[difficultyId]
+  return difficultyPool?.length ? difficultyPool : answerWordList
+}
+
+export function getRandomWordleWord(difficultyId, random = Math.random) {
+  const wordList = getWordleAnswerPool(difficultyId)
+  return wordList[Math.floor(random() * wordList.length)]
 }
 
 export function isValidWordleWord(word) {
