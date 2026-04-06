@@ -88,7 +88,12 @@
 ## Wordle 规则
 
 - 输入格式：`/wordle <五字母英文单词>`
-- 每局会随机生成一个 `5` 字母英文单词
+- 每局会从答案词库中随机生成一个 `5` 字母英文单词
+- 只要输入单词存在于合法猜测词库中，就可以提交，不要求必须属于答案词库
+- 难度 `0` 使用高考基础词库
+- 难度 `1` 使用“高考基础词库 + 四级附加词库”
+- 难度 `2` 使用“高考基础词库 + 四级附加词库 + 六级附加词库”
+- 难度 `3` 使用原版 Wordle 答案词库
 - `🟢` 表示字母和位置都正确
 - `🟠` 表示字母存在但位置不对
 - `🔴` 表示该字母不存在于答案中
@@ -117,11 +122,15 @@
 - `utils/game24.js` - 24 点玩法配置、题库读取与奖励计算
 - `utils/ml-game.js` - 密码破译玩法配置、状态与奖励计算
 - `utils/ml-render.js` - 密码破译棋盘图片渲染
-- `utils/wordle-game.js` - Wordle 猜单词配置、词库校验、状态与奖励计算
+- `utils/wordle-game.js` - Wordle 猜单词配置、答案词/合法猜测词校验、状态与奖励计算
 - `utils/wordle-render.js` - Wordle 棋盘与键盘图片渲染
 - `utils/boom-game.js` - 数字炸弹房间状态、回合规则与奖池结算
 - `utils/render-browser.js` - Puppeteer 浏览器实例复用
-- `resources/wordle-words.json` - Wordle 词库
+- `resources/wordle-words.json` - Wordle 答案词库
+- `resources/wordle-allowed-guesses.json` - Wordle 合法猜测词库
+- `resources/wordle-cn-gaokao-words.json` - Wordle 高考基础词库
+- `resources/wordle-cn-cet4-words.json` - Wordle 四级附加词库（已去重）
+- `resources/wordle-cn-cet6-words.json` - Wordle 六级附加词库（已去重）
 - `scripts/generate-game24-bank.mjs` - 24 点单个题库生成脚本
 - `SPEC.md` - 当前规则说明
 - `AGENTS.md` - 协作与贡献说明

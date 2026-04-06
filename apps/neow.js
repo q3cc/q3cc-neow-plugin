@@ -869,6 +869,7 @@ export class NeowPlugin extends plugin {
       '我会藏好一个 5 字母英文单词，主人来把它找出来吧~',
       '',
       `⚡ 当前体力: ${user.stamina}/${user.maxStamina} (${difficulty.stamina}体力/局)`,
+      `📚 当前词库: ${difficulty.wordSource}`,
       '/wordle start - 开始游戏',
       '/wordle difficulty - 修改难度'
     ].join('\n'), true)
@@ -930,7 +931,7 @@ export class NeowPlugin extends plugin {
     syncUserData(user, { persist: true })
 
     setWordleGame(sessionId, e.user_id, {
-      answer: getRandomWordleWord(),
+      answer: getRandomWordleWord(user.wordleDifficulty),
       difficulty: user.wordleDifficulty,
       history: [],
       startTime: Date.now()
@@ -939,6 +940,7 @@ export class NeowPlugin extends plugin {
     await e.reply([
       'Wordle 开始喵~',
       '大喵喵已经藏好了一个 5 字母单词。',
+      `当前词库: ${difficulty.wordSource}`,
       '请使用 /wordle <单词> 开始猜测',
       '例如: /wordle apple'
     ].join('\n'), true)
@@ -956,11 +958,12 @@ export class NeowPlugin extends plugin {
 
     await e.reply([
       `当前难度: ${difficulty.name}`,
+      `当前词库: ${difficulty.wordSource}`,
       '',
-      '/wordle difficulty 0 - 简单 (10体力/局, 8次机会, 无时限)',
-      '/wordle difficulty 1 - 普通 (15体力/局, 6次机会, 180秒)',
-      '/wordle difficulty 2 - 困难 (20体力/局, 5次机会, 120秒)',
-      '/wordle difficulty 3 - 极限 (25体力/局, 4次机会, 60秒)'
+      '/wordle difficulty 0 - 简单 (高考基础词库, 10体力/局, 8次机会, 无时限)',
+      '/wordle difficulty 1 - 普通 (高考基础 + 四级附加, 15体力/局, 6次机会, 180秒)',
+      '/wordle difficulty 2 - 困难 (高考基础 + 四级附加 + 六级附加, 20体力/局, 5次机会, 120秒)',
+      '/wordle difficulty 3 - 极限 (原版 Wordle 词库, 25体力/局, 4次机会, 60秒)'
     ].join('\n'), true)
 
     return true
@@ -987,6 +990,7 @@ export class NeowPlugin extends plugin {
     await e.reply([
       `Wordle 难度已设置为: ${difficulty.name}`,
       difficulty.desc,
+      `词库: ${difficulty.wordSource}`,
       `消耗体力: ${difficulty.stamina}`
     ].join('\n'), true)
     return true
