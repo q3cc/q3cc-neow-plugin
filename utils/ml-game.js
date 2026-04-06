@@ -61,6 +61,23 @@ export const ML_DIFFICULTIES = {
   }
 }
 
+export const ML_REPLY_MODES = {
+  auto: {
+    name: '自动',
+    desc: '优先发送图片, 失败时自动降级为文字'
+  },
+  image: {
+    name: '图片',
+    desc: '优先尝试图片发送, 失败时仍会降级为文字'
+  },
+  text: {
+    name: '文字',
+    desc: '直接发送文字, 不走图片渲染'
+  }
+}
+
+export const ML_FORCE_TEXT_DIFFICULTY = 4
+
 const mlGames = new Map()
 
 function getMlKey(groupId, userId) {
@@ -93,6 +110,21 @@ export function createPassword() {
   }
 
   return digits.slice(0, 4).join('')
+}
+
+export function normalizeMlReplyMode(mode) {
+  const normalizedMode = String(mode || '').trim().toLowerCase()
+  return normalizedMode in ML_REPLY_MODES
+    ? normalizedMode
+    : 'auto'
+}
+
+export function resolveMlReplyMode(mode, difficultyId) {
+  if (Number(difficultyId) === ML_FORCE_TEXT_DIFFICULTY) {
+    return 'text'
+  }
+
+  return normalizeMlReplyMode(mode)
 }
 
 export function evaluatePasswordGuess(answer, guess) {
