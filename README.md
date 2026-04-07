@@ -2,11 +2,12 @@
 
 一个带有“大喵喵”风格文案的游戏插件，目前主要提供账号信息系统、24 点题库玩法、密码破译玩法、Wordle 猜单词玩法与多人数字炸弹玩法。
 
-当前版本：`v0.0.11`
+当前版本：`v0.0.12`
 
 ## 功能简介
 
 - 个人信息：`/my`
+- Star 币排行榜：`/rank`
 - 帮助菜单：`/nhelp`（兼容 `/neowhelp`）
 - 在线检查：`/ping`
 - 每日签到：`/sign`（兼容 `/签到`、`/qd`、`/checkin`）
@@ -25,6 +26,7 @@
 - `/neowhelp` - `/nhelp` 的兼容别名
 - `/ping` - 检查插件是否在线
 - `/my` - 查看自己的账号信息
+- `/rank` - 查看 Star 币排行榜（优先发送图片，失败时降级文字）
 - `/sign` - 每日签到
 - `/签到` / `/qd` / `/checkin` - 签到别名
 - `/ml` - 查看密码破译菜单
@@ -128,14 +130,17 @@
 - `utils/ml-render.js` - 密码破译棋盘图片渲染
 - `utils/wordle-game.js` - Wordle 猜单词配置、答案词/合法猜测词校验、状态与奖励计算
 - `utils/wordle-render.js` - Wordle 棋盘与键盘图片渲染
+- `utils/rank-render.js` - Star 币排行榜图片渲染与预览数据
 - `utils/boom-game.js` - 数字炸弹房间状态、回合规则与奖池结算
 - `utils/render-browser.js` - Puppeteer 浏览器实例复用
+- `resources/rank-render-preview.html` - 排行榜图片预览 HTML
 - `resources/wordle-words.json` - Wordle 答案词库
 - `resources/wordle-allowed-guesses.json` - Wordle 合法猜测词库
 - `resources/wordle-cn-gaokao-words.json` - Wordle 高考基础词库
 - `resources/wordle-cn-cet4-words.json` - Wordle 四级附加词库（已去重）
 - `resources/wordle-cn-cet6-words.json` - Wordle 六级附加词库（已去重）
 - `scripts/generate-game24-bank.mjs` - 24 点单个题库生成脚本
+- `scripts/generate-rank-render-preview.mjs` - 生成排行榜预览 HTML
 - `SPEC.md` - 当前规则说明
 - `AGENTS.md` - 协作与贡献说明
 
@@ -147,7 +152,7 @@
 
 ```txt
 ---------^_^---------
-neow插件v0.0.11初始化~
+neow插件v0.0.12初始化~
 ```
 
 ## 开发
@@ -161,9 +166,12 @@ node --check utils/user-data.js
 node --check utils/game24.js
 node --check utils/ml-game.js
 node --check utils/ml-render.js
+node --check utils/rank-render.js
 node --check utils/boom-game.js
 node --check utils/wordle-game.js
 node --check utils/wordle-render.js
 node --check utils/render-browser.js
-node --test tests/boom-game.test.js
+node --check scripts/generate-rank-render-preview.mjs
+node --test tests/boom-game.test.js tests/ml-game.test.js tests/user-data.test.js tests/wordle-game.test.js tests/rank-render.test.js
+node scripts/generate-rank-render-preview.mjs
 ```

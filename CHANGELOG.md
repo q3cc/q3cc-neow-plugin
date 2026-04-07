@@ -2,7 +2,12 @@
 
 ## Unreleased
 
+## v0.0.12 - 2026-04-07
+
 ### 重点更新日志
+- [新增] `/rank` Star 币排行榜图片，整体采用接近 Wordle 的白底方块风格，默认展示前 `10` 名并在前十外补充自己的名次
+- [新增] `utils/rank-render.js`、`scripts/generate-rank-render-preview.mjs` 与 `resources/rank-render-preview.html`，可本地预览排行榜图片样式
+- [优化] `/rank` 现在会优先发送图片排行榜，若渲染失败、发图失败或环境不支持图片，则自动降级回文字榜单
 - [新增] `/ml mode` 与 `/ml mode <auto|image|text>`，允许用户单独设置密码破译优先使用图片还是文字发送
 - [调整] 密码破译在 `4 另类极限` 下会强制直接使用文字发送，避免限时场景被图片渲染拖慢
 - [优化] 旧用户缺失或异常的密码破译发送方式会自动回填为 `auto`

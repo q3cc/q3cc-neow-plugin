@@ -4,6 +4,7 @@ import {
   saveUserData,
   buildHelpLines,
   buildUserInfoLines,
+  getCoinLeaderboard,
   recordDailySign,
   getRandomSignPrompt,
   getRandomPokeAction,
@@ -85,6 +86,7 @@ import {
 } from '../utils/boom-game.js'
 import { renderMlImage } from '../utils/ml-render.js'
 import { renderWordleImage } from '../utils/wordle-render.js'
+import { renderRankImage } from '../utils/rank-render.js'
 
 const loggerInstance = (typeof Bot !== 'undefined' && Bot?.logger)
   || (typeof logger !== 'undefined' ? logger : null)
@@ -125,6 +127,10 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?my\s*$/i,
           fnc: 'myInfo'
+        },
+        {
+          reg: /^(?:\/|#)?(?:rank|coinrank)\s*$/i,
+          fnc: 'showCoinLeaderboard'
         },
         {
           reg: /^(?:\/|#)?setcoin(?:\s+.+)?\s*$/i,
@@ -404,6 +410,70 @@ export class NeowPlugin extends plugin {
     ].join('\n'), true)
 
     return true
+  }
+
+  async showCoinLeaderboard(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    getUserData(e.user_id)
+
+    const leaderboard = getCoinLeaderboard({
+      limit: 10,
+      userId: e.user_id
+    })
+    const fallbackText = this.buildCoinLeaderboardText(leaderboard, e.user_id)
+    const card = this.buildCoinLeaderboardCard(leaderboard)
+
+    return this.replyRankCard(e, card, fallbackText)
+  }
+
+  buildCoinLeaderboardText(leaderboard, userId) {
+    const lines = [
+      'Star 币排行榜',
+      leaderboard.totalUsers > leaderboard.entries.length
+        ? `当前展示前 ${leaderboard.entries.length} 名，共 ${leaderboard.totalUsers} 位用户`
+        : `当前共 ${leaderboard.totalUsers} 位用户`,
+      ''
+    ]
+
+    leaderboard.entries.forEach(entry => {
+      const selfTag = entry.userId === String(userId) ? '（你）' : ''
+      lines.push(`${entry.rank}. UID ${entry.uid} - ${entry.coins} 枚 Star 币${selfTag}`)
+    })
+
+    if (leaderboard.currentUser) {
+      lines.push('', `你当前第 ${leaderboard.currentUser.rank} 名`)
+
+      if (leaderboard.currentUser.rank > leaderboard.entries.length) {
+        lines.push(`UID ${leaderboard.currentUser.uid} - ${leaderboard.currentUser.coins} 枚 Star 币`)
+      }
+    }
+
+    return lines.join('\n')
+  }
+
+  buildCoinLeaderboardCard(leaderboard) {
+    const currentUser = leaderboard.currentUser && leaderboard.currentUser.rank > leaderboard.entries.length
+      ? {
+          rank: leaderboard.currentUser.rank,
+          uid: leaderboard.currentUser.uid,
+          coins: leaderboard.currentUser.coins
+        }
+      : null
+
+    return {
+      title: 'Star 币排行榜',
+      subtitle: '看看谁是大富翁',
+      entries: leaderboard.entries.map(entry => ({
+        rank: entry.rank,
+        uid: entry.uid,
+        coins: entry.coins
+      })),
+      currentUser,
+      footerText: 'q3cc-neow-plugin'
+    }
   }
 
   getMlReplyModeDetails(savedMode, difficultyId) {
@@ -2537,8 +2607,20 @@ export class NeowPlugin extends plugin {
     }
   }
 
-  async replyRenderedCard(e, card, fallbackText, imageText = '', renderer) {
-    const shouldRenderImage = Array.isArray(card?.history) && card.history.length > 0
+  shouldRenderCard(card, canRender = null) {
+    if (typeof canRender === 'function') {
+      return Boolean(canRender(card))
+    }
+
+    if (typeof canRender === 'boolean') {
+      return canRender
+    }
+
+    return Array.isArray(card?.history) && card.history.length > 0
+  }
+
+  async replyRenderedCard(e, card, fallbackText, imageText = '', renderer, canRender = null) {
+    const shouldRenderImage = this.shouldRenderCard(card, canRender)
     const imageBuffer = shouldRenderImage ? await renderer(card) : null
 
     if (imageBuffer && segmentInstance?.image) {
@@ -2558,19 +2640,16 @@ export class NeowPlugin extends plugin {
         }
 
         await this.replyWithTimeout(e, message, true)
-        if (imageText) {
-          return true
-        }
         return true
       } catch (error) {
-        logWarn(`[neow][ml-render] 图片发送失败，已降级为文本发送: ${error?.message || error}`)
+        logWarn(`[neow][card-render] 图片发送失败，已降级为文本发送: ${error?.message || error}`)
       }
     }
 
     if (shouldRenderImage && !imageBuffer) {
-      logWarn('[neow][ml-render] 图片渲染失败，已降级为文本发送')
+      logWarn('[neow][card-render] 图片渲染失败，已降级为文本发送')
     } else if (shouldRenderImage && !segmentInstance?.image) {
-      logWarn('[neow][ml-render] 当前环境不支持图片消息，已降级为文本发送')
+      logWarn('[neow][card-render] 当前环境不支持图片消息，已降级为文本发送')
     }
 
     await this.replyWithTimeout(e, fallbackText, true)
@@ -2591,5 +2670,16 @@ export class NeowPlugin extends plugin {
 
   async replyWordleCard(e, card, fallbackText, imageText = '') {
     return this.replyRenderedCard(e, card, fallbackText, imageText, renderWordleImage)
+  }
+
+  async replyRankCard(e, card, fallbackText) {
+    return this.replyRenderedCard(
+      e,
+      card,
+      fallbackText,
+      '',
+      renderRankImage,
+      currentCard => Array.isArray(currentCard?.entries) && currentCard.entries.length > 0
+    )
   }
 }
