@@ -3,13 +3,22 @@ import assert from 'node:assert/strict'
 
 import {
   fetchWordleMeaning,
+  formatWordLookupBlock,
   formatWordleMeaningBlock,
+  hasYoudaoWordDetails,
   parseYoudaoWordMeaning
 } from '../utils/wordle-dict.js'
 
 test('parseYoudaoWordMeaning and formatWordleMeaningBlock support the arise sample', () => {
   const payload = {
     ec: {
+      exam_type: [
+        '高中',
+        'CET4',
+        'CET6',
+        '考研',
+        '商务英语'
+      ],
       word: [
         {
           usphone: 'əˈraɪz',
@@ -42,6 +51,32 @@ test('parseYoudaoWordMeaning and formatWordleMeaningBlock support the arise samp
                 }
               ]
             }
+          ],
+          wfs: [
+            {
+              wf: {
+                name: '第三人称单数',
+                value: 'arises'
+              }
+            },
+            {
+              wf: {
+                name: '现在分词',
+                value: 'arising'
+              }
+            },
+            {
+              wf: {
+                name: '过去式',
+                value: 'arose'
+              }
+            },
+            {
+              wf: {
+                name: '过去分词',
+                value: 'arisen'
+              }
+            }
           ]
         }
       ]
@@ -57,6 +92,13 @@ test('parseYoudaoWordMeaning and formatWordleMeaningBlock support the arise samp
     meanings: [
       'v. 产生，出现；起源（于），由……引出；起床，起立；上升',
       '【名】 （Arise）（英、美、德、印）阿里塞'
+    ],
+    examTypes: ['高中', 'CET4', 'CET6', '考研', '商务英语'],
+    wordForms: [
+      { name: '第三人称单数', value: 'arises' },
+      { name: '现在分词', value: 'arising' },
+      { name: '过去式', value: 'arose' },
+      { name: '过去分词', value: 'arisen' }
     ]
   })
 
@@ -70,6 +112,19 @@ test('parseYoudaoWordMeaning and formatWordleMeaningBlock support the arise samp
       '【名】 （Arise）（英、美、德、印）阿里塞'
     ].join('\n')
   )
+
+  assert.equal(
+    formatWordLookupBlock(meaning),
+    [
+      'arise',
+      '英  / əˈraɪz /  美  / əˈraɪz /',
+      '',
+      'v. 产生，出现；起源（于），由……引出；起床，起立；上升',
+      '【名】 （Arise）（英、美、德、印）阿里塞',
+      '高中 / CET4 / CET6 / 考研 / 商务英语',
+      '第三人称单数 arises  现在分词 arising  过去式 arose  过去分词 arisen'
+    ].join('\n')
+  )
 })
 
 test('formatWordleMeaningBlock omits empty placeholders', () => {
@@ -78,9 +133,11 @@ test('formatWordleMeaningBlock omits empty placeholders', () => {
       word: 'crane',
       ukphone: '',
       usphone: '',
-      meanings: []
+      meanings: [],
+      examTypes: [],
+      wordForms: []
     }),
-    'crane'
+    ''
   )
 
   assert.equal(
@@ -88,7 +145,9 @@ test('formatWordleMeaningBlock omits empty placeholders', () => {
       word: '',
       ukphone: 'kreɪn',
       usphone: '',
-      meanings: ['n. 鹤；起重机']
+      meanings: ['n. 鹤；起重机'],
+      examTypes: [],
+      wordForms: []
     }),
     [
       '英  / kreɪn /',
@@ -99,15 +158,19 @@ test('formatWordleMeaningBlock omits empty placeholders', () => {
 })
 
 test('parseYoudaoWordMeaning safely degrades on incomplete payloads', () => {
-  assert.deepEqual(
-    parseYoudaoWordMeaning({}, 'SLATE'),
-    {
-      word: 'slate',
-      ukphone: '',
-      usphone: '',
-      meanings: []
-    }
-  )
+  const fallbackMeaning = parseYoudaoWordMeaning({}, 'SLATE')
+
+  assert.deepEqual(fallbackMeaning, {
+    word: 'slate',
+    ukphone: '',
+    usphone: '',
+    meanings: [],
+    examTypes: [],
+    wordForms: []
+  })
+  assert.equal(hasYoudaoWordDetails(fallbackMeaning), false)
+  assert.equal(formatWordLookupBlock(fallbackMeaning), '')
+  assert.equal(formatWordleMeaningBlock(fallbackMeaning), '')
 
   assert.equal(parseYoudaoWordMeaning(null, ''), null)
 })
@@ -122,6 +185,7 @@ test('fetchWordleMeaning requests the lower-cased word and parses the response',
         async json() {
           return {
             ec: {
+              exam_type: ['CET4'],
               word: [
                 {
                   'return-phrase': 'arise',
@@ -136,6 +200,14 @@ test('fetchWordleMeaning requests the lower-cased word and parses the response',
                           }
                         }
                       ]
+                    }
+                  ],
+                  wfs: [
+                    {
+                      wf: {
+                        name: '过去式',
+                        value: 'arose'
+                      }
                     }
                   ]
                 }
@@ -152,7 +224,14 @@ test('fetchWordleMeaning requests the lower-cased word and parses the response',
     word: 'arise',
     ukphone: 'əˈraɪz',
     usphone: 'əˈraɪz',
-    meanings: ['v. 产生，出现']
+    meanings: ['v. 产生，出现'],
+    examTypes: ['CET4'],
+    wordForms: [
+      {
+        name: '过去式',
+        value: 'arose'
+      }
+    ]
   })
 })
 

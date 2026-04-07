@@ -691,6 +691,7 @@ export function buildHelpLines(options = {}) {
     '/demote - 撤销自身临时管理员身份',
     '/transfer - 转赠 Star 币',
     '/sign - 每日签到',
+    '/dict <单词> - 查词',
     '/ml - 密码破译',
     '/ml mode - 设置密码破译发送方式',
     '/wordle - 猜单词',

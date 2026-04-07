@@ -64,6 +64,7 @@ import {
 } from '../utils/wordle-game.js'
 import {
   fetchWordleMeaning,
+  formatWordLookupBlock,
   formatWordleMeaningBlock
 } from '../utils/wordle-dict.js'
 import {
@@ -116,6 +117,10 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?ping\s*$/i,
           fnc: 'ping'
+        },
+        {
+          reg: /^(?:\/|#)?(?:dict|查词)(?:\s+.+)?\s*$/i,
+          fnc: 'lookupWordMeaning'
         },
         {
           reg: /^(?:\/|#)?su(?:\s+.+)?\s*$/i,
@@ -315,6 +320,44 @@ export class NeowPlugin extends plugin {
     }
 
     await e.reply('大喵喵在线，可以正常使用喵~', true)
+    return true
+  }
+
+  async lookupWordMeaning(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?(?:dict|查词)(?:\s+(.+))?\s*$/i)
+    const word = String(match?.[1] || '').trim()
+
+    if (!word) {
+      await this.replyWithTimeout(e, [
+        '/dict <英文单词> - 查询单词意思',
+        '/查词 <英文单词> - 查询单词意思',
+        '示例: /dict arise'
+      ].join('\n'), true)
+      return true
+    }
+
+    if (!/^[a-zA-Z][a-zA-Z'-]*$/.test(word)) {
+      await this.replyWithTimeout(e, '请给大喵喵一个英文单词喵，比如 /dict arise', true)
+      return true
+    }
+
+    const meaning = await fetchWordleMeaning(word, {
+      onError: error => {
+        logWarn(`[neow][dict] 查询 ${String(word || '').toLowerCase()} 失败: ${error?.message || error}`)
+      }
+    })
+
+    const replyText = formatWordLookupBlock(meaning)
+    if (!replyText) {
+      await this.replyWithTimeout(e, '大喵喵暂时没查到这个单词喵，换一个试试看吧~', true)
+      return true
+    }
+
+    await this.replyWithTimeout(e, replyText, true)
     return true
   }
 

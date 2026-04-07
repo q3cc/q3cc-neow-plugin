@@ -11,6 +11,7 @@
 - 帮助菜单：`/nhelp`（兼容 `/neowhelp`）
 - 在线检查：`/ping`
 - 每日签到：`/sign`（兼容 `/签到`、`/qd`、`/checkin`）
+- 查词：`/dict <单词>`（兼容 `/查词 <单词>`）
 - 密码破译：`/ml`
 - Wordle 猜单词：`/wordle`
 - 数字炸弹：`/boom`
@@ -29,6 +30,8 @@
 - `/rank` - 查看 Star 币排行榜（优先发送图片，失败时降级文字；榜单优先显示昵称）
 - `/sign` - 每日签到
 - `/签到` / `/qd` / `/checkin` - 签到别名
+- `/dict <英文单词>` - 查询有道词典释义、考试分类与词形变化
+- `/查词 <英文单词>` - `/dict` 的中文别名
 - `/ml` - 查看密码破译菜单
 - `/ml start` - 开始一局密码破译
 - `/ml difficulty` - 查看破译难度菜单
@@ -108,6 +111,13 @@
 - 成功猜出后会获得 `Star 币` 与好感度奖励
 - 失败后会随机扣除一部分 `Star 币`
 
+## 查词规则
+
+- 输入格式：`/dict <英文单词>` 或 `/查词 <英文单词>`
+- 使用有道词典接口查询单词
+- 返回内容包含：单词本身、英/美音标、中文释义、考试分类、常见词形变化
+- 查询失败或词典暂无结果时，会提示重新换词
+
 ## 数字炸弹规则
 
 - 仅支持群聊游玩，至少需要 `2` 人参与
@@ -130,6 +140,7 @@
 - `utils/ml-game.js` - 密码破译玩法配置、状态与奖励计算
 - `utils/ml-render.js` - 密码破译棋盘图片渲染
 - `utils/wordle-game.js` - Wordle 猜单词配置、答案词/合法猜测词校验、状态与奖励计算
+- `utils/wordle-dict.js` - 有道词典查询、释义解析与格式化
 - `utils/wordle-render.js` - Wordle 棋盘与键盘图片渲染
 - `utils/rank-render.js` - Star 币排行榜图片渲染与预览数据（榜单优先显示昵称）
 - `utils/boom-game.js` - 数字炸弹房间状态、回合规则与奖池结算
@@ -169,10 +180,11 @@ node --check utils/ml-game.js
 node --check utils/ml-render.js
 node --check utils/rank-render.js
 node --check utils/boom-game.js
+node --check utils/wordle-dict.js
 node --check utils/wordle-game.js
 node --check utils/wordle-render.js
 node --check utils/render-browser.js
 node --check scripts/generate-rank-render-preview.mjs
-node --test tests/boom-game.test.js tests/ml-game.test.js tests/user-data.test.js tests/wordle-game.test.js tests/rank-render.test.js
+node --test tests/boom-game.test.js tests/ml-game.test.js tests/user-data.test.js tests/wordle-dict.test.js tests/wordle-game.test.js tests/rank-render.test.js
 node scripts/generate-rank-render-preview.mjs
 ```

@@ -48,6 +48,45 @@ function extractMeaningLines(trs) {
     .filter(Boolean)
 }
 
+function extractExamTypes(examTypes) {
+  if (!Array.isArray(examTypes)) {
+    return []
+  }
+
+  return examTypes
+    .map(item => normalizeText(item))
+    .filter(Boolean)
+}
+
+function extractWordForms(wfs) {
+  if (!Array.isArray(wfs)) {
+    return []
+  }
+
+  return wfs
+    .map(item => ({
+      name: normalizeText(item?.wf?.name),
+      value: normalizeText(item?.wf?.value)
+    }))
+    .filter(item => item.name && item.value)
+}
+
+function buildPronunciationLine(meaning) {
+  const pronunciationParts = []
+  const ukphone = normalizeText(meaning?.ukphone)
+  const usphone = normalizeText(meaning?.usphone)
+
+  if (ukphone) {
+    pronunciationParts.push(`英  / ${ukphone} /`)
+  }
+
+  if (usphone) {
+    pronunciationParts.push(`美  / ${usphone} /`)
+  }
+
+  return pronunciationParts.join('  ')
+}
+
 export function parseYoudaoWordMeaning(payload, fallbackWord = '') {
   const entry = payload?.ec?.word?.[0] || payload?.word?.[0] || null
   const word = extractNestedText(entry?.['return-phrase'])
@@ -56,8 +95,10 @@ export function parseYoudaoWordMeaning(payload, fallbackWord = '') {
   const ukphone = normalizeText(entry?.ukphone)
   const usphone = normalizeText(entry?.usphone)
   const meanings = extractMeaningLines(entry?.trs)
+  const examTypes = extractExamTypes(payload?.ec?.exam_type)
+  const wordForms = extractWordForms(entry?.wfs)
 
-  if (!word && !ukphone && !usphone && !meanings.length) {
+  if (!word && !ukphone && !usphone && !meanings.length && !examTypes.length && !wordForms.length) {
     return null
   }
 
@@ -65,12 +106,28 @@ export function parseYoudaoWordMeaning(payload, fallbackWord = '') {
     word,
     ukphone,
     usphone,
-    meanings
+    meanings,
+    examTypes,
+    wordForms
   }
 }
 
-export function formatWordleMeaningBlock(meaning) {
+export function hasYoudaoWordDetails(meaning) {
   if (!meaning) {
+    return false
+  }
+
+  return Boolean(
+    normalizeText(meaning.ukphone)
+    || normalizeText(meaning.usphone)
+    || (Array.isArray(meaning.meanings) && meaning.meanings.some(item => normalizeText(item)))
+    || (Array.isArray(meaning.examTypes) && meaning.examTypes.some(item => normalizeText(item)))
+    || (Array.isArray(meaning.wordForms) && meaning.wordForms.some(item => normalizeText(item?.name) && normalizeText(item?.value)))
+  )
+}
+
+export function formatWordleMeaningBlock(meaning) {
+  if (!hasYoudaoWordDetails(meaning)) {
     return ''
   }
 
@@ -86,18 +143,13 @@ export function formatWordleMeaningBlock(meaning) {
     lines.push(word)
   }
 
-  const pronunciationParts = []
+  const pronunciationLine = buildPronunciationLine({
+    ukphone,
+    usphone
+  })
 
-  if (ukphone) {
-    pronunciationParts.push(`英  / ${ukphone} /`)
-  }
-
-  if (usphone) {
-    pronunciationParts.push(`美  / ${usphone} /`)
-  }
-
-  if (pronunciationParts.length) {
-    lines.push(pronunciationParts.join('  '))
+  if (pronunciationLine) {
+    lines.push(pronunciationLine)
   }
 
   if (meanings.length) {
@@ -106,6 +158,49 @@ export function formatWordleMeaningBlock(meaning) {
     }
 
     lines.push(...meanings)
+  }
+
+  return lines.join('\n')
+}
+
+export function formatWordLookupBlock(meaning) {
+  if (!hasYoudaoWordDetails(meaning)) {
+    return ''
+  }
+
+  const lines = []
+  const word = normalizeWord(meaning.word)
+  const meanings = Array.isArray(meaning.meanings)
+    ? meaning.meanings.map(item => normalizeText(item)).filter(Boolean)
+    : []
+  const examTypes = Array.isArray(meaning.examTypes)
+    ? meaning.examTypes.map(item => normalizeText(item)).filter(Boolean)
+    : []
+  const wordForms = Array.isArray(meaning.wordForms)
+    ? meaning.wordForms.filter(item => normalizeText(item?.name) && normalizeText(item?.value))
+    : []
+  const pronunciationLine = buildPronunciationLine(meaning)
+
+  if (word) {
+    lines.push(word)
+  }
+
+  if (pronunciationLine) {
+    lines.push(pronunciationLine)
+  }
+
+  const detailLines = [
+    ...meanings,
+    ...(examTypes.length ? [examTypes.join(' / ')] : []),
+    ...(wordForms.length ? [wordForms.map(item => `${normalizeText(item.name)} ${normalizeText(item.value)}`).join('  ')] : [])
+  ]
+
+  if (detailLines.length) {
+    if (lines.length) {
+      lines.push('')
+    }
+
+    lines.push(...detailLines)
   }
 
   return lines.join('\n')
