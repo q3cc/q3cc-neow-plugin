@@ -49,6 +49,7 @@ const DEFAULT_POKE_ACTIONS = {
 function createDefaultUser() {
   return {
     uid: 0,
+    nickname: '',
     coins: 0,
     favor: 0,
     signCount: 0,
@@ -269,8 +270,33 @@ function parseRegisterTime(registerTime) {
   return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER
 }
 
+function normalizeUserName(name) {
+  return String(name ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 32)
+}
+
+function normalizeCoinAmount(coins) {
+  const parsed = Number(coins)
+  if (!Number.isFinite(parsed)) {
+    return 0
+  }
+
+  return Math.max(0, Math.trunc(parsed))
+}
+
 function hasValidUid(user) {
   return Number.isInteger(user?.uid) && user.uid > 0
+}
+
+function resolveUserDisplayName(user, userId) {
+  const nickname = normalizeUserName(user?.nickname)
+  if (nickname) {
+    return nickname
+  }
+
+  return hasValidUid(user) ? `UID ${user.uid}` : `QQ ${normalizeUserId(userId)}`
 }
 
 function assignMissingUids() {
@@ -366,6 +392,7 @@ export function syncUserData(user, options = {}) {
   const beforeFavor = user.favor
   const beforeMaxStamina = user.maxStamina
   const beforeStamina = user.stamina
+  const beforeNickname = user.nickname || ''
   const beforeWordleDifficulty = user.wordleDifficulty
   const beforeBoomDifficulty = user.boomDifficulty
   const beforeAdminUntil = user.adminUntil || 0
@@ -383,6 +410,8 @@ export function syncUserData(user, options = {}) {
   if (typeof user.stamina !== 'number') {
     user.stamina = user.maxStamina
   }
+
+  user.nickname = normalizeUserName(user.nickname)
 
   if (!Number.isInteger(user.wordleDifficulty)) {
     user.wordleDifficulty = 1
@@ -402,6 +431,7 @@ export function syncUserData(user, options = {}) {
   const changed = beforeFavor !== user.favor ||
     beforeMaxStamina !== user.maxStamina ||
     beforeStamina !== user.stamina ||
+    beforeNickname !== user.nickname ||
     beforeWordleDifficulty !== user.wordleDifficulty ||
     beforeBoomDifficulty !== user.boomDifficulty ||
     beforeAdminUntil !== (user.adminUntil || 0) ||
@@ -447,6 +477,22 @@ export function getUserData(userId) {
     saveUsers()
   }
 
+  return user
+}
+
+export function updateUserNickname(userId, nickname) {
+  const normalizedNickname = normalizeUserName(nickname)
+  if (!normalizedNickname) {
+    return null
+  }
+
+  const user = getUserData(userId)
+  if (user.nickname === normalizedNickname) {
+    return user
+  }
+
+  user.nickname = normalizedNickname
+  saveUsers()
   return user
 }
 
@@ -550,6 +596,60 @@ export function getFavorInfo(favor) {
   }
 }
 
+export function buildCoinLeaderboard(userEntries) {
+  const entries = Array.from(userEntries, ([userId, user]) => ({
+    userId: normalizeUserId(userId),
+    uid: hasValidUid(user) ? user.uid : 0,
+    name: resolveUserDisplayName(user, userId),
+    coins: normalizeCoinAmount(user?.coins),
+    registerTime: user?.registerTime || ''
+  }))
+
+  entries.sort((left, right) => {
+    const coinDiff = right.coins - left.coins
+    if (coinDiff !== 0) {
+      return coinDiff
+    }
+
+    const leftUid = left.uid > 0 ? left.uid : Number.MAX_SAFE_INTEGER
+    const rightUid = right.uid > 0 ? right.uid : Number.MAX_SAFE_INTEGER
+    if (leftUid !== rightUid) {
+      return leftUid - rightUid
+    }
+
+    const timeDiff = parseRegisterTime(left.registerTime) - parseRegisterTime(right.registerTime)
+    if (timeDiff !== 0) {
+      return timeDiff
+    }
+
+    return left.userId.localeCompare(right.userId, 'zh-CN')
+  })
+
+  return entries.map(({ registerTime, ...entry }, index) => ({
+    ...entry,
+    rank: index + 1
+  }))
+}
+
+export function buildCoinLeaderboardView(userEntries, options = {}) {
+  const entries = buildCoinLeaderboard(userEntries)
+  const parsedLimit = Number(options.limit)
+  const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10
+  const normalizedUserId = options.userId == null ? '' : normalizeUserId(options.userId)
+
+  return {
+    totalUsers: entries.length,
+    entries: entries.slice(0, limit),
+    currentUser: normalizedUserId
+      ? entries.find(entry => entry.userId === normalizedUserId) || null
+      : null
+  }
+}
+
+export function getCoinLeaderboard(options = {}) {
+  return buildCoinLeaderboardView(users.entries(), options)
+}
+
 export function buildUserInfoLines(user, options = {}) {
   const favorInfo = getFavorInfo(user.favor)
   const lines = [
@@ -580,6 +680,7 @@ export function buildHelpLines(options = {}) {
     '/ping - 在线状态检查',
     '/poke /戳 - 戳大喵喵',
     '/my - 获取自己的账号信息',
+    '/rank - 查看 Star 币排行榜',
     '/su - 提升自身权限为管理员',
     '/demote - 撤销自身临时管理员身份',
     '/transfer - 转赠 Star 币',
