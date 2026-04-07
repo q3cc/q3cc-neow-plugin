@@ -63,6 +63,10 @@ import {
   calculateWordlePenalty
 } from '../utils/wordle-game.js'
 import {
+  fetchWordleMeaning,
+  formatWordleMeaningBlock
+} from '../utils/wordle-dict.js'
+import {
   BOOM_COUNTDOWN_MS,
   BOOM_DIFFICULTIES,
   BOOM_MAX_PLAYERS,
@@ -1237,22 +1241,23 @@ export class NeowPlugin extends plugin {
     const difficulty = WORDLE_DIFFICULTIES[game.difficulty] || WORDLE_DIFFICULTIES[1]
     if (isWordleTimeout(game, difficulty)) {
       const { penaltyLine } = this.applyWordleFailurePenalty(e.user_id, difficulty)
-      const lines = [
-        'Wordle - 失败',
-        ...formatWordleHistory(game.history),
-        `时间到啦喵... 正确答案是 ${game.answer}`,
-        penaltyLine,
-        '/wordle start - 再来一次'
-      ]
       deleteWordleGame(sessionId, e.user_id)
+      const { fallbackText, imageText } = await this.buildWordleSettlementReply({
+        title: 'Wordle - 失败',
+        answer: game.answer,
+        history: game.history,
+        leadingLines: [
+          `时间到啦喵... 正确答案是 ${game.answer.toLowerCase()}`
+        ],
+        trailingLines: [
+          penaltyLine,
+          '/wordle start - 再来一次'
+        ]
+      })
       await this.replyWordleCard(e, {
         history: game.history,
         maxAttempts: difficulty.maxAttempts
-      }, lines.join('\n'), [
-        `时间到啦喵... 正确答案是 ${game.answer}`,
-        penaltyLine,
-        '/wordle start - 再来一次'
-      ].join('\n'))
+      }, fallbackText, imageText)
       return true
     }
 
@@ -1278,45 +1283,43 @@ export class NeowPlugin extends plugin {
       user.favor += rewards.favorReward
       syncUserData(user, { persist: true })
 
-      const lines = [
-        'Wordle - 成功',
-        ...formatWordleHistory(game.history),
-        `总共试了 ${game.history.length} 次`,
-        `游戏机吐出了 ${rewards.coinReward} 枚 Star 币, 同时还获得了来自大喵喵的 ${rewards.favorReward} 点好感度`,
-        '/wordle start - 再来一次'
-      ]
-
       deleteWordleGame(sessionId, e.user_id)
+      const { fallbackText, imageText } = await this.buildWordleSettlementReply({
+        title: 'Wordle - 成功',
+        answer: game.answer,
+        history: game.history,
+        trailingLines: [
+          `总共试了 ${game.history.length} 次`,
+          `游戏机吐出了 ${rewards.coinReward} 枚 Star 币, 同时还获得了来自大喵喵的 ${rewards.favorReward} 点好感度`,
+          '/wordle start - 再来一次'
+        ]
+      })
       await this.replyWordleCard(e, {
         history: game.history,
         maxAttempts: difficulty.maxAttempts
-      }, lines.join('\n'), [
-        `总共试了 ${game.history.length} 次`,
-        `游戏机吐出了 ${rewards.coinReward} 枚 Star 币, 同时还获得了来自大喵喵的 ${rewards.favorReward} 点好感度`,
-        '/wordle start - 再来一次'
-      ].join('\n'))
+      }, fallbackText, imageText)
       return true
     }
 
     if (difficulty.maxAttempts && game.history.length >= difficulty.maxAttempts) {
       const { penaltyLine } = this.applyWordleFailurePenalty(e.user_id, difficulty)
-      const lines = [
-        'Wordle - 失败',
-        ...formatWordleHistory(game.history),
-        `次数用完啦... 正确答案是 ${game.answer}`,
-        penaltyLine,
-        '/wordle start - 再来一次'
-      ]
-
       deleteWordleGame(sessionId, e.user_id)
+      const { fallbackText, imageText } = await this.buildWordleSettlementReply({
+        title: 'Wordle - 失败',
+        answer: game.answer,
+        history: game.history,
+        leadingLines: [
+          `次数用完啦... 正确答案是 ${game.answer.toLowerCase()}`
+        ],
+        trailingLines: [
+          penaltyLine,
+          '/wordle start - 再来一次'
+        ]
+      })
       await this.replyWordleCard(e, {
         history: game.history,
         maxAttempts: difficulty.maxAttempts
-      }, lines.join('\n'), [
-        `次数用完啦... 正确答案是 ${game.answer}`,
-        penaltyLine,
-        '/wordle start - 再来一次'
-      ].join('\n'))
+      }, fallbackText, imageText)
       return true
     }
 
@@ -2603,6 +2606,31 @@ export class NeowPlugin extends plugin {
       penaltyLine: penalty > 0
         ? `大喵喵开心地拿走了主人的 ${penalty} 枚 Star 币`
         : '大喵喵本来想拿走几枚 Star 币, 结果发现主人口袋已经空空的喵...'
+    }
+  }
+
+  async getWordleMeaningBlock(answer) {
+    const meaning = await fetchWordleMeaning(answer, {
+      onError: error => {
+        logWarn(`[neow][wordle-dict] 查询 ${String(answer || '').toLowerCase()} 释义失败: ${error?.message || error}`)
+      }
+    })
+
+    return formatWordleMeaningBlock(meaning)
+  }
+
+  async buildWordleSettlementReply({ title, answer, history = [], leadingLines = [], trailingLines = [] }) {
+    const historyLines = formatWordleHistory(history)
+    const meaningBlock = await this.getWordleMeaningBlock(answer)
+    const contentLines = [
+      ...leadingLines,
+      ...(meaningBlock ? [meaningBlock] : []),
+      ...trailingLines
+    ]
+
+    return {
+      fallbackText: [title, ...historyLines, ...contentLines].join('\n'),
+      imageText: contentLines.join('\n')
     }
   }
 
