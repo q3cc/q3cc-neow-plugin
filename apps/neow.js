@@ -67,6 +67,7 @@ import {
   formatWordLookupBlock,
   formatWordleMeaningBlock
 } from '../utils/wordle-dict.js'
+import { isBlockedSexualWord } from '../utils/blocked-words.js'
 import {
   BOOM_COUNTDOWN_MS,
   BOOM_DIFFICULTIES,
@@ -342,6 +343,11 @@ export class NeowPlugin extends plugin {
 
     if (!/^[a-zA-Z][a-zA-Z'-]*$/.test(word)) {
       await this.replyWithTimeout(e, '请给大喵喵一个英文单词喵，比如 /dict arise', true)
+      return true
+    }
+
+    if (isBlockedSexualWord(word)) {
+      await this.replyWithTimeout(e, '这个词有点涩涩，不给查喵，换一个正常点的单词吧~', true)
       return true
     }
 
@@ -1308,6 +1314,11 @@ export class NeowPlugin extends plugin {
     const guess = normalizeWordleGuess(match?.[1])
     if (!guess || !/^[A-Z]{5}$/.test(guess)) {
       return false
+    }
+
+    if (isBlockedSexualWord(guess)) {
+      await e.reply('这个词太涩啦喵，换一个正常的 5 字母单词试试看吧~', true)
+      return true
     }
 
     if (!isValidWordleWord(guess)) {
@@ -2653,6 +2664,10 @@ export class NeowPlugin extends plugin {
   }
 
   async getWordleMeaningBlock(answer) {
+    if (isBlockedSexualWord(answer)) {
+      return ''
+    }
+
     const meaning = await fetchWordleMeaning(answer, {
       onError: error => {
         logWarn(`[neow][wordle-dict] 查询 ${String(answer || '').toLowerCase()} 释义失败: ${error?.message || error}`)

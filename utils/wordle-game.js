@@ -1,4 +1,5 @@
 import fs from 'fs'
+import { filterBlockedWords, isBlockedSexualWord } from './blocked-words.js'
 
 export const WORDLE_DIFFICULTIES = {
   0: {
@@ -75,9 +76,9 @@ const wordSet = new Set([
 ])
 
 function normalizeWordList(raw) {
-  return [...new Set((Array.isArray(raw) ? raw : [])
+  return filterBlockedWords([...new Set((Array.isArray(raw) ? raw : [])
     .map(word => String(word || '').trim().toUpperCase())
-    .filter(word => /^[A-Z]{5}$/.test(word)))]
+    .filter(word => /^[A-Z]{5}$/.test(word)))])
 }
 
 function loadWordList(fileUrl, fallback = []) {
@@ -122,7 +123,8 @@ export function getRandomWordleWord(difficultyId, random = Math.random) {
 }
 
 export function isValidWordleWord(word) {
-  return wordSet.has(String(word || '').trim().toUpperCase())
+  const normalizedWord = String(word || '').trim().toUpperCase()
+  return Boolean(normalizedWord) && !isBlockedSexualWord(normalizedWord) && wordSet.has(normalizedWord)
 }
 
 export function normalizeWordleGuess(word) {

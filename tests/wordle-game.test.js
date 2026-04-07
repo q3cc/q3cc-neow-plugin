@@ -50,6 +50,8 @@ test('wordle辅助方法会规范化并校验答案词与合法猜测词', () =>
   assert.equal(isValidWordleWord('logic'), true)
   assert.equal(isValidWordleWord('quart'), true)
   assert.equal(isValidWordleWord('zonal'), true)
+  assert.equal(isValidWordleWord('dicks'), false)
+  assert.equal(isValidWordleWord('porno'), false)
   assert.equal(isValidWordleWord('meow'), false)
 
   const randomWord = getRandomWordleWord(3)
@@ -76,4 +78,13 @@ test('重复字母命中判定会优先消耗未使用答案字母', () => {
     evaluateWordleGuess('APPLE', 'PAPAL'),
     ['🟠', '🟠', '🟢', '🔴', '🟠']
   )
+})
+
+test('wordle题库与合法猜测会过滤色情词汇', () => {
+  const difficulty3Pool = getWordleAnswerPool(3)
+
+  assert.equal(difficulty3Pool.includes('HORNY'), false)
+  assert.equal(difficulty3Pool.includes('SPERM'), false)
+  assert.equal(isValidWordleWord('HORNY'), false)
+  assert.equal(isValidWordleWord('SPERM'), false)
 })

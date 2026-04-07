@@ -106,6 +106,7 @@
 - `🟢` 表示字母和位置都正确
 - `🟠` 表示字母存在但位置不对
 - `🔴` 表示该字母不存在于答案中
+- 色情或低俗英文词汇不会出现在题库中，也不能作为合法猜测提交
 - 不同难度拥有不同的体力消耗、时限与尝试次数限制
 - 结算时会显示答案单词的英/美音标与中文释义
 - 成功猜出后会获得 `Star 币` 与好感度奖励
@@ -116,6 +117,7 @@
 - 输入格式：`/dict <英文单词>` 或 `/查词 <英文单词>`
 - 使用有道词典接口查询单词
 - 返回内容包含：单词本身、英/美音标、中文释义、考试分类、常见词形变化
+- 色情或低俗英文词汇会被直接屏蔽，不返回查词结果
 - 查询失败或词典暂无结果时，会提示重新换词
 
 ## 数字炸弹规则
@@ -139,6 +141,7 @@
 - `utils/game24.js` - 24 点玩法配置、题库读取与奖励计算
 - `utils/ml-game.js` - 密码破译玩法配置、状态与奖励计算
 - `utils/ml-render.js` - 密码破译棋盘图片渲染
+- `utils/blocked-words.js` - 统一管理色情/低俗英文词汇屏蔽
 - `utils/wordle-game.js` - Wordle 猜单词配置、答案词/合法猜测词校验、状态与奖励计算
 - `utils/wordle-dict.js` - 有道词典查询、释义解析与格式化
 - `utils/wordle-render.js` - Wordle 棋盘与键盘图片渲染
@@ -180,11 +183,12 @@ node --check utils/ml-game.js
 node --check utils/ml-render.js
 node --check utils/rank-render.js
 node --check utils/boom-game.js
+node --check utils/blocked-words.js
 node --check utils/wordle-dict.js
 node --check utils/wordle-game.js
 node --check utils/wordle-render.js
 node --check utils/render-browser.js
 node --check scripts/generate-rank-render-preview.mjs
-node --test tests/boom-game.test.js tests/ml-game.test.js tests/user-data.test.js tests/wordle-dict.test.js tests/wordle-game.test.js tests/rank-render.test.js
+node --test tests/blocked-words.test.js tests/boom-game.test.js tests/ml-game.test.js tests/user-data.test.js tests/wordle-dict.test.js tests/wordle-game.test.js tests/rank-render.test.js
 node scripts/generate-rank-render-preview.mjs
 ```
