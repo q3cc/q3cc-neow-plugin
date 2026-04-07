@@ -2,6 +2,7 @@ import fs from 'fs'
 import fsp from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { normalizeMlReplyMode } from './ml-game.js'
 
 const users = new Map()
 const dailySignStats = new Map()
@@ -56,6 +57,7 @@ function createDefaultUser() {
     maxStamina: 150,
     difficulty: 1,
     mlDifficulty: 1,
+    mlReplyMode: 'auto',
     wordleDifficulty: 1,
     boomDifficulty: 1,
     adminUntil: 0,
@@ -269,6 +271,15 @@ function parseRegisterTime(registerTime) {
   return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER
 }
 
+function normalizeCoinAmount(coins) {
+  const parsed = Number(coins)
+  if (!Number.isFinite(parsed)) {
+    return 0
+  }
+
+  return Math.max(0, Math.trunc(parsed))
+}
+
 function hasValidUid(user) {
   return Number.isInteger(user?.uid) && user.uid > 0
 }
@@ -366,6 +377,7 @@ export function syncUserData(user, options = {}) {
   const beforeFavor = user.favor
   const beforeMaxStamina = user.maxStamina
   const beforeStamina = user.stamina
+  const beforeMlReplyMode = user.mlReplyMode
   const beforeWordleDifficulty = user.wordleDifficulty
   const beforeBoomDifficulty = user.boomDifficulty
   const beforeAdminUntil = user.adminUntil || 0
@@ -388,6 +400,8 @@ export function syncUserData(user, options = {}) {
     user.wordleDifficulty = 1
   }
 
+  user.mlReplyMode = normalizeMlReplyMode(user.mlReplyMode)
+
   if (!Number.isInteger(user.boomDifficulty)) {
     user.boomDifficulty = 1
   }
@@ -402,6 +416,7 @@ export function syncUserData(user, options = {}) {
   const changed = beforeFavor !== user.favor ||
     beforeMaxStamina !== user.maxStamina ||
     beforeStamina !== user.stamina ||
+    beforeMlReplyMode !== user.mlReplyMode ||
     beforeWordleDifficulty !== user.wordleDifficulty ||
     beforeBoomDifficulty !== user.boomDifficulty ||
     beforeAdminUntil !== (user.adminUntil || 0) ||
@@ -550,6 +565,59 @@ export function getFavorInfo(favor) {
   }
 }
 
+export function buildCoinLeaderboard(userEntries) {
+  const entries = Array.from(userEntries, ([userId, user]) => ({
+    userId: normalizeUserId(userId),
+    uid: hasValidUid(user) ? user.uid : 0,
+    coins: normalizeCoinAmount(user?.coins),
+    registerTime: user?.registerTime || ''
+  }))
+
+  entries.sort((left, right) => {
+    const coinDiff = right.coins - left.coins
+    if (coinDiff !== 0) {
+      return coinDiff
+    }
+
+    const leftUid = left.uid > 0 ? left.uid : Number.MAX_SAFE_INTEGER
+    const rightUid = right.uid > 0 ? right.uid : Number.MAX_SAFE_INTEGER
+    if (leftUid !== rightUid) {
+      return leftUid - rightUid
+    }
+
+    const timeDiff = parseRegisterTime(left.registerTime) - parseRegisterTime(right.registerTime)
+    if (timeDiff !== 0) {
+      return timeDiff
+    }
+
+    return left.userId.localeCompare(right.userId, 'zh-CN')
+  })
+
+  return entries.map(({ registerTime, ...entry }, index) => ({
+    ...entry,
+    rank: index + 1
+  }))
+}
+
+export function buildCoinLeaderboardView(userEntries, options = {}) {
+  const entries = buildCoinLeaderboard(userEntries)
+  const parsedLimit = Number(options.limit)
+  const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10
+  const normalizedUserId = options.userId == null ? '' : normalizeUserId(options.userId)
+
+  return {
+    totalUsers: entries.length,
+    entries: entries.slice(0, limit),
+    currentUser: normalizedUserId
+      ? entries.find(entry => entry.userId === normalizedUserId) || null
+      : null
+  }
+}
+
+export function getCoinLeaderboard(options = {}) {
+  return buildCoinLeaderboardView(users.entries(), options)
+}
+
 export function buildUserInfoLines(user, options = {}) {
   const favorInfo = getFavorInfo(user.favor)
   const lines = [
@@ -580,11 +648,13 @@ export function buildHelpLines(options = {}) {
     '/ping - 在线状态检查',
     '/poke /戳 - 戳大喵喵',
     '/my - 获取自己的账号信息',
+    '/rank - 查看 Star 币排行榜',
     '/su - 提升自身权限为管理员',
     '/demote - 撤销自身临时管理员身份',
     '/transfer - 转赠 Star 币',
     '/sign - 每日签到',
     '/ml - 密码破译',
+    '/ml mode - 设置密码破译发送方式',
     '/wordle - 猜单词',
     '/boom - 数字炸弹',
     '/24g - 二十四点'
