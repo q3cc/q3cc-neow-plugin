@@ -18,7 +18,8 @@ import {
   tempBanUser,
   unbanUser,
   isBannedUser,
-  getBanRemainingMs
+  getBanRemainingMs,
+  updateUserNickname
 } from '../utils/user-data.js'
 import {
   GAME24_DIFFICULTIES,
@@ -440,14 +441,14 @@ export class NeowPlugin extends plugin {
 
     leaderboard.entries.forEach(entry => {
       const selfTag = entry.userId === String(userId) ? '（你）' : ''
-      lines.push(`${entry.rank}. UID ${entry.uid} - ${entry.coins} 枚 Star 币${selfTag}`)
+      lines.push(`${entry.rank}. ${entry.name} - ${entry.coins} 枚 Star 币${selfTag}`)
     })
 
     if (leaderboard.currentUser) {
       lines.push('', `你当前第 ${leaderboard.currentUser.rank} 名`)
 
       if (leaderboard.currentUser.rank > leaderboard.entries.length) {
-        lines.push(`UID ${leaderboard.currentUser.uid} - ${leaderboard.currentUser.coins} 枚 Star 币`)
+        lines.push(`${leaderboard.currentUser.name} - ${leaderboard.currentUser.coins} 枚 Star 币`)
       }
     }
 
@@ -458,7 +459,7 @@ export class NeowPlugin extends plugin {
     const currentUser = leaderboard.currentUser && leaderboard.currentUser.rank > leaderboard.entries.length
       ? {
           rank: leaderboard.currentUser.rank,
-          uid: leaderboard.currentUser.uid,
+          name: leaderboard.currentUser.name,
           coins: leaderboard.currentUser.coins
         }
       : null
@@ -468,7 +469,7 @@ export class NeowPlugin extends plugin {
       subtitle: '看看谁是大富翁',
       entries: leaderboard.entries.map(entry => ({
         rank: entry.rank,
-        uid: entry.uid,
+        name: entry.name,
         coins: entry.coins
       })),
       currentUser,
@@ -2283,6 +2284,8 @@ export class NeowPlugin extends plugin {
   }
 
   async ensureUsable(e) {
+    this.syncSenderNickname(e)
+
     if (e.isMaster) {
       return true
     }
@@ -2302,6 +2305,15 @@ export class NeowPlugin extends plugin {
       remainText
     ].join('\n'), true)
     return false
+  }
+
+  syncSenderNickname(e) {
+    const nickname = (e?.sender?.nickname || e?.sender?.card || '').trim()
+    if (!e?.user_id || !nickname) {
+      return
+    }
+
+    updateUserNickname(e.user_id, nickname)
   }
 
   async ensureBoomGroupOnly(e) {

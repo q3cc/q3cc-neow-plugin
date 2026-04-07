@@ -26,7 +26,7 @@
 - `/neowhelp` - `/nhelp` 的兼容别名
 - `/ping` - 检查插件是否在线
 - `/my` - 查看自己的账号信息
-- `/rank` - 查看 Star 币排行榜（优先发送图片，失败时降级文字）
+- `/rank` - 查看 Star 币排行榜（优先发送图片，失败时降级文字；榜单优先显示昵称）
 - `/sign` - 每日签到
 - `/签到` / `/qd` / `/checkin` - 签到别名
 - `/ml` - 查看密码破译菜单
@@ -130,7 +130,7 @@
 - `utils/ml-render.js` - 密码破译棋盘图片渲染
 - `utils/wordle-game.js` - Wordle 猜单词配置、答案词/合法猜测词校验、状态与奖励计算
 - `utils/wordle-render.js` - Wordle 棋盘与键盘图片渲染
-- `utils/rank-render.js` - Star 币排行榜图片渲染与预览数据
+- `utils/rank-render.js` - Star 币排行榜图片渲染与预览数据（榜单优先显示昵称）
 - `utils/boom-game.js` - 数字炸弹房间状态、回合规则与奖池结算
 - `utils/render-browser.js` - Puppeteer 浏览器实例复用
 - `resources/rank-render-preview.html` - 排行榜图片预览 HTML

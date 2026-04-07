@@ -9,7 +9,7 @@ test('排行榜预览卡会覆盖前十榜单和当前用户补充信息', () =>
   assert.equal(card.entries.length, 10)
   assert.deepEqual(card.currentUser, {
     rank: 18,
-    uid: 233,
+    name: '主人',
     coins: 777
   })
 })
@@ -23,6 +23,7 @@ test('排行榜 HTML 会渲染标题、十行榜单、前三强调和当前用�
   assert.ok(html.includes('class="rank-row champion"'))
   assert.ok(html.includes('class="rank-row runner-up"'))
   assert.ok(html.includes('class="rank-row third"'))
+  assert.ok(html.includes('大喵喵'))
   assert.ok(html.includes('你当前第 18 名'))
   assert.ok(html.includes('q3cc-neow-plugin'))
 })
@@ -32,11 +33,11 @@ test('排行榜 HTML 会转义用户输入内容', () => {
     title: '<榜单>',
     subtitle: '"副标题" & more',
     entries: [
-      { rank: 1, uid: '<script>', coins: '"999"' }
+      { rank: 1, name: '<script>', coins: '"999"' }
     ],
     currentUser: {
       rank: 12,
-      uid: '\'><img>',
+      name: '\'><img>',
       coins: '&777'
     },
     footerText: '<footer>'
@@ -44,9 +45,9 @@ test('排行榜 HTML 会转义用户输入内容', () => {
 
   assert.ok(html.includes('&lt;榜单&gt;'))
   assert.ok(html.includes('&quot;副标题&quot; &amp; more'))
-  assert.ok(html.includes('UID &lt;script&gt;'))
+  assert.ok(html.includes('&lt;script&gt;'))
   assert.ok(html.includes('&quot;999&quot; 枚 Star 币'))
-  assert.ok(html.includes('UID &#39;&gt;&lt;img&gt;'))
+  assert.ok(html.includes('&#39;&gt;&lt;img&gt;'))
   assert.ok(html.includes('&amp;777 枚 Star 币'))
   assert.ok(html.includes('&lt;footer&gt;'))
 })

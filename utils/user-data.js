@@ -50,6 +50,7 @@ const DEFAULT_POKE_ACTIONS = {
 function createDefaultUser() {
   return {
     uid: 0,
+    nickname: '',
     coins: 0,
     favor: 0,
     signCount: 0,
@@ -271,6 +272,13 @@ function parseRegisterTime(registerTime) {
   return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER
 }
 
+function normalizeUserName(name) {
+  return String(name ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 32)
+}
+
 function normalizeCoinAmount(coins) {
   const parsed = Number(coins)
   if (!Number.isFinite(parsed)) {
@@ -282,6 +290,15 @@ function normalizeCoinAmount(coins) {
 
 function hasValidUid(user) {
   return Number.isInteger(user?.uid) && user.uid > 0
+}
+
+function resolveUserDisplayName(user, userId) {
+  const nickname = normalizeUserName(user?.nickname)
+  if (nickname) {
+    return nickname
+  }
+
+  return hasValidUid(user) ? `UID ${user.uid}` : `QQ ${normalizeUserId(userId)}`
 }
 
 function assignMissingUids() {
@@ -377,6 +394,7 @@ export function syncUserData(user, options = {}) {
   const beforeFavor = user.favor
   const beforeMaxStamina = user.maxStamina
   const beforeStamina = user.stamina
+  const beforeNickname = user.nickname || ''
   const beforeMlReplyMode = user.mlReplyMode
   const beforeWordleDifficulty = user.wordleDifficulty
   const beforeBoomDifficulty = user.boomDifficulty
@@ -395,6 +413,8 @@ export function syncUserData(user, options = {}) {
   if (typeof user.stamina !== 'number') {
     user.stamina = user.maxStamina
   }
+
+  user.nickname = normalizeUserName(user.nickname)
 
   if (!Number.isInteger(user.wordleDifficulty)) {
     user.wordleDifficulty = 1
@@ -416,6 +436,7 @@ export function syncUserData(user, options = {}) {
   const changed = beforeFavor !== user.favor ||
     beforeMaxStamina !== user.maxStamina ||
     beforeStamina !== user.stamina ||
+    beforeNickname !== user.nickname ||
     beforeMlReplyMode !== user.mlReplyMode ||
     beforeWordleDifficulty !== user.wordleDifficulty ||
     beforeBoomDifficulty !== user.boomDifficulty ||
@@ -462,6 +483,22 @@ export function getUserData(userId) {
     saveUsers()
   }
 
+  return user
+}
+
+export function updateUserNickname(userId, nickname) {
+  const normalizedNickname = normalizeUserName(nickname)
+  if (!normalizedNickname) {
+    return null
+  }
+
+  const user = getUserData(userId)
+  if (user.nickname === normalizedNickname) {
+    return user
+  }
+
+  user.nickname = normalizedNickname
+  saveUsers()
   return user
 }
 
@@ -569,6 +606,7 @@ export function buildCoinLeaderboard(userEntries) {
   const entries = Array.from(userEntries, ([userId, user]) => ({
     userId: normalizeUserId(userId),
     uid: hasValidUid(user) ? user.uid : 0,
+    name: resolveUserDisplayName(user, userId),
     coins: normalizeCoinAmount(user?.coins),
     registerTime: user?.registerTime || ''
   }))

@@ -25,9 +25,11 @@ function normalizePositiveInteger(value, fallback = 0) {
 }
 
 function normalizeEntry(entry = {}) {
+  const name = String(entry.name ?? '').trim()
+
   return {
     rank: normalizePositiveInteger(entry.rank),
-    uid: escapeHtml(entry.uid),
+    name: escapeHtml(name || '未知昵称'),
     coins: escapeHtml(entry.coins)
   }
 }
@@ -65,7 +67,7 @@ function renderRankRows(entries = []) {
             <span>${entry.rank}</span>
           </div>
           <div class="rank-content">
-            <div class="rank-label">UID ${entry.uid}</div>
+            <div class="rank-label">${entry.name}</div>
           </div>
           <div class="coin-pill">${entry.coins} 枚 Star 币</div>
         </div>
@@ -101,7 +103,7 @@ function renderCurrentUserCard(entry) {
     <div class="self-card">
       <div class="self-title">你当前第 ${currentUser.rank} 名</div>
       <div class="self-row">
-        <div class="self-uid">UID ${currentUser.uid}</div>
+        <div class="self-name">${currentUser.name}</div>
         <div class="self-coins">${currentUser.coins} 枚 Star 币</div>
       </div>
     </div>
@@ -113,20 +115,20 @@ export function createRankPreviewCard() {
     title: DEFAULT_TITLE,
     subtitle: DEFAULT_SUBTITLE,
     entries: [
-      { rank: 1, uid: 7, coins: 9999 },
-      { rank: 2, uid: 12, coins: 8848 },
-      { rank: 3, uid: 19, coins: 6666 },
-      { rank: 4, uid: 31, coins: 5200 },
-      { rank: 5, uid: 42, coins: 4096 },
-      { rank: 6, uid: 56, coins: 3666 },
-      { rank: 7, uid: 68, coins: 2999 },
-      { rank: 8, uid: 72, coins: 2400 },
-      { rank: 9, uid: 88, coins: 1888 },
-      { rank: 10, uid: 95, coins: 1666 }
+      { rank: 1, name: '大喵喵', coins: 9999 },
+      { rank: 2, name: '小星星', coins: 8848 },
+      { rank: 3, name: '团子', coins: 6666 },
+      { rank: 4, name: '阿月', coins: 5200 },
+      { rank: 5, name: '云朵', coins: 4096 },
+      { rank: 6, name: '糖糖', coins: 3666 },
+      { rank: 7, name: '夏夜', coins: 2999 },
+      { rank: 8, name: '铃兰', coins: 2400 },
+      { rank: 9, name: '白雪', coins: 1888 },
+      { rank: 10, name: '花火', coins: 1666 }
     ],
     currentUser: {
       rank: 18,
-      uid: 233,
+      name: '主人',
       coins: 777
     },
     footerText: DEFAULT_FOOTER
@@ -213,6 +215,12 @@ export function buildRankHtml(card = {}) {
       .rank-content {
         flex: 1;
         min-width: 0;
+      }
+      .rank-label,
+      .self-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .rank-label {
         font-size: 26px;
@@ -302,11 +310,18 @@ export function buildRankHtml(card = {}) {
         justify-content: space-between;
         gap: 16px;
       }
-      .self-uid,
+      .self-name {
+        flex: 1;
+        min-width: 0;
+        font-size: 22px;
+        line-height: 1.4;
+        font-weight: 700;
+      }
       .self-coins {
         font-size: 22px;
         line-height: 1.4;
         font-weight: 700;
+        white-space: nowrap;
       }
       .footer {
         margin-top: 28px;
