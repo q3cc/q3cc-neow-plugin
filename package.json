@@ -1,6 +1,6 @@
 {
   "name": "q3cc-neow-plugin",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "一个游戏插件",
   "author": "@Q3CC",
   "type": "module",

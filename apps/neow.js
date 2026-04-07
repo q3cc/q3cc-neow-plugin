@@ -31,6 +31,8 @@ import {
 } from '../utils/game24.js'
 import {
   ML_DIFFICULTIES,
+  ML_FORCE_TEXT_DIFFICULTY,
+  ML_REPLY_MODES,
   getMlGame,
   setMlGame,
   deleteMlGame,
@@ -41,7 +43,9 @@ import {
   isMlTimeout,
   shouldMlExplode,
   calculateMlRewards,
-  calculateMlPenalty
+  calculateMlPenalty,
+  normalizeMlReplyMode,
+  resolveMlReplyMode
 } from '../utils/ml-game.js'
 import {
   WORDLE_DIFFICULTIES,
@@ -184,6 +188,14 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?ml\s+difficulty\s+(\d+)\s*$/i,
           fnc: 'setMlDifficulty'
+        },
+        {
+          reg: /^(?:\/|#)?ml\s+mode\s*$/i,
+          fnc: 'showMlModeMenu'
+        },
+        {
+          reg: /^(?:\/|#)?ml\s+mode\s+(auto|image|text)\s*$/i,
+          fnc: 'setMlReplyMode'
         },
         {
           reg: /^(?:\/|#)?ml\s+(\d{4})\s*$/i,
@@ -465,6 +477,29 @@ export class NeowPlugin extends plugin {
     }
   }
 
+  getMlReplyModeDetails(savedMode, difficultyId) {
+    const parsedDifficultyId = Number(difficultyId)
+    const normalizedDifficultyId = Number.isInteger(parsedDifficultyId) ? parsedDifficultyId : null
+    const normalizedMode = normalizeMlReplyMode(savedMode)
+    const resolvedMode = resolveMlReplyMode(normalizedMode, normalizedDifficultyId)
+    const forceText = normalizedDifficultyId === ML_FORCE_TEXT_DIFFICULTY
+    const forcedDifficultyName = ML_DIFFICULTIES[ML_FORCE_TEXT_DIFFICULTY]?.name || '另类极限'
+
+    return {
+      savedMode: normalizedMode,
+      resolvedMode,
+      forceText,
+      savedLabel: ML_REPLY_MODES[normalizedMode].name,
+      resolvedLabel: ML_REPLY_MODES[resolvedMode].name,
+      currentLabel: forceText
+        ? `${ML_REPLY_MODES[resolvedMode].name}（${forcedDifficultyName}强制）`
+        : ML_REPLY_MODES[resolvedMode].name,
+      forceTextLine: forceText
+        ? `当前难度为 ${forcedDifficultyName}, 会强制使用文字发送`
+        : ''
+    }
+  }
+
   async transferCoins(e) {
     if (!await this.ensureUsable(e)) {
       return true
@@ -526,12 +561,14 @@ export class NeowPlugin extends plugin {
 
     const user = getUserData(e.user_id)
     const difficulty = ML_DIFFICULTIES[user.mlDifficulty] || ML_DIFFICULTIES[1]
+    const modeInfo = this.getMlReplyModeDetails(user.mlReplyMode, user.mlDifficulty)
 
     const lines = [
       '你在整理旧物的时候，翻出了一台布满灰尘的破译机。',
       '大喵喵拍了拍机身，屏幕竟然真的亮了起来喵~',
       '只要成功破译密码，好像就能得到一点奖励呢。',
-      `⚡ 当前体力: ${user.stamina}/${user.maxStamina}`
+      `⚡ 当前体力: ${user.stamina}/${user.maxStamina}`,
+      `📨 当前发送: ${modeInfo.currentLabel}`
     ]
 
     await this.replyMlCard(e, {
@@ -541,20 +578,23 @@ export class NeowPlugin extends plugin {
       chips: [
         `当前体力 ${user.stamina}/${user.maxStamina}`,
         `${difficulty.name}难度`,
-        `${difficulty.stamina}体力/局`
+        `${difficulty.stamina}体力/局`,
+        `${modeInfo.currentLabel}发送`
       ],
       lines,
       footerLines: [
         '/ml start - 开始游戏',
-        '/ml difficulty - 修改难度'
+        '/ml difficulty - 修改难度',
+        '/ml mode - 调整发送方式'
       ]
     }, [
       ...lines,
       '',
       `⚡ 当前体力: ${user.stamina}/${user.maxStamina} (${difficulty.stamina}体力/局)`,
       '/ml start - 开始游戏',
-      '/ml difficulty - 修改难度'
-    ].join('\n'))
+      '/ml difficulty - 修改难度',
+      '/ml mode - 调整发送方式'
+    ].join('\n'), '', user.mlDifficulty)
 
     return true
   }
@@ -598,6 +638,7 @@ export class NeowPlugin extends plugin {
 
     const user = getUserData(e.user_id)
     const difficulty = ML_DIFFICULTIES[user.mlDifficulty] || ML_DIFFICULTIES[1]
+    const modeInfo = this.getMlReplyModeDetails(user.mlReplyMode, user.mlDifficulty)
 
     if (user.stamina < difficulty.stamina) {
       await e.reply([
@@ -625,23 +666,27 @@ export class NeowPlugin extends plugin {
       theme: 'warn',
       chips: [
         `${difficulty.name}难度`,
-        `${difficulty.stamina}体力/局`
+        `${difficulty.stamina}体力/局`,
+        `${modeInfo.currentLabel}发送`
       ],
       lines: [
         '我已经把四位密码锁好了。',
+        `当前发送: ${modeInfo.currentLabel}`,
         '请使用 /ml <任意四位数字> 开始破译',
         '例如: /ml 1234'
       ],
       footerLines: [
         '/ml 1234',
-        '/ml start - 再来一局'
+        '/ml start - 再来一局',
+        '/ml mode - 调整发送方式'
       ]
     }, [
       '密码破译开始喵~',
       '我已经把四位密码锁好了。',
+      `当前发送: ${modeInfo.currentLabel}`,
       '请使用 /ml <任意四位数字> 开始破译',
       '例如: /ml 1234'
-    ].join('\n'))
+    ].join('\n'), '', user.mlDifficulty)
 
     return true
   }
@@ -653,6 +698,7 @@ export class NeowPlugin extends plugin {
 
     const user = getUserData(e.user_id)
     const difficulty = ML_DIFFICULTIES[user.mlDifficulty] || ML_DIFFICULTIES[1]
+    const modeInfo = this.getMlReplyModeDetails(user.mlReplyMode, user.mlDifficulty)
 
     const difficultyLines = Object.entries(ML_DIFFICULTIES).map(([, item]) => `${item.name}: ${item.desc}`)
 
@@ -662,11 +708,16 @@ export class NeowPlugin extends plugin {
       theme: 'info',
       chips: [
         `当前难度 ${difficulty.name}`,
-        `${difficulty.stamina}体力/局`
+        `${difficulty.stamina}体力/局`,
+        `${modeInfo.currentLabel}发送`
       ],
-      lines: difficultyLines,
+      lines: [
+        `当前发送: ${modeInfo.currentLabel}`,
+        ...difficultyLines
+      ],
       footerLines: [
         '所选难度越高, 消耗体力越多, 奖励越丰富',
+        '/ml mode - 调整发送方式',
         '/ml difficulty 0 - 简单',
         '/ml difficulty 1 - 普通',
         '/ml difficulty 2 - 困难',
@@ -675,16 +726,115 @@ export class NeowPlugin extends plugin {
       ]
     }, [
       `主人当前的难度为: ${difficulty.name}`,
+      `当前发送: ${modeInfo.currentLabel}`,
       '',
       ...difficultyLines,
       '',
       '所选难度越高, 消耗体力越多, 奖励越丰富',
+      '/ml mode - 调整发送方式',
       '/ml difficulty 0 - 简单',
       '/ml difficulty 1 - 普通',
       '/ml difficulty 2 - 困难',
       '/ml difficulty 3 - 极限',
       '/ml difficulty 4 - 另类极限'
-    ].join('\n'))
+    ].join('\n'), '', user.mlDifficulty)
+    return true
+  }
+
+  async showMlModeMenu(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const user = getUserData(e.user_id)
+    const difficulty = ML_DIFFICULTIES[user.mlDifficulty] || ML_DIFFICULTIES[1]
+    const modeInfo = this.getMlReplyModeDetails(user.mlReplyMode, user.mlDifficulty)
+
+    const lines = [
+      `当前设置: ${modeInfo.savedLabel}`,
+      `当前实际发送: ${modeInfo.currentLabel}`,
+      `当前难度: ${difficulty.name}`
+    ]
+
+    if (modeInfo.forceText) {
+      lines.push('当前难度为另类极限, 会强制使用文字发送喵~')
+      lines.push(`离开另类极限后, 会恢复为 ${modeInfo.savedLabel} 方式发送`)
+    } else {
+      lines.push('自动模式会优先发送图片, 失败时再改发文字喵~')
+    }
+
+    lines.push(
+      '',
+      '/ml mode auto - 自动 (优先图片, 失败时转文字)',
+      '/ml mode image - 图片 (优先尝试图片, 失败时仍转文字)',
+      '/ml mode text - 文字 (直接发送文字)'
+    )
+
+    await this.replyMlCard(e, {
+      title: '密码破译发送方式',
+      subtitle: '主人可以自己决定更喜欢看图片还是文字喵~',
+      theme: 'info',
+      chips: [
+        `${difficulty.name}难度`,
+        `当前设置 ${modeInfo.savedLabel}`,
+        `实际发送 ${modeInfo.currentLabel}`
+      ],
+      lines,
+      footerLines: [
+        '/ml mode auto - 自动',
+        '/ml mode image - 图片',
+        '/ml mode text - 文字'
+      ]
+    }, lines.join('\n'), '', user.mlDifficulty)
+
+    return true
+  }
+
+  async setMlReplyMode(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?ml\s+mode\s+(auto|image|text)\s*$/i)
+    const nextMode = normalizeMlReplyMode(match?.[1])
+    const user = getUserData(e.user_id)
+
+    user.mlReplyMode = nextMode
+    saveUserData()
+
+    const difficulty = ML_DIFFICULTIES[user.mlDifficulty] || ML_DIFFICULTIES[1]
+    const modeInfo = this.getMlReplyModeDetails(user.mlReplyMode, user.mlDifficulty)
+    const lines = [
+      `密码破译发送方式已设置为: ${modeInfo.savedLabel}`,
+      `当前实际发送: ${modeInfo.currentLabel}`,
+      `当前难度: ${difficulty.name}`
+    ]
+
+    if (modeInfo.forceText) {
+      lines.push('因为当前是另类极限, 所以这局相关提示仍会直接使用文字发送喵~')
+    } else {
+      lines.push(ML_REPLY_MODES[modeInfo.savedMode].desc)
+    }
+
+    lines.push('/ml start - 开始游戏')
+    lines.push('/ml mode - 查看发送方式菜单')
+
+    await this.replyMlCard(e, {
+      title: '发送方式设置完成',
+      subtitle: '大喵喵已经记住主人喜欢的展示方式啦喵~',
+      theme: 'success',
+      chips: [
+        `${difficulty.name}难度`,
+        `当前设置 ${modeInfo.savedLabel}`,
+        `实际发送 ${modeInfo.currentLabel}`
+      ],
+      lines: lines.slice(0, 4),
+      footerLines: [
+        '/ml start - 开始游戏',
+        '/ml mode - 查看发送方式菜单'
+      ]
+    }, lines.join('\n'), '', user.mlDifficulty)
+
     return true
   }
 
@@ -706,27 +856,33 @@ export class NeowPlugin extends plugin {
     saveUserData()
 
     const difficulty = ML_DIFFICULTIES[difficultyId]
+    const modeInfo = this.getMlReplyModeDetails(user.mlReplyMode, difficultyId)
     await this.replyMlCard(e, {
       title: '难度设置完成',
       subtitle: '大喵喵已经把破译机调到新的模式啦喵~',
       theme: 'success',
       chips: [
         `${difficulty.name}难度`,
-        `${difficulty.stamina}体力/局`
+        `${difficulty.stamina}体力/局`,
+        `${modeInfo.currentLabel}发送`
       ],
       lines: [
         difficulty.desc,
-        `消耗体力: ${difficulty.stamina}`
+        `消耗体力: ${difficulty.stamina}`,
+        `当前发送: ${modeInfo.currentLabel}`
       ],
       footerLines: [
         '/ml start - 开始游戏',
-        '/ml difficulty - 查看难度菜单'
+        '/ml difficulty - 查看难度菜单',
+        '/ml mode - 查看发送方式菜单'
       ]
     }, [
       `密码破译难度已设置为: ${difficulty.name}`,
       difficulty.desc,
-      `消耗体力: ${difficulty.stamina}`
-    ].join('\n'))
+      `消耗体力: ${difficulty.stamina}`,
+      `当前发送: ${modeInfo.currentLabel}`,
+      modeInfo.forceTextLine
+    ].filter(Boolean).join('\n'), '', difficultyId)
     return true
   }
 
@@ -771,7 +927,7 @@ export class NeowPlugin extends plugin {
         `时间到啦喵... 正确答案是 ${game.password}`,
         penaltyLine,
         '/ml start - 再来一次'
-      ].join('\n'))
+      ].join('\n'), game.difficulty)
       return true
     }
 
@@ -822,7 +978,7 @@ export class NeowPlugin extends plugin {
         `总共试了 ${game.history.length} 次`,
         `游戏机吐出了 ${rewards.coinReward} 枚 Star 币, 同时还获得了来自大喵喵的 ${rewards.favorReward} 点好感度`,
         '/ml start - 再来一次'
-      ].join('\n'))
+      ].join('\n'), game.difficulty)
       return true
     }
 
@@ -858,7 +1014,7 @@ export class NeowPlugin extends plugin {
         `正确答案是 ${game.password}`,
         penaltyLine,
         '/ml start - 再来一次'
-      ].join('\n'))
+      ].join('\n'), game.difficulty)
       return true
     }
 
@@ -891,7 +1047,7 @@ export class NeowPlugin extends plugin {
         `次数用完啦... 正确答案是 ${game.password}`,
         penaltyLine,
         '/ml start - 再来一次'
-      ].join('\n'))
+      ].join('\n'), game.difficulty)
       return true
     }
 
@@ -923,7 +1079,7 @@ export class NeowPlugin extends plugin {
       ]
     }, lines.join('\n'), remainSeconds !== null
       ? `剩余时间 ${remainSeconds} 秒`
-      : `已尝试 ${game.history.length} 次`)
+      : `已尝试 ${game.history.length} 次`, game.difficulty)
     return true
   }
 
@@ -940,6 +1096,7 @@ export class NeowPlugin extends plugin {
       '我会藏好一个 5 字母英文单词，主人来把它找出来吧~',
       '',
       `⚡ 当前体力: ${user.stamina}/${user.maxStamina} (${difficulty.stamina}体力/局)`,
+      `📚 当前词库: ${difficulty.wordSource}`,
       '/wordle start - 开始游戏',
       '/wordle difficulty - 修改难度'
     ].join('\n'), true)
@@ -1001,7 +1158,7 @@ export class NeowPlugin extends plugin {
     syncUserData(user, { persist: true })
 
     setWordleGame(sessionId, e.user_id, {
-      answer: getRandomWordleWord(),
+      answer: getRandomWordleWord(user.wordleDifficulty),
       difficulty: user.wordleDifficulty,
       history: [],
       startTime: Date.now()
@@ -1010,6 +1167,7 @@ export class NeowPlugin extends plugin {
     await e.reply([
       'Wordle 开始喵~',
       '大喵喵已经藏好了一个 5 字母单词。',
+      `当前词库: ${difficulty.wordSource}`,
       '请使用 /wordle <单词> 开始猜测',
       '例如: /wordle apple'
     ].join('\n'), true)
@@ -1027,11 +1185,12 @@ export class NeowPlugin extends plugin {
 
     await e.reply([
       `当前难度: ${difficulty.name}`,
+      `当前词库: ${difficulty.wordSource}`,
       '',
-      '/wordle difficulty 0 - 简单 (10体力/局, 8次机会, 无时限)',
-      '/wordle difficulty 1 - 普通 (15体力/局, 6次机会, 180秒)',
-      '/wordle difficulty 2 - 困难 (20体力/局, 5次机会, 120秒)',
-      '/wordle difficulty 3 - 极限 (25体力/局, 4次机会, 60秒)'
+      '/wordle difficulty 0 - 简单 (高考基础词库, 10体力/局, 8次机会, 无时限)',
+      '/wordle difficulty 1 - 普通 (高考基础 + 四级附加, 15体力/局, 6次机会, 180秒)',
+      '/wordle difficulty 2 - 困难 (高考基础 + 四级附加 + 六级附加, 20体力/局, 5次机会, 120秒)',
+      '/wordle difficulty 3 - 极限 (原版 Wordle 词库, 25体力/局, 4次机会, 60秒)'
     ].join('\n'), true)
 
     return true
@@ -1058,6 +1217,7 @@ export class NeowPlugin extends plugin {
     await e.reply([
       `Wordle 难度已设置为: ${difficulty.name}`,
       difficulty.desc,
+      `词库: ${difficulty.wordSource}`,
       `消耗体力: ${difficulty.stamina}`
     ].join('\n'), true)
     return true
@@ -2508,7 +2668,15 @@ export class NeowPlugin extends plugin {
     return true
   }
 
-  async replyMlCard(e, card, fallbackText, imageText = '') {
+  async replyMlCard(e, card, fallbackText, imageText = '', difficultyId = null) {
+    const user = getUserData(e.user_id)
+    const modeInfo = this.getMlReplyModeDetails(user.mlReplyMode, difficultyId ?? user.mlDifficulty)
+
+    if (modeInfo.resolvedMode === 'text') {
+      await this.replyWithTimeout(e, fallbackText, true)
+      return true
+    }
+
     return this.replyRenderedCard(e, card, fallbackText, imageText, renderMlImage)
   }
 

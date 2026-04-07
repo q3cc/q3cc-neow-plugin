@@ -2,6 +2,7 @@ import fs from 'fs'
 import fsp from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { normalizeMlReplyMode } from './ml-game.js'
 
 const users = new Map()
 const dailySignStats = new Map()
@@ -57,6 +58,7 @@ function createDefaultUser() {
     maxStamina: 150,
     difficulty: 1,
     mlDifficulty: 1,
+    mlReplyMode: 'auto',
     wordleDifficulty: 1,
     boomDifficulty: 1,
     adminUntil: 0,
@@ -393,6 +395,7 @@ export function syncUserData(user, options = {}) {
   const beforeMaxStamina = user.maxStamina
   const beforeStamina = user.stamina
   const beforeNickname = user.nickname || ''
+  const beforeMlReplyMode = user.mlReplyMode
   const beforeWordleDifficulty = user.wordleDifficulty
   const beforeBoomDifficulty = user.boomDifficulty
   const beforeAdminUntil = user.adminUntil || 0
@@ -417,6 +420,8 @@ export function syncUserData(user, options = {}) {
     user.wordleDifficulty = 1
   }
 
+  user.mlReplyMode = normalizeMlReplyMode(user.mlReplyMode)
+
   if (!Number.isInteger(user.boomDifficulty)) {
     user.boomDifficulty = 1
   }
@@ -432,6 +437,7 @@ export function syncUserData(user, options = {}) {
     beforeMaxStamina !== user.maxStamina ||
     beforeStamina !== user.stamina ||
     beforeNickname !== user.nickname ||
+    beforeMlReplyMode !== user.mlReplyMode ||
     beforeWordleDifficulty !== user.wordleDifficulty ||
     beforeBoomDifficulty !== user.boomDifficulty ||
     beforeAdminUntil !== (user.adminUntil || 0) ||
@@ -686,6 +692,7 @@ export function buildHelpLines(options = {}) {
     '/transfer - 转赠 Star 币',
     '/sign - 每日签到',
     '/ml - 密码破译',
+    '/ml mode - 设置密码破译发送方式',
     '/wordle - 猜单词',
     '/boom - 数字炸弹',
     '/24g - 二十四点'

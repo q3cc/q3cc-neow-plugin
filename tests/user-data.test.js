@@ -19,6 +19,7 @@ function createMockUser(overrides = {}) {
     maxStamina: 150,
     difficulty: 1,
     mlDifficulty: 1,
+    mlReplyMode: 'auto',
     wordleDifficulty: 1,
     boomDifficulty: 1,
     adminUntil: 0,
@@ -40,6 +41,20 @@ test('syncUserData 会把昵称标准化为单行短文本', () => {
   syncUserData(user)
 
   assert.equal(user.nickname, '小 喵')
+})
+
+test('syncUserData 会把缺失或非法的密码破译发送方式回填为 auto', () => {
+  const missingModeUser = createMockUser({ mlReplyMode: undefined })
+  syncUserData(missingModeUser)
+  assert.equal(missingModeUser.mlReplyMode, 'auto')
+
+  const invalidModeUser = createMockUser({ mlReplyMode: 'poster' })
+  syncUserData(invalidModeUser)
+  assert.equal(invalidModeUser.mlReplyMode, 'auto')
+
+  const validModeUser = createMockUser({ mlReplyMode: 'IMAGE' })
+  syncUserData(validModeUser)
+  assert.equal(validModeUser.mlReplyMode, 'image')
 })
 
 test('Star 币排行榜会按金币降序、UID 升序生成名次并优先展示昵称', () => {
