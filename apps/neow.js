@@ -69,6 +69,11 @@ import {
   formatWordLookupBlock,
   formatWordleMeaningBlock
 } from '../utils/wordle-dict.js'
+import {
+  clearPendingDictSelection,
+  pickPendingDictSelection,
+  setPendingDictSelection
+} from '../utils/dict-selection.js'
 import { isBlockedSexualWord } from '../utils/blocked-words.js'
 import {
   BOOM_COUNTDOWN_MS,
@@ -331,6 +336,8 @@ export class NeowPlugin extends plugin {
       return true
     }
 
+    const sessionId = this.getSessionId(e)
+    const selectionCommand = /查词/i.test(e.msg || '') ? '/查词' : '/dict'
     const match = (e.msg || '').match(/^(?:\/|#)?(?:dict|查词)(?:\s+(.+))?\s*$/i)
     const rawQuery = String(match?.[1] || '').trim()
     const forceSuggest = /(?:^|\s)-s$/i.test(rawQuery)
@@ -342,14 +349,57 @@ export class NeowPlugin extends plugin {
       await this.replyWithTimeout(e, [
         '/dict <词语> - 查询单词或搜索结果',
         '/dict <词语> -s - 强制进入搜索模式',
+        '/dict <1-5> - 查看上一轮搜索结果详情',
         '/查词 <词语> - 查询单词或搜索结果',
         '示例: /dict arise',
-        '示例: /dict 原神 -s'
+        '示例: /dict 原神 -s',
+        '示例: /dict 1'
       ].join('\n'), true)
       return true
     }
 
+    if (!forceSuggest && /^[1-5]$/.test(query)) {
+      const picked = pickPendingDictSelection(sessionId, e.user_id, query)
+
+      if (!picked.ok) {
+        if (picked.reason === 'out_of_range' && picked.selection?.entries?.length) {
+          await this.replyWithTimeout(
+            e,
+            `当前搜索结果只有 ${picked.selection.entries.length} 条喵，请输入 ${selectionCommand} 1 到 ${selectionCommand} ${picked.selection.entries.length} 查看对应结果`,
+            true
+          )
+          return true
+        }
+
+        await this.replyWithTimeout(e, '没有可继续查看的搜索结果喵，请先重新搜索一下吧~', true)
+        return true
+      }
+
+      const detailEntry = picked.entry?.entry || ''
+      if (!detailEntry || isBlockedSexualWord(detailEntry)) {
+        await this.replyWithTimeout(e, '这个候选词有点涩涩，不给查喵，换一个正常点的词吧~', true)
+        return true
+      }
+
+      const meaning = await fetchWordleMeaning(detailEntry, {
+        onError: error => {
+          logWarn(`[neow][dict] 查询候选 ${String(detailEntry || '').toLowerCase()} 释义失败: ${error?.message || error}`)
+        }
+      })
+
+      const detailText = formatWordLookupBlock(meaning)
+      if (!detailText) {
+        await this.replyWithTimeout(e, `${detailEntry} 暂时没有更详细的释义喵，换一个结果试试看吧~`, true)
+        return true
+      }
+
+      clearPendingDictSelection(sessionId, e.user_id)
+      await this.replyWithTimeout(e, detailText, true)
+      return true
+    }
+
     if (isBlockedSexualWord(query)) {
+      clearPendingDictSelection(sessionId, e.user_id)
       await this.replyWithTimeout(e, '这个词有点涩涩，不给查喵，换一个正常点的单词吧~', true)
       return true
     }
@@ -366,6 +416,10 @@ export class NeowPlugin extends plugin {
       replyText = formatWordLookupBlock(meaning)
     }
 
+    if (replyText) {
+      clearPendingDictSelection(sessionId, e.user_id)
+    }
+
     if (!replyText) {
       const suggestions = await fetchWordSuggestions(query, {
         onError: error => {
@@ -373,10 +427,19 @@ export class NeowPlugin extends plugin {
         }
       })
 
-      replyText = formatWordSuggestionBlock(suggestions)
+      const suggestionText = formatWordSuggestionBlock(suggestions)
+      if (suggestionText) {
+        setPendingDictSelection(sessionId, e.user_id, suggestions)
+        replyText = [
+          suggestionText,
+          '',
+          `再次输入 ${selectionCommand} 1 即可查看第 1 条详细意思`
+        ].join('\n')
+      }
     }
 
     if (!replyText) {
+      clearPendingDictSelection(sessionId, e.user_id)
       await this.replyWithTimeout(e, '大喵喵暂时没查到这个单词喵，换一个试试看吧~', true)
       return true
     }

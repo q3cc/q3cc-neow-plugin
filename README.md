@@ -11,7 +11,7 @@
 - 帮助菜单：`/nhelp`（兼容 `/neowhelp`）
 - 在线检查：`/ping`
 - 每日签到：`/sign`（兼容 `/签到`、`/qd`、`/checkin`）
-- 查词：`/dict <单词>`（兼容 `/查词 <单词>`）
+- 查词：`/dict <词语>`（兼容 `/查词 <词语>`，支持 `/dict 1` 继续查看搜索结果）
 - 密码破译：`/ml`
 - Wordle 猜单词：`/wordle`
 - 数字炸弹：`/boom`
@@ -32,6 +32,7 @@
 - `/签到` / `/qd` / `/checkin` - 签到别名
 - `/dict <词语>` - 优先精确查词，失败时自动返回搜索结果
 - `/dict <词语> -s` - 强制进入搜索模式
+- `/dict <1-5>` - 查看上一轮搜索结果中对应编号的详细释义
 - `/查词 <词语>` - `/dict` 的中文别名
 - `/ml` - 查看密码破译菜单
 - `/ml start` - 开始一局密码破译
@@ -115,11 +116,12 @@
 
 ## 查词规则
 
-- 输入格式：`/dict <词语>`、`/查词 <词语>`、`/dict <词语> -s`
+- 输入格式：`/dict <词语>`、`/查词 <词语>`、`/dict <词语> -s`、`/dict <1-5>`
 - 默认先走有道 `jsonapi` 精确查词，查不到时自动回退到 suggest 搜索
 - 使用 `-s` 时会直接跳过精确查词，强制返回搜索结果
 - 精确查词命中时，返回内容包含：单词本身、英/美音标、中文释义、考试分类、常见词形变化
 - 搜索模式同时支持中文和英文查询，默认展示前 `5` 条候选
+- 搜索结果会临时缓存 `5` 分钟，可继续输入 `/dict 1` 查看第 `1` 条候选的详细释义
 - 色情或低俗英文词汇会被直接屏蔽，不返回查词结果
 - 查询失败或词典暂无结果时，会提示重新换词
 
@@ -145,6 +147,7 @@
 - `utils/ml-game.js` - 密码破译玩法配置、状态与奖励计算
 - `utils/ml-render.js` - 密码破译棋盘图片渲染
 - `utils/blocked-words.js` - 统一管理色情/低俗英文词汇屏蔽
+- `utils/dict-selection.js` - 管理查词搜索结果的临时选择状态
 - `utils/wordle-game.js` - Wordle 猜单词配置、答案词/合法猜测词校验、状态与奖励计算
 - `utils/wordle-dict.js` - 有道词典查询、释义解析与格式化
 - `utils/wordle-render.js` - Wordle 棋盘与键盘图片渲染
@@ -187,11 +190,12 @@ node --check utils/ml-render.js
 node --check utils/rank-render.js
 node --check utils/boom-game.js
 node --check utils/blocked-words.js
+node --check utils/dict-selection.js
 node --check utils/wordle-dict.js
 node --check utils/wordle-game.js
 node --check utils/wordle-render.js
 node --check utils/render-browser.js
 node --check scripts/generate-rank-render-preview.mjs
-node --test tests/blocked-words.test.js tests/boom-game.test.js tests/ml-game.test.js tests/user-data.test.js tests/wordle-dict.test.js tests/wordle-game.test.js tests/rank-render.test.js
+node --test tests/blocked-words.test.js tests/boom-game.test.js tests/dict-selection.test.js tests/ml-game.test.js tests/user-data.test.js tests/wordle-dict.test.js tests/wordle-game.test.js tests/rank-render.test.js
 node scripts/generate-rank-render-preview.mjs
 ```
