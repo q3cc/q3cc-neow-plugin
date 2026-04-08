@@ -63,7 +63,9 @@ import {
   calculateWordlePenalty
 } from '../utils/wordle-game.js'
 import {
+  fetchWordSuggestions,
   fetchWordleMeaning,
+  formatWordSuggestionBlock,
   formatWordLookupBlock,
   formatWordleMeaningBlock
 } from '../utils/wordle-dict.js'
@@ -330,34 +332,50 @@ export class NeowPlugin extends plugin {
     }
 
     const match = (e.msg || '').match(/^(?:\/|#)?(?:dict|查词)(?:\s+(.+))?\s*$/i)
-    const word = String(match?.[1] || '').trim()
+    const rawQuery = String(match?.[1] || '').trim()
+    const forceSuggest = /(?:^|\s)-s$/i.test(rawQuery)
+    const query = forceSuggest
+      ? rawQuery.replace(/(?:^|\s)-s$/i, '').trim()
+      : rawQuery
 
-    if (!word) {
+    if (!query) {
       await this.replyWithTimeout(e, [
-        '/dict <英文单词> - 查询单词意思',
-        '/查词 <英文单词> - 查询单词意思',
-        '示例: /dict arise'
+        '/dict <词语> - 查询单词或搜索结果',
+        '/dict <词语> -s - 强制进入搜索模式',
+        '/查词 <词语> - 查询单词或搜索结果',
+        '示例: /dict arise',
+        '示例: /dict 原神 -s'
       ].join('\n'), true)
       return true
     }
 
-    if (!/^[a-zA-Z][a-zA-Z'-]*$/.test(word)) {
-      await this.replyWithTimeout(e, '请给大喵喵一个英文单词喵，比如 /dict arise', true)
-      return true
-    }
-
-    if (isBlockedSexualWord(word)) {
+    if (isBlockedSexualWord(query)) {
       await this.replyWithTimeout(e, '这个词有点涩涩，不给查喵，换一个正常点的单词吧~', true)
       return true
     }
 
-    const meaning = await fetchWordleMeaning(word, {
-      onError: error => {
-        logWarn(`[neow][dict] 查询 ${String(word || '').toLowerCase()} 失败: ${error?.message || error}`)
-      }
-    })
+    let replyText = ''
 
-    const replyText = formatWordLookupBlock(meaning)
+    if (!forceSuggest) {
+      const meaning = await fetchWordleMeaning(query, {
+        onError: error => {
+          logWarn(`[neow][dict] 查询 ${String(query || '').toLowerCase()} 释义失败: ${error?.message || error}`)
+        }
+      })
+
+      replyText = formatWordLookupBlock(meaning)
+    }
+
+    if (!replyText) {
+      const suggestions = await fetchWordSuggestions(query, {
+        onError: error => {
+          logWarn(`[neow][dict] 查询 ${String(query || '').toLowerCase()} 搜索结果失败: ${error?.message || error}`)
+        }
+      })
+
+      replyText = formatWordSuggestionBlock(suggestions)
+    }
+
     if (!replyText) {
       await this.replyWithTimeout(e, '大喵喵暂时没查到这个单词喵，换一个试试看吧~', true)
       return true

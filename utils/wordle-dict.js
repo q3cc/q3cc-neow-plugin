@@ -1,4 +1,7 @@
+import { isBlockedSexualWord } from './blocked-words.js'
+
 const YOUDAO_ENDPOINT = 'https://dict.youdao.com/jsonapi'
+const YOUDAO_SUGGEST_ENDPOINT = 'http://dict.youdao.com/suggest'
 const DEFAULT_TIMEOUT_MS = 3000
 
 function normalizeText(value) {
@@ -7,6 +10,10 @@ function normalizeText(value) {
 
 function normalizeWord(value) {
   return normalizeText(value).toLowerCase()
+}
+
+function normalizeLookupQuery(value) {
+  return String(value || '').trim()
 }
 
 function extractNestedText(node) {
@@ -126,6 +133,41 @@ export function hasYoudaoWordDetails(meaning) {
   )
 }
 
+function createRequestSignal(options, timeoutMs) {
+  return options.signal || AbortSignal.timeout(timeoutMs)
+}
+
+async function requestYoudaoJson(url, options = {}) {
+  const fetchImpl = options.fetchImpl || globalThis.fetch
+  const timeoutMs = Number.isInteger(options.timeoutMs) && options.timeoutMs > 0
+    ? options.timeoutMs
+    : DEFAULT_TIMEOUT_MS
+  const onError = typeof options.onError === 'function' ? options.onError : null
+
+  if (typeof fetchImpl !== 'function') {
+    return null
+  }
+
+  try {
+    const response = await fetchImpl(url, {
+      method: 'GET',
+      headers: {
+        accept: 'application/json'
+      },
+      signal: createRequestSignal(options, timeoutMs)
+    })
+
+    if (!response?.ok) {
+      throw new Error(`request failed with status ${response?.status ?? 'unknown'}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    onError?.(error)
+    return null
+  }
+}
+
 export function formatWordleMeaningBlock(meaning) {
   if (!hasYoudaoWordDetails(meaning)) {
     return ''
@@ -206,34 +248,66 @@ export function formatWordLookupBlock(meaning) {
   return lines.join('\n')
 }
 
+export function parseYoudaoSuggestions(payload, fallbackQuery = '') {
+  const query = normalizeLookupQuery(payload?.data?.query || fallbackQuery)
+  const entries = payload?.result?.code === 200 && Array.isArray(payload?.data?.entries)
+    ? payload.data.entries
+      .map(item => ({
+        entry: normalizeLookupQuery(item?.entry),
+        explain: normalizeText(item?.explain)
+      }))
+      .filter(item => item.entry)
+      .filter(item => !isBlockedSexualWord(item.entry))
+      .slice(0, 5)
+    : []
+
+  return {
+    query,
+    entries
+  }
+}
+
+export function formatWordSuggestionBlock(result) {
+  if (!Array.isArray(result?.entries) || result.entries.length === 0) {
+    return ''
+  }
+
+  const title = result.query ? `搜索结果：${result.query}` : '搜索结果'
+
+  return [
+    title,
+    '',
+    ...result.entries.map((item, index) => item.explain
+      ? `${index + 1}. ${item.entry} - ${item.explain}`
+      : `${index + 1}. ${item.entry}`)
+  ].join('\n')
+}
+
 export async function fetchWordleMeaning(word, options = {}) {
   const normalizedWord = normalizeWord(word)
-  const fetchImpl = options.fetchImpl || globalThis.fetch
-  const timeoutMs = Number.isInteger(options.timeoutMs) && options.timeoutMs > 0
-    ? options.timeoutMs
-    : DEFAULT_TIMEOUT_MS
-  const onError = typeof options.onError === 'function' ? options.onError : null
 
-  if (!normalizedWord || typeof fetchImpl !== 'function') {
+  if (!normalizedWord) {
     return null
   }
 
-  try {
-    const response = await fetchImpl(`${YOUDAO_ENDPOINT}?q=${encodeURIComponent(normalizedWord)}`, {
-      method: 'GET',
-      headers: {
-        accept: 'application/json'
-      },
-      signal: options.signal || AbortSignal.timeout(timeoutMs)
-    })
+  const payload = await requestYoudaoJson(`${YOUDAO_ENDPOINT}?q=${encodeURIComponent(normalizedWord)}`, options)
+  return payload ? parseYoudaoWordMeaning(payload, normalizedWord) : null
+}
 
-    if (!response?.ok) {
-      throw new Error(`request failed with status ${response?.status ?? 'unknown'}`)
+export async function fetchWordSuggestions(query, options = {}) {
+  const normalizedQuery = normalizeLookupQuery(query)
+
+  if (!normalizedQuery) {
+    return {
+      query: '',
+      entries: []
     }
-
-    return parseYoudaoWordMeaning(await response.json(), normalizedWord)
-  } catch (error) {
-    onError?.(error)
-    return null
   }
+
+  const payload = await requestYoudaoJson(
+    `${YOUDAO_SUGGEST_ENDPOINT}?num=5&ver=3.0&doctype=json&cache=false&le=en&q=${encodeURIComponent(normalizedQuery)}`,
+    options
+  )
+
+  return parseYoudaoSuggestions(payload, normalizedQuery)
 }

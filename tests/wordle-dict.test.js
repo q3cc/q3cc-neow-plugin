@@ -2,10 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  fetchWordSuggestions,
   fetchWordleMeaning,
+  formatWordSuggestionBlock,
   formatWordLookupBlock,
   formatWordleMeaningBlock,
   hasYoudaoWordDetails,
+  parseYoudaoSuggestions,
   parseYoudaoWordMeaning
 } from '../utils/wordle-dict.js'
 
@@ -262,4 +265,162 @@ test('fetchWordleMeaning returns null when the request throws', async () => {
 
   assert.equal(meaning, null)
   assert.deepEqual(errors, ['timeout'])
+})
+
+test('parseYoudaoSuggestions supports chinese search results', () => {
+  const result = parseYoudaoSuggestions({
+    result: {
+      msg: 'success',
+      code: 200
+    },
+    data: {
+      query: '原神',
+      entries: [
+        {
+          entry: '原神',
+          explain: 'Genshin Impact'
+        },
+        {
+          entry: '原神星族',
+          explain: 'Cybele asteroids'
+        },
+        {
+          entry: '厨神',
+          explain: 'Auguste Gusteau'
+        }
+      ]
+    }
+  })
+
+  assert.deepEqual(result, {
+    query: '原神',
+    entries: [
+      { entry: '原神', explain: 'Genshin Impact' },
+      { entry: '原神星族', explain: 'Cybele asteroids' },
+      { entry: '厨神', explain: 'Auguste Gusteau' }
+    ]
+  })
+})
+
+test('parseYoudaoSuggestions supports english search results and filters blocked words', () => {
+  const result = parseYoudaoSuggestions({
+    result: {
+      msg: 'success',
+      code: 200
+    },
+    data: {
+      query: 'game',
+      entries: [
+        {
+          entry: 'game',
+          explain: 'n. 游戏，比赛'
+        },
+        {
+          entry: 'games',
+          explain: 'n. 游戏（game 的复数）'
+        },
+        {
+          entry: 'dicks',
+          explain: 'blocked'
+        },
+        {
+          entry: 'gameplay',
+          explain: 'n. 游戏设置'
+        }
+      ]
+    }
+  })
+
+  assert.deepEqual(result, {
+    query: 'game',
+    entries: [
+      { entry: 'game', explain: 'n. 游戏，比赛' },
+      { entry: 'games', explain: 'n. 游戏（game 的复数）' },
+      { entry: 'gameplay', explain: 'n. 游戏设置' }
+    ]
+  })
+})
+
+test('formatWordSuggestionBlock builds numbered search results', () => {
+  assert.equal(
+    formatWordSuggestionBlock({
+      query: 'game',
+      entries: [
+        { entry: 'game', explain: 'n. 游戏，比赛' },
+        { entry: 'games', explain: '' }
+      ]
+    }),
+    [
+      '搜索结果：game',
+      '',
+      '1. game - n. 游戏，比赛',
+      '2. games'
+    ].join('\n')
+  )
+})
+
+test('fetchWordSuggestions requests suggest endpoint and parses results', async () => {
+  let requestedUrl = ''
+
+  const result = await fetchWordSuggestions('原神', {
+    fetchImpl: async url => {
+      requestedUrl = url
+      return {
+        ok: true,
+        async json() {
+          return {
+            result: {
+              msg: 'success',
+              code: 200
+            },
+            data: {
+              query: '原神',
+              entries: [
+                {
+                  entry: '原神',
+                  explain: 'Genshin Impact'
+                },
+                {
+                  entry: '厨神',
+                  explain: 'Auguste Gusteau'
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  })
+
+  assert.equal(requestedUrl, 'http://dict.youdao.com/suggest?num=5&ver=3.0&doctype=json&cache=false&le=en&q=%E5%8E%9F%E7%A5%9E')
+  assert.deepEqual(result, {
+    query: '原神',
+    entries: [
+      { entry: '原神', explain: 'Genshin Impact' },
+      { entry: '厨神', explain: 'Auguste Gusteau' }
+    ]
+  })
+})
+
+test('fetchWordSuggestions returns empty results on not found payload', async () => {
+  const result = await fetchWordSuggestions('asdfghjkl', {
+    fetchImpl: async () => ({
+      ok: true,
+      async json() {
+        return {
+          result: {
+            msg: 'not found',
+            code: 404
+          },
+          data: {}
+        }
+      }
+    })
+  })
+
+  assert.deepEqual(result, {
+    query: 'asdfghjkl',
+    entries: []
+  })
+  assert.equal(formatWordSuggestionBlock(result), '')
 })
