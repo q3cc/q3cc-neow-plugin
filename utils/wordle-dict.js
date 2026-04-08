@@ -95,14 +95,14 @@ function buildPronunciationLine(meaning) {
 }
 
 export function parseYoudaoWordMeaning(payload, fallbackWord = '') {
-  const entry = payload?.ec?.word?.[0] || payload?.word?.[0] || null
+  const entry = payload?.ec?.word?.[0] || payload?.ce?.word?.[0] || payload?.word?.[0] || null
   const word = extractNestedText(entry?.['return-phrase'])
     .map(item => normalizeWord(item))
     .find(Boolean) || normalizeWord(fallbackWord)
   const ukphone = normalizeText(entry?.ukphone)
   const usphone = normalizeText(entry?.usphone)
   const meanings = extractMeaningLines(entry?.trs)
-  const examTypes = extractExamTypes(payload?.ec?.exam_type)
+  const examTypes = extractExamTypes(payload?.ec?.exam_type || payload?.ce?.exam_type)
   const wordForms = extractWordForms(entry?.wfs)
 
   if (!word && !ukphone && !usphone && !meanings.length && !examTypes.length && !wordForms.length) {
@@ -280,6 +280,21 @@ export function formatWordSuggestionBlock(result) {
     ...result.entries.map((item, index) => item.explain
       ? `${index + 1}. ${item.entry} - ${item.explain}`
       : `${index + 1}. ${item.entry}`)
+  ].join('\n')
+}
+
+export function formatWordSuggestionDetailBlock(entry) {
+  const word = normalizeLookupQuery(entry?.entry)
+  const explain = normalizeText(entry?.explain)
+
+  if (!word || !explain) {
+    return ''
+  }
+
+  return [
+    word,
+    '',
+    `搜索释义：${explain}`
   ].join('\n')
 }
 

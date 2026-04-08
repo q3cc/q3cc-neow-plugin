@@ -5,6 +5,7 @@ import {
   fetchWordSuggestions,
   fetchWordleMeaning,
   formatWordSuggestionBlock,
+  formatWordSuggestionDetailBlock,
   formatWordLookupBlock,
   formatWordleMeaningBlock,
   hasYoudaoWordDetails,
@@ -158,6 +159,76 @@ test('formatWordleMeaningBlock omits empty placeholders', () => {
       'n. 鹤；起重机'
     ].join('\n')
   )
+})
+
+test('parseYoudaoWordMeaning supports chinese ce payloads and ignores example sentences', () => {
+  const meaning = parseYoudaoWordMeaning({
+    ce: {
+      word: [
+        {
+          'return-phrase': '大猫',
+          trs: [
+            {
+              tr: [
+                {
+                  l: {
+                    sentence: [
+                      {
+                        enShow: 'I saw <b>a big cat</b> at the zoo.',
+                        en: 'I saw a big cat at the zoo.',
+                        type: '双语例句-《精编例句》',
+                        zh: '我在动物园看到了一只大猫。'
+                      }
+                    ],
+                    i: [
+                      '大猫：指体型较大的猫科动物，如狮子、老虎等。'
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }, '大猫')
+
+  assert.deepEqual(meaning, {
+    word: '大猫',
+    ukphone: '',
+    usphone: '',
+    meanings: ['大猫：指体型较大的猫科动物，如狮子、老虎等。'],
+    examTypes: [],
+    wordForms: []
+  })
+
+  assert.equal(
+    formatWordLookupBlock(meaning),
+    [
+      '大猫',
+      '',
+      '大猫：指体型较大的猫科动物，如狮子、老虎等。'
+    ].join('\n')
+  )
+})
+
+test('formatWordSuggestionDetailBlock builds fallback detail from search results', () => {
+  assert.equal(
+    formatWordSuggestionDetailBlock({
+      entry: '大猫',
+      explain: 'a big cat'
+    }),
+    [
+      '大猫',
+      '',
+      '搜索释义：a big cat'
+    ].join('\n')
+  )
+
+  assert.equal(formatWordSuggestionDetailBlock({
+    entry: '大猫',
+    explain: ''
+  }), '')
 })
 
 test('parseYoudaoWordMeaning safely degrades on incomplete payloads', () => {

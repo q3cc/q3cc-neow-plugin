@@ -66,6 +66,7 @@ import {
   fetchWordSuggestions,
   fetchWordleMeaning,
   formatWordSuggestionBlock,
+  formatWordSuggestionDetailBlock,
   formatWordLookupBlock,
   formatWordleMeaningBlock
 } from '../utils/wordle-dict.js'
@@ -387,7 +388,7 @@ export class NeowPlugin extends plugin {
         }
       })
 
-      const detailText = formatWordLookupBlock(meaning)
+      const detailText = formatWordLookupBlock(meaning) || formatWordSuggestionDetailBlock(picked.entry)
       if (!detailText) {
         await this.replyWithTimeout(e, `${detailEntry} 暂时没有更详细的释义喵，换一个结果试试看吧~`, true)
         return true
