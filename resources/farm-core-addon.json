@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "farm-core",
+  "name": "基础农田包",
+  "version": "1.0.0",
+  "enabled": true,
+  "priority": 1000,
+  "starterGrants": [
+    {
+      "cropAlias": "radish",
+      "seedCount": 4
+    },
+    {
+      "cropAlias": "tomato",
+      "seedCount": 2
+    }
+  ],
+  "crops": [
+    {
+      "alias": "radish",
+      "name": "白萝卜",
+      "seedName": "白萝卜种子",
+      "seedPrice": 4,
+      "growMinutes": 10,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 6,
+      "orderFavorReward": 1
+    },
+    {
+      "alias": "tomato",
+      "name": "番茄",
+      "seedName": "番茄种子",
+      "seedPrice": 8,
+      "growMinutes": 30,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 12,
+      "orderFavorReward": 2
+    },
+    {
+      "alias": "pumpkin",
+      "name": "南瓜",
+      "seedName": "南瓜种子",
+      "seedPrice": 14,
+      "growMinutes": 60,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 22,
+      "orderFavorReward": 3
+    },
+    {
+      "alias": "strawberry",
+      "name": "草莓",
+      "seedName": "草莓种子",
+      "seedPrice": 24,
+      "growMinutes": 120,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 38,
+      "orderFavorReward": 5
+    }
+  ],
+  "orderTemplates": [
+    {
+      "cropAlias": "radish",
+      "qtyMin": 3,
+      "qtyMax": 5,
+      "coinBonusPerUnit": 2,
+      "weight": 10
+    },
+    {
+      "cropAlias": "tomato",
+      "qtyMin": 2,
+      "qtyMax": 4,
+      "coinBonusPerUnit": 3,
+      "weight": 8
+    },
+    {
+      "cropAlias": "pumpkin",
+      "qtyMin": 2,
+      "qtyMax": 3,
+      "coinBonusPerUnit": 5,
+      "weight": 6
+    },
+    {
+      "cropAlias": "strawberry",
+      "qtyMin": 1,
+      "qtyMax": 2,
+      "coinBonusPerUnit": 8,
+      "weight": 4
+    }
+  ]
+}

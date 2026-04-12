@@ -66,15 +66,27 @@ import {
   fetchWordSuggestions,
   fetchWordleMeaning,
   formatWordSuggestionBlock,
-  formatWordSuggestionDetailBlock,
   formatWordLookupBlock,
-  formatWordleMeaningBlock
+  formatWordleMeaningBlock,
+  resolveWordSuggestionDetail
 } from '../utils/wordle-dict.js'
 import {
   clearPendingDictSelection,
   pickPendingDictSelection,
   setPendingDictSelection
 } from '../utils/dict-selection.js'
+import {
+  buySeeds,
+  deliverOrder,
+  getFarmAddonStatus,
+  getFarmRegistry,
+  getFarmState,
+  harvestPlots,
+  plantSeed,
+  saveFarmData,
+  sellCrops,
+  waterPlots
+} from '../utils/farm-game.js'
 import { isBlockedSexualWord } from '../utils/blocked-words.js'
 import {
   BOOM_COUNTDOWN_MS,
@@ -190,6 +202,50 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?transfer(?:\s+.+)?\s*$/i,
           fnc: 'transferCoins'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s*$/i,
+          fnc: 'showFarmMenu'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+shop\s*$/i,
+          fnc: 'showFarmShop'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+buy\s+([a-z0-9_-]+)(?:\s+(\d+))?\s*$/i,
+          fnc: 'buyFarmSeed'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+plant\s+(\d+)\s+([a-z0-9_-]+)\s*$/i,
+          fnc: 'plantFarmSeed'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+water\s+(\d+|all)\s*$/i,
+          fnc: 'waterFarmPlot'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+harvest\s+(\d+|all)\s*$/i,
+          fnc: 'harvestFarmPlot'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+bag\s*$/i,
+          fnc: 'showFarmBag'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+sell\s+([a-z0-9_-]+)\s+(\d+|all)\s*$/i,
+          fnc: 'sellFarmCrop'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+order\s*$/i,
+          fnc: 'showFarmOrders'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+deliver\s+(\d+)\s*$/i,
+          fnc: 'deliverFarmOrder'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+addon\s*$/i,
+          fnc: 'showFarmAddonStatus'
         },
         {
           reg: /^(?:\/|#)?ml\s*$/i,
@@ -382,13 +438,11 @@ export class NeowPlugin extends plugin {
         return true
       }
 
-      const meaning = await fetchWordleMeaning(detailEntry, {
-        onError: error => {
-          logWarn(`[neow][dict] 查询候选 ${String(detailEntry || '').toLowerCase()} 释义失败: ${error?.message || error}`)
+      const detailText = await resolveWordSuggestionDetail(picked.entry, {
+        onLookupError: (source, detailQuery, error) => {
+          logWarn(`[neow][dict] 查询候选${source === 'explain' ? '释义' : ''} ${String(detailQuery || '').toLowerCase()} 失败: ${error?.message || error}`)
         }
       })
-
-      const detailText = formatWordLookupBlock(meaning) || formatWordSuggestionDetailBlock(picked.entry)
       if (!detailText) {
         await this.replyWithTimeout(e, `${detailEntry} 暂时没有更详细的释义喵，换一个结果试试看吧~`, true)
         return true
@@ -686,6 +740,539 @@ export class NeowPlugin extends plugin {
       `你当前还有 ${sender.coins} 枚 Star 币`
     ].join('\n'), true)
 
+    return true
+  }
+
+  async getFarmContext(e) {
+    const registry = getFarmRegistry()
+    if (!registry.cropList.length) {
+      await this.replyWithTimeout(e, '农田系统还没准备好喵，稍后再来看看吧~', true)
+      return null
+    }
+
+    return {
+      registry,
+      state: getFarmState(e.user_id),
+      user: getUserData(e.user_id),
+      now: Date.now()
+    }
+  }
+
+  formatFarmDuration(ms) {
+    const remainingMs = Math.max(0, Number(ms) || 0)
+    const totalSeconds = Math.ceil(remainingMs / 1000)
+    const hours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const seconds = totalSeconds % 60
+
+    if (hours > 0) {
+      return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`
+    }
+
+    if (minutes > 0) {
+      return seconds > 0 ? `${minutes}分钟${seconds}秒` : `${minutes}分钟`
+    }
+
+    return `${seconds}秒`
+  }
+
+  formatFarmSourceName(source) {
+    const raw = String(source || '')
+    const parts = raw.split(/[\\/]/)
+    return parts[parts.length - 1] || raw
+  }
+
+  getFarmPlotRemainingMs(plot, now = Date.now()) {
+    if (!plot?.cropAlias) {
+      return 0
+    }
+
+    return Math.max(0, (plot.readyAt || 0) - now)
+  }
+
+  formatFarmPlotLine(plot, now = Date.now()) {
+    if (!plot?.cropAlias) {
+      return `${plot.plotId}号地: 空地`
+    }
+
+    const remainingMs = this.getFarmPlotRemainingMs(plot, now)
+    const wateredText = plot.watered ? ' (已浇水)' : ''
+
+    if (remainingMs <= 0) {
+      return `${plot.plotId}号地: ${plot.nameSnapshot} - 已成熟${wateredText}`
+    }
+
+    return `${plot.plotId}号地: ${plot.nameSnapshot} - 剩余 ${this.formatFarmDuration(remainingMs)}${wateredText}`
+  }
+
+  formatFarmOrderLine(order, index, now = Date.now()) {
+    if (!order) {
+      return `${index + 1}. 暂无订单`
+    }
+
+    const expiresMs = Math.max(0, (order.expiresAt || 0) - now)
+    return `${index + 1}. ${order.cropNameSnapshot} x${order.requiredQty} -> ${order.coinReward} Star 币 + ${order.favorReward} 好感度 (剩余 ${this.formatFarmDuration(expiresMs)})`
+  }
+
+  formatFarmSeedLine(entry) {
+    return `${entry.cropAlias} - ${entry.seedNameSnapshot || `${entry.nameSnapshot}种子`} x${entry.count}`
+  }
+
+  formatFarmCropLine(entry) {
+    return `${entry.cropAlias} - ${entry.nameSnapshot} x${entry.count} (卖出 ${entry.sellPriceSnapshot}/个)`
+  }
+
+  async showFarmMenu(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const { registry, state, user, now } = farm
+    const plotLines = state.plots.map(plot => this.formatFarmPlotLine(plot, now))
+    const totalSeedCount = Object.values(state.seeds).reduce((sum, entry) => sum + entry.count, 0)
+    const totalCropCount = Object.values(state.crops).reduce((sum, entry) => sum + entry.count, 0)
+    const adminLines = isTemporaryAdmin(user)
+      ? ['', '/farm addon - 查看附加件状态']
+      : []
+
+    await this.replyWithTimeout(e, [
+      '大喵喵的小农田开张啦喵~',
+      `当前 Star 币: ${user.coins}`,
+      `⚡ 当前体力: ${user.stamina}/${user.maxStamina}`,
+      `🌱 已加载作物: ${registry.cropList.length} 种`,
+      `📦 背包概况: ${totalSeedCount} 颗种子 / ${totalCropCount} 个作物`,
+      `📋 订单板刷新: ${this.formatFarmDuration(Math.max(0, state.orderBoardExpiresAt - now))}`,
+      '',
+      '地块状态:',
+      ...plotLines,
+      '',
+      '/farm shop - 查看种子商店',
+      '/farm bag - 查看背包',
+      '/farm order - 查看订单板',
+      '/farm harvest all - 一键收成熟作物',
+      ...adminLines
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async showFarmShop(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const { registry, user } = farm
+
+    await this.replyWithTimeout(e, [
+      '农场商店',
+      `当前 Star 币: ${user.coins}`,
+      '使用 /farm buy <作物别名> [数量] 购买种子',
+      '',
+      ...registry.cropList.map(crop =>
+        `${crop.alias} - ${crop.seedName} ${crop.seedPrice} Star 币 | ${crop.growMinutes}分钟成熟 | 卖出 ${crop.sellPrice}`
+      ),
+      '',
+      '示例: /farm buy radish 2'
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async buyFarmSeed(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+buy\s+([a-z0-9_-]+)(?:\s+(\d+))?\s*$/i)
+    const cropAlias = String(match?.[1] || '').trim().toLowerCase()
+    const count = match?.[2] ? parseInt(match[2]) : 1
+    const preview = buySeeds(farm.state, cropAlias, count, { preview: true })
+
+    if (!preview.ok) {
+      await this.replyWithTimeout(e, preview.reason === 'unknown_crop'
+        ? '这个作物别名不存在喵，先用 /farm shop 看看商店吧~'
+        : '购买数量必须是大于 0 的整数喵~', true)
+      return true
+    }
+
+    if (farm.user.coins < preview.totalCost) {
+      await this.replyWithTimeout(e, [
+        'Star 币不够买种子喵~',
+        `当前拥有: ${farm.user.coins}`,
+        `需要花费: ${preview.totalCost}`
+      ].join('\n'), true)
+      return true
+    }
+
+    const result = buySeeds(farm.state, cropAlias, count)
+    farm.user.coins -= result.totalCost
+    syncUserData(farm.user, { persist: true })
+    await saveFarmData()
+
+    await this.replyWithTimeout(e, [
+      '买种子成功喵~',
+      `购入: ${result.crop.seedName} x${result.count}`,
+      `花费: ${result.totalCost} Star 币`,
+      `剩余 Star 币: ${farm.user.coins}`,
+      `当前持有: ${result.inventoryCount} 颗`
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async plantFarmSeed(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+plant\s+(\d+)\s+([a-z0-9_-]+)\s*$/i)
+    const plotId = parseInt(match?.[1])
+    const cropAlias = String(match?.[2] || '').trim().toLowerCase()
+    const preview = plantSeed(farm.state, plotId, cropAlias, farm.now, { preview: true })
+
+    if (!preview.ok) {
+      let message = '播种失败喵~'
+
+      if (preview.reason === 'plot_out_of_range') {
+        message = `地块编号不对喵，目前只有 1-${farm.state.plots.length} 号地`
+      } else if (preview.reason === 'plot_occupied') {
+        message = `${plotId}号地已经种着东西啦，先收掉再播种吧~`
+      } else if (preview.reason === 'unknown_crop') {
+        message = '这个作物别名不存在喵，先用 /farm shop 看看商店吧~'
+      } else if (preview.reason === 'seed_missing') {
+        message = `背包里没有 ${preview.crop?.seedName || cropAlias} 了喵，先去 /farm shop 买点吧~`
+      }
+
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    if (farm.user.stamina < preview.staminaCost) {
+      await this.replyWithTimeout(e, [
+        '体力不够播种喵~',
+        `当前体力: ${farm.user.stamina}/${farm.user.maxStamina}`,
+        `需要体力: ${preview.staminaCost}`
+      ].join('\n'), true)
+      return true
+    }
+
+    const result = plantSeed(farm.state, plotId, cropAlias, farm.now)
+    farm.user.stamina -= result.staminaCost
+    syncUserData(farm.user, { persist: true })
+    await saveFarmData()
+
+    await this.replyWithTimeout(e, [
+      '播种完成喵~',
+      `${result.plot.plotId}号地已经种下 ${result.crop.name}`,
+      `消耗体力: ${result.staminaCost}`,
+      `预计成熟: ${new Date(result.readyAt).toLocaleString('zh-CN')}`
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async waterFarmPlot(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+water\s+(\d+|all)\s*$/i)
+    const target = String(match?.[1] || '').trim().toLowerCase()
+    const preview = waterPlots(farm.state, target, farm.now, { preview: true })
+
+    if (!preview.ok) {
+      let message = '现在没有能浇水的地块喵~'
+
+      if (preview.reason === 'plot_out_of_range') {
+        message = `地块编号不对喵，目前只有 1-${farm.state.plots.length} 号地`
+      } else if (preview.reason === 'plot_empty') {
+        message = '这块地还是空的喵，先播种再浇水吧~'
+      } else if (preview.reason === 'already_ready') {
+        message = '这块地已经熟啦，直接 /farm harvest 收掉就好喵~'
+      } else if (preview.reason === 'already_watered') {
+        message = '这块地这轮已经浇过水啦喵~'
+      }
+
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    if (farm.user.stamina < preview.staminaCost) {
+      await this.replyWithTimeout(e, [
+        '体力不够浇水喵~',
+        `当前体力: ${farm.user.stamina}/${farm.user.maxStamina}`,
+        `需要体力: ${preview.staminaCost}`
+      ].join('\n'), true)
+      return true
+    }
+
+    const result = waterPlots(farm.state, target, farm.now)
+    farm.user.stamina -= result.staminaCost
+    syncUserData(farm.user, { persist: true })
+    await saveFarmData()
+
+    await this.replyWithTimeout(e, [
+      '浇水完成喵~',
+      `照料地块: ${result.plots.map(plot => `${plot.plotId}号地`).join('、')}`,
+      `消耗体力: ${result.staminaCost}`,
+      ...result.plots.map(plot =>
+        `${plot.plotId}号地 ${plot.nameSnapshot} 还剩 ${this.formatFarmDuration(Math.max(0, plot.readyAt - farm.now))}`
+      )
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async harvestFarmPlot(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+harvest\s+(\d+|all)\s*$/i)
+    const target = String(match?.[1] || '').trim().toLowerCase()
+    const result = harvestPlots(farm.state, target, farm.now)
+
+    if (!result.ok) {
+      let message = '现在还没有能收的作物喵~'
+
+      if (result.reason === 'plot_out_of_range') {
+        message = `地块编号不对喵，目前只有 1-${farm.state.plots.length} 号地`
+      } else if (result.reason === 'plot_empty') {
+        message = '这块地还是空的喵，没东西可以收~'
+      } else if (result.reason === 'not_ready') {
+        message = '这块地还没熟喵，再等等吧~'
+      }
+
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    await saveFarmData()
+    await this.replyWithTimeout(e, [
+      '收获完成喵~',
+      ...result.harvested.map(item =>
+        `${item.plotId}号地收到了 ${item.nameSnapshot} x${item.count}`
+      )
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async showFarmBag(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const seedEntries = Object.values(farm.state.seeds)
+      .sort((left, right) => left.cropAlias.localeCompare(right.cropAlias, 'en'))
+    const cropEntries = Object.values(farm.state.crops)
+      .sort((left, right) => left.cropAlias.localeCompare(right.cropAlias, 'en'))
+
+    await this.replyWithTimeout(e, [
+      '农场背包',
+      '',
+      '种子:',
+      ...(seedEntries.length ? seedEntries.map(entry => `  ${this.formatFarmSeedLine(entry)}`) : ['  暂时没有种子喵~']),
+      '',
+      '作物:',
+      ...(cropEntries.length ? cropEntries.map(entry => `  ${this.formatFarmCropLine(entry)}`) : ['  暂时没有作物喵~']),
+      '',
+      '卖出示例: /farm sell radish all'
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async showFarmOrders(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    await this.replyWithTimeout(e, [
+      '农场订单板',
+      `刷新剩余: ${this.formatFarmDuration(Math.max(0, farm.state.orderBoardExpiresAt - farm.now))}`,
+      '',
+      ...Array.from({ length: 3 }, (_, index) => this.formatFarmOrderLine(farm.state.orders[index], index, farm.now)),
+      '',
+      '交付示例: /farm deliver 1'
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async sellFarmCrop(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+sell\s+([a-z0-9_-]+)\s+(\d+|all)\s*$/i)
+    const cropAlias = String(match?.[1] || '').trim().toLowerCase()
+    const count = String(match?.[2] || '').trim().toLowerCase()
+    const result = sellCrops(farm.state, cropAlias, count)
+
+    if (!result.ok) {
+      let message = '卖出失败喵~'
+
+      if (result.reason === 'inventory_missing') {
+        message = `背包里没有 ${cropAlias} 对应的作物喵~`
+      } else if (result.reason === 'invalid_count') {
+        message = '卖出数量必须是正整数，或者直接写 all 喵~'
+      } else if (result.reason === 'insufficient_inventory') {
+        message = `背包里只剩 ${result.available} 个，不够卖这么多喵~`
+      }
+
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    farm.user.coins += result.coinReward
+    syncUserData(farm.user, { persist: true })
+    await saveFarmData()
+
+    await this.replyWithTimeout(e, [
+      '卖出成功喵~',
+      `卖出: ${result.cropNameSnapshot} x${result.soldCount}`,
+      `获得: ${result.coinReward} Star 币`,
+      `当前 Star 币: ${farm.user.coins}`
+    ].join('\n'), true)
+
+    return true
+  }
+
+  async deliverFarmOrder(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+deliver\s+(\d+)\s*$/i)
+    const orderIndex = parseInt(match?.[1])
+    const result = deliverOrder(farm.state, orderIndex, farm.now)
+
+    if (!result.ok) {
+      let message = '交付失败喵~'
+
+      if (result.reason === 'order_missing') {
+        message = '这个订单编号不存在喵，先用 /farm order 看看吧~'
+      } else if (result.reason === 'insufficient_inventory') {
+        message = `背包里只有 ${result.available} 个 ${result.order?.cropNameSnapshot || ''}，不够交订单喵~`
+      }
+
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    farm.user.coins += result.coinReward
+    farm.user.favor += result.favorReward
+    syncUserData(farm.user, { persist: true })
+    await saveFarmData()
+
+    const lines = [
+      '订单完成啦喵~',
+      `交付: ${result.order.cropNameSnapshot} x${result.order.requiredQty}`,
+      `获得: ${result.coinReward} Star 币 + ${result.favorReward} 好感度`,
+      `当前 Star 币: ${farm.user.coins}`
+    ]
+
+    if (result.replacement) {
+      lines.push(`新订单: ${this.formatFarmOrderLine(result.replacement, result.replacement.slot - 1, farm.now)}`)
+    }
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async showFarmAddonStatus(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    if (!await this.ensureAdmin(e)) {
+      return true
+    }
+
+    const status = getFarmAddonStatus()
+    const lines = [
+      'farm 附加件状态',
+      `监听目录: ${status.addonDirPath}`,
+      `热重载: ${status.watching ? '已开启' : '未开启'}`,
+      `上次重载原因: ${status.lastReloadReason || '暂无'}`,
+      `上次成功重载: ${status.lastSuccessfulReloadAt ? new Date(status.lastSuccessfulReloadAt).toLocaleString('zh-CN') : '暂无'}`,
+      `已加载附加件: ${status.loadedAddons.length} 个`
+    ]
+
+    if (status.loadedAddons.length) {
+      lines.push('', '已加载列表:')
+      lines.push(...status.loadedAddons.map((addon, index) =>
+        `${index + 1}. ${addon.id} (${addon.version}) - ${this.formatFarmSourceName(addon.source)}`
+      ))
+    }
+
+    if (status.skippedAddons.length) {
+      lines.push('', '被跳过的包:')
+      lines.push(...status.skippedAddons.slice(0, 8).map((item, index) =>
+        `${index + 1}. ${item.id || this.formatFarmSourceName(item.source)} - ${item.reason}`
+      ))
+
+      if (status.skippedAddons.length > 8) {
+        lines.push(`... 还有 ${status.skippedAddons.length - 8} 条`)
+      }
+    }
+
+    if (status.lastReloadError) {
+      lines.push('', `最近错误: ${status.lastReloadError}`)
+    }
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 

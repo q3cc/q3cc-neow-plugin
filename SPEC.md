@@ -13,6 +13,8 @@
   - 负责统一管理色情/低俗英文词汇屏蔽
 - `utils/dict-selection.js`
   - 负责管理查词搜索结果的临时选择状态
+- `utils/farm-game.js`
+  - 负责 farm 附加件装载、农田状态、订单生成与持久化
 - `utils/wordle-game.js`
   - 负责 Wordle 猜单词玩法配置、词库校验、对局状态与奖励计算
 - `utils/wordle-dict.js`
@@ -58,6 +60,7 @@
   - `/dict <1-5> - 查看上一轮搜索结果详情`
   - `/sign - 每日签到`
   - `/ml - 密码破译`
+  - `/farm - 种田`
   - `/wordle - 猜单词`
   - `/boom - 数字炸弹`
   - `/24g - 查看二十四点子命令菜单`
@@ -76,6 +79,86 @@
 - `/dict <1-5>` 成功查看详情后，需要清空本轮搜索缓存，避免旧结果重复复用。
 - 色情或低俗英文词汇必须直接屏蔽，不进入词典查询流程。
 - 查询失败、超时或词典未返回有效内容时，提示用户换一个单词重试。
+
+## 种田规范
+- 用户输入 `/farm` 时，显示农场总览、地块状态、订单板刷新剩余时间与快捷指令。
+- 种田玩法按 `用户ID` 全局持久化，不区分群聊与私聊。
+- 种田不属于短局互斥游戏，可与 `/24g`、`/ml`、`/wordle`、`/boom` 并行存在。
+- 首次进入农场时：
+  - 自动创建 `4` 块地
+  - 发放新手种子包：`白萝卜 x4`、`番茄 x2`
+- `/farm shop`
+  - 显示当前已加载作物的种子商店
+- `/farm buy <作物别名> [数量]`
+  - 购买种子，数量默认 `1`
+  - 扣除对应 `Star 币`
+- `/farm plant <地块号> <作物别名>`
+  - 在空地播种
+  - 扣除该作物定义中的播种体力
+- `/farm water <地块号|all>`
+  - 给一块地或全部可浇水地块浇水
+  - 每轮作物只能浇水一次
+  - 会按该作物基础成长时长缩短固定比例
+- `/farm harvest <地块号|all>`
+  - 收获成熟作物
+  - 不消耗体力
+- `/farm bag`
+  - 查看当前种子与作物背包
+- `/farm sell <作物别名> <数量|all>`
+  - 按作物快照卖出价换成 `Star 币`
+- `/farm order`
+  - 查看当前 `3` 个订单与刷新剩余时间
+- `/farm deliver <订单号>`
+  - 交付指定订单
+  - 获得 `Star 币 + 好感度`
+  - 完成后立即补一个同槽位新订单
+- `/farm addon`
+  - 仅管理员可用
+  - 查看 farm 附加件、热重载时间与被跳过的坏包
+
+## farm 附加件规范
+- 内置基础包使用与外部附加件相同的 schema，位于 `resources/farm-core-addon.json`。
+- 外部附加件目录固定为 `data/q3cc-neow-plugin/addons/farm/`，扫描所有 `*.json` 文件。
+- v1 仅支持 **数据包 + 固定规则字段**，不支持自定义脚本执行。
+- 每个附加件固定字段：
+  - `schemaVersion`
+  - `id`
+  - `name`
+  - `version`
+  - `enabled`
+  - `priority`
+  - `starterGrants`
+  - `crops`
+  - `orderTemplates`
+- `crops` 固定字段：
+  - `alias`
+  - `name`
+  - `seedName`
+  - `seedPrice`
+  - `growMinutes`
+  - `plantStamina`
+  - `waterStamina`
+  - `waterBaseReductionPercent`
+  - `harvestYield`
+  - `sellPrice`
+  - `orderFavorReward`
+- `orderTemplates` 固定字段：
+  - `cropAlias`
+  - `qtyMin`
+  - `qtyMax`
+  - `coinBonusPerUnit`
+  - `weight`
+- 冲突与错误处理：
+  - 重复 `id`：后加载包跳过
+  - 冲突 `alias`：整个包跳过
+  - 订单模板引用不存在的 `cropAlias`：仅跳过该模板
+  - JSON 或字段校验失败：跳过坏包，不中断已有可用 registry
+- 热重载策略：
+  - 监听附加件目录变化
+  - 使用 `500ms` 防抖
+  - 每次重建完整 registry
+  - 只有重建成功才替换当前 registry
+  - 重建失败时保留上一份可用 registry
 
 ## 密码破译规范
 - 用户输入 `/ml` 时，显示密码破译菜单。
@@ -256,6 +339,7 @@
 - 不同用户的游戏状态必须按“会话 + 用户”隔离，不能互相串局。
 - 同一用户不能同时进行 `/24g` 与 `/ml` 两种游戏。
 - 同一用户不能同时进行 `/24g`、`/ml`、`/wordle`、`/boom` 多种游戏。
+- `/farm` 为长期养成系统，不参与上述短局互斥限制。
 - 用户数据与签到数据改为异步落盘，避免同步写文件阻塞消息处理。
 
 ## 结算规则

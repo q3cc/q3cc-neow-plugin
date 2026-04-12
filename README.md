@@ -1,6 +1,6 @@
 # q3cc-neow-plugin
 
-一个带有“大喵喵”风格文案的游戏插件，目前主要提供账号信息系统、24 点题库玩法、密码破译玩法、Wordle 猜单词玩法与多人数字炸弹玩法。
+一个带有“大喵喵”风格文案的游戏插件，目前主要提供账号信息系统、种田玩法、24 点题库玩法、密码破译玩法、Wordle 猜单词玩法与多人数字炸弹玩法。
 
 当前版本：`v0.0.12`
 
@@ -12,6 +12,7 @@
 - 在线检查：`/ping`
 - 每日签到：`/sign`（兼容 `/签到`、`/qd`、`/checkin`）
 - 查词：`/dict <词语>`（兼容 `/查词 <词语>`，支持 `/dict 1` 继续查看搜索结果）
+- 种田：`/farm`
 - 密码破译：`/ml`
 - Wordle 猜单词：`/wordle`
 - 数字炸弹：`/boom`
@@ -34,6 +35,17 @@
 - `/dict <词语> -s` - 强制进入搜索模式
 - `/dict <1-5>` - 查看上一轮搜索结果中对应编号的详细释义
 - `/查词 <词语>` - `/dict` 的中文别名
+- `/farm` - 查看农田总览
+- `/farm shop` - 查看种子商店
+- `/farm buy <作物别名> [数量]` - 购买种子
+- `/farm plant <地块号> <作物别名>` - 在指定地块播种
+- `/farm water <地块号|all>` - 给一块地或全部可浇水地块浇水
+- `/farm harvest <地块号|all>` - 收获成熟作物
+- `/farm bag` - 查看农场背包
+- `/farm sell <作物别名> <数量|all>` - 卖出背包里的作物
+- `/farm order` - 查看订单板
+- `/farm deliver <订单号>` - 交付订单
+- `/farm addon` - 管理员查看 farm 附加件状态
 - `/ml` - 查看密码破译菜单
 - `/ml start` - 开始一局密码破译
 - `/ml difficulty` - 查看破译难度菜单
@@ -114,6 +126,43 @@
 - 成功猜出后会获得 `Star 币` 与好感度奖励
 - 失败后会随机扣除一部分 `Star 币`
 
+## 种田规则
+
+- 种田是长期养成系统，不与 `/ml`、`/wordle`、`/boom`、`/24g` 互斥
+- 农田按用户维度持久化，首次进入会自动获得 `4` 块地
+- 初次创建农田会发放一份新手种子包：`白萝卜 x4`、`番茄 x2`
+- `/farm shop` 使用作物别名购买种子，例如 `/farm buy radish 2`
+- `/farm plant` 会消耗当前作物定义中的播种体力，播种后按真实时间成长
+- `/farm water` 每轮作物只能浇水一次，会按作物基础成长时长缩短固定比例
+- `/farm harvest` 不消耗体力，只会把成熟作物收进背包
+- `/farm sell` 会按背包里记录的卖出快照价格换成 `Star 币`
+- `/farm order` 维护 `3` 个订单槽位，每 `6` 小时整板刷新一次
+- `/farm deliver` 交付订单后会获得 `Star 币 + 好感度`，并立即补一个同槽位新订单
+
+## farm 附加件
+
+- farm 的作物、种子、订单模板全部来自附加件数据包，而不是写死在代码里
+- 内置基础包位于 `resources/farm-core-addon.json`
+- 外部附加件会从运行目录 `data/q3cc-neow-plugin/addons/farm/*.json` 自动扫描
+- 支持热重载：向该目录新增、修改、删除 JSON 后，farm registry 会自动重建
+- v1 只支持 **数据包 + 固定规则字段**，不支持任意 JS 脚本
+- 每个附加件必须包含这些字段：
+  - `schemaVersion`
+  - `id`
+  - `name`
+  - `version`
+  - `enabled`
+  - `priority`
+  - `starterGrants`
+  - `crops`
+  - `orderTemplates`
+- `crops[].alias` 必须全局唯一，命令中统一使用这个别名
+- 冲突与错误处理：
+  - 重复 `id`：后加载包跳过
+  - 冲突 `alias`：整个包跳过
+  - 订单模板引用不存在的 `cropAlias`：只跳过那条模板
+  - JSON 或字段校验失败：跳过坏包，保留上一份可用 registry
+
 ## 查词规则
 
 - 输入格式：`/dict <词语>`、`/查词 <词语>`、`/dict <词语> -s`、`/dict <1-5>`
@@ -143,6 +192,7 @@
 - `index.js` - 插件入口与版本日志
 - `apps/neow.js` - Yunzai 实际注册的主插件类
 - `utils/user-data.js` - 用户数据、UID 分配、好感度、体力、签到、帮助文案
+- `utils/farm-game.js` - farm 引擎、附加件装载、热重载与农场持久化
 - `utils/game24.js` - 24 点玩法配置、题库读取与奖励计算
 - `utils/ml-game.js` - 密码破译玩法配置、状态与奖励计算
 - `utils/ml-render.js` - 密码破译棋盘图片渲染
@@ -154,6 +204,7 @@
 - `utils/rank-render.js` - Star 币排行榜图片渲染与预览数据（榜单优先显示昵称）
 - `utils/boom-game.js` - 数字炸弹房间状态、回合规则与奖池结算
 - `utils/render-browser.js` - Puppeteer 浏览器实例复用
+- `resources/farm-core-addon.json` - farm 内置基础附加件
 - `resources/rank-render-preview.html` - 排行榜图片预览 HTML
 - `resources/wordle-words.json` - Wordle 答案词库
 - `resources/wordle-allowed-guesses.json` - Wordle 合法猜测词库
@@ -183,6 +234,7 @@ neow插件v0.0.12初始化~
 ```bash
 node --check index.js
 node --check apps/neow.js
+node --check utils/farm-game.js
 node --check utils/user-data.js
 node --check utils/game24.js
 node --check utils/ml-game.js
@@ -196,6 +248,6 @@ node --check utils/wordle-game.js
 node --check utils/wordle-render.js
 node --check utils/render-browser.js
 node --check scripts/generate-rank-render-preview.mjs
-node --test tests/blocked-words.test.js tests/boom-game.test.js tests/dict-selection.test.js tests/ml-game.test.js tests/user-data.test.js tests/wordle-dict.test.js tests/wordle-game.test.js tests/rank-render.test.js
+node --test tests/blocked-words.test.js tests/boom-game.test.js tests/dict-selection.test.js tests/farm-game.test.js tests/ml-game.test.js tests/user-data.test.js tests/wordle-dict.test.js tests/wordle-game.test.js tests/rank-render.test.js
 node scripts/generate-rank-render-preview.mjs
 ```

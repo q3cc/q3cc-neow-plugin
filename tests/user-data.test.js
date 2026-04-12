@@ -75,6 +75,7 @@ test('帮助菜单会展示 Star 币排行榜入口', () => {
   assert.ok(buildHelpLines().includes('/rank - 查看 Star 币排行榜'))
   assert.ok(buildHelpLines().includes('/dict <词语> - 查词/搜索'))
   assert.ok(buildHelpLines().includes('/dict <1-5> - 查看上一轮搜索结果详情'))
+  assert.ok(buildHelpLines().includes('/farm - 种田'))
 })
 
 test('排行榜会返回前十之外的当前用户信息', () => {

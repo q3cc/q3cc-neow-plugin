@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### 重点更新日志
+- [新增] `/farm` 种田玩法，支持 `/farm`、`/farm shop`、`/farm buy`、`/farm plant`、`/farm water`、`/farm harvest`、`/farm bag`、`/farm sell`、`/farm order` 与 `/farm deliver`
+- [新增] `utils/farm-game.js`，统一管理 farm registry、作物规则、订单生成、农场持久化与附加件热重载
+- [新增] `resources/farm-core-addon.json` 作为内置基础农田包，默认提供白萝卜、番茄、南瓜、草莓四种基础作物
+- [新增] farm 外部附加件扫描目录 `data/q3cc-neow-plugin/addons/farm/*.json`，后续可直接投放 JSON 数据包扩展新作物、新订单模板与新手奖励
+- [新增] `/farm addon` 管理员调试入口，可查看当前已加载的 farm 附加件、最近重载时间与被跳过的坏包
+- [优化] farm 使用作物/订单快照保存地块、背包与订单，即使附加件下线，旧作物和旧订单也能继续收获、卖出与交付
+- [优化] `/nhelp` 帮助菜单新增 `/farm - 种田` 入口，并补充 README / SPEC 中的附加件约定与热重载说明
+- [优化] `/dict 1` 在词条本身无详情时，会继续尝试查询候选英文释义，再回退到搜索释义文本
 - [优化] `/dict` 中文词条现在会优先解析有道 `ce.word` 详情，若仍无完整词条则回退显示搜索释义
 - [优化] `/nhelp` 帮助菜单里的查词入口已同步更新为 `/dict <词语>`，并补充 `/dict <1-5>` 查看搜索候选详情提示
 - [优化] `/dict` 搜索结果现在支持继续输入 `/dict 1` 查看上一轮第 `1` 条候选的详细释义

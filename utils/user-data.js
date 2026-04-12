@@ -693,6 +693,7 @@ export function buildHelpLines(options = {}) {
     '/sign - 每日签到',
     '/dict <词语> - 查词/搜索',
     '/dict <1-5> - 查看上一轮搜索结果详情',
+    '/farm - 种田',
     '/ml - 密码破译',
     '/ml mode - 设置密码破译发送方式',
     '/wordle - 猜单词',
@@ -716,7 +717,8 @@ export function buildHelpLines(options = {}) {
       '/rmfavor <QQ> <数量> - 删除用户好感度',
       '/ban <QQ> - 永久封禁用户',
       '/tempban <QQ> <分钟> - 临时封禁用户',
-      '/unban <QQ> - 解除封禁用户'
+      '/unban <QQ> - 解除封禁用户',
+      '/farm addon - 查看 farm 附加件状态'
     )
   }
 
