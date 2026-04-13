@@ -1,8 +1,10 @@
 import {
   getUserData,
   findUserByUid,
+  markUserDataDirty,
   syncUserData,
   saveUserData,
+  saveUserAndFarmDataInTransaction,
   buildHelpLines,
   buildUserInfoLines,
   getCoinLeaderboard,
@@ -77,6 +79,7 @@ import {
   setPendingDictSelection
 } from '../utils/dict-selection.js'
 import {
+  acknowledgeFarmDataPersistenceSnapshot,
   FARM_ORDER_SLOT_COUNT,
   buyPet,
   buyPetFood,
@@ -87,6 +90,7 @@ import {
   feedPet,
   getFarmAddonStatus,
   getFarmDailyTaskView,
+  getFarmDataPersistenceSnapshot,
   getFarmLandView,
   getFarmLevelInfo,
   getFarmPetView,
@@ -825,7 +829,13 @@ export class NeowPlugin extends plugin {
       return null
     }
 
-    const state = getFarmState(e.user_id)
+    let state
+    try {
+      state = getFarmState(e.user_id)
+    } catch (error) {
+      await this.replyWithTimeout(e, `农田存档暂时读不了喵：${error?.message || error}`, true)
+      return null
+    }
     const notifications = consumeFarmNotifications(state)
     if (notifications.length) {
       await saveFarmData()
@@ -1123,9 +1133,18 @@ export class NeowPlugin extends plugin {
     }
 
     if (userChanged) {
-      syncUserData(farm.user, { persist: true })
+      syncUserData(farm.user)
+      markUserDataDirty()
     }
-    await saveFarmData()
+    const farmSnapshot = getFarmDataPersistenceSnapshot()
+
+    try {
+      await saveUserAndFarmDataInTransaction(farmSnapshot)
+      acknowledgeFarmDataPersistenceSnapshot(farmSnapshot)
+    } catch (error) {
+      console.error('[neow][farm] 保存农场/用户联动数据失败:', error)
+      throw error
+    }
 
     return {
       directCoinDelta,
@@ -1937,7 +1956,13 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const targetState = getFarmState(targetRecord.userId)
+    let targetState
+    try {
+      targetState = getFarmState(targetRecord.userId)
+    } catch (error) {
+      await this.replyWithTimeout(e, `目标农田存档暂时读不了喵：${error?.message || error}`, true)
+      return true
+    }
     const result = visitFarm(farm.state, targetState, targetUid, farm.now)
     if (!result.ok) {
       const message = result.reason === 'feature_locked'
@@ -1991,7 +2016,13 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const targetState = getFarmState(targetRecord.userId)
+    let targetState
+    try {
+      targetState = getFarmState(targetRecord.userId)
+    } catch (error) {
+      await this.replyWithTimeout(e, `目标农田存档暂时读不了喵：${error?.message || error}`, true)
+      return true
+    }
     const result = stealFromFarm(farm.state, targetState, targetUid, plotId, farm.now)
     const hasMutation = typeof result.questCoinReward === 'number'
 

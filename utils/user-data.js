@@ -3,14 +3,22 @@ import fsp from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { normalizeMlReplyMode } from './ml-game.js'
+import {
+  commitSharedStateTransaction,
+  pluginDataDirPath,
+  recoverSharedStateTransaction,
+  sharedStateTransactionPath,
+  writeTextFileAtomically
+} from './persistence.js'
 
 const users = new Map()
 const dailySignStats = new Map()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const signPromptPath = path.join(__dirname, '../resources/sign-prompts.json')
-const pokeActionPath = path.join(__dirname, '../resources/poke-actions.json')
-const dataDirPath = path.join(__dirname, '../data/q3cc-neow-plugin')
+const resourceDirPath = path.join(__dirname, '../resources')
+const signPromptPath = path.join(resourceDirPath, 'sign-prompts.json')
+const pokeActionPath = path.join(resourceDirPath, 'poke-actions.json')
+const dataDirPath = pluginDataDirPath
 const usersPath = path.join(dataDirPath, 'users.json')
 const signStatsPath = path.join(dataDirPath, 'sign-stats.json')
 const DEFAULT_SIGN_PROMPTS = {
@@ -106,8 +114,14 @@ async function flushUsers() {
     try {
       await ensureDataDirAsync()
       while (usersDirty) {
+        const snapshot = serializeUsers()
         usersDirty = false
-        await fsp.writeFile(usersPath, serializeUsers(), 'utf8')
+        try {
+          await writeTextFileAtomically(usersPath, snapshot)
+        } catch (error) {
+          usersDirty = true
+          throw error
+        }
       }
     } catch (error) {
       console.error('[neow] 保存用户数据失败:', error)
@@ -132,8 +146,14 @@ async function flushSignStats() {
     try {
       await ensureDataDirAsync()
       while (signStatsDirty) {
+        const snapshot = serializeSignStats()
         signStatsDirty = false
-        await fsp.writeFile(signStatsPath, serializeSignStats(), 'utf8')
+        try {
+          await writeTextFileAtomically(signStatsPath, snapshot)
+        } catch (error) {
+          signStatsDirty = true
+          throw error
+        }
       }
     } catch (error) {
       console.error('[neow] 保存签到数据失败:', error)
@@ -160,6 +180,10 @@ function saveSignStats() {
 
 function loadPersistedData() {
   let uidChanged = false
+  const recovery = recoverSharedStateTransaction(sharedStateTransactionPath)
+  if (recovery.error) {
+    console.error('[neow] 恢复共享事务失败:', recovery.error)
+  }
 
   try {
     if (fs.existsSync(usersPath)) {
@@ -387,7 +411,35 @@ function cleanupBanState(user) {
 loadPersistedData()
 
 export function saveUserData() {
-  saveUsers()
+  return saveUsers()
+}
+
+export function markUserDataDirty() {
+  usersDirty = true
+}
+
+export function getUserDataPersistenceSnapshot() {
+  return {
+    filePath: usersPath,
+    content: serializeUsers()
+  }
+}
+
+export function acknowledgeUserDataPersistenceSnapshot(snapshot) {
+  if (!snapshot?.content) {
+    return
+  }
+
+  if (serializeUsers() === snapshot.content) {
+    usersDirty = false
+  }
+}
+
+export async function saveUserAndFarmDataInTransaction(farmSnapshot) {
+  const userSnapshot = getUserDataPersistenceSnapshot()
+  await commitSharedStateTransaction([userSnapshot, farmSnapshot], sharedStateTransactionPath)
+  acknowledgeUserDataPersistenceSnapshot(userSnapshot)
+  return userSnapshot
 }
 
 export function syncUserData(user, options = {}) {

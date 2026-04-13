@@ -2,10 +2,16 @@ import fs from 'fs'
 import fsp from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import {
+  pluginDataDirPath,
+  recoverSharedStateTransaction,
+  sharedStateTransactionPath,
+  writeTextFileAtomically
+} from './persistence.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const dataDirPath = path.join(__dirname, '../data/q3cc-neow-plugin')
+const dataDirPath = pluginDataDirPath
 const defaultFarmDataPath = path.join(dataDirPath, 'farm-state.json')
 const defaultFarmAddonDirPath = path.join(dataDirPath, 'addons/farm')
 const defaultCoreAddonPath = path.join(__dirname, '../resources/farm-core-addon.json')
@@ -88,6 +94,7 @@ let farmWatchTimer = null
 let farmDataDirty = false
 let farmDataWriting = false
 let farmDataFlushPromise = Promise.resolve()
+let farmStateLoadError = ''
 
 function createFarmConfig(overrides = {}) {
   return {
@@ -779,6 +786,12 @@ function markFarmDataDirty() {
   farmDataDirty = true
 }
 
+function assertFarmPersistenceReady() {
+  if (farmStateLoadError) {
+    throw new Error(farmStateLoadError)
+  }
+}
+
 function touchFarmState(state) {
   state.updatedAt = Date.now()
   markFarmDataDirty()
@@ -800,8 +813,14 @@ async function flushFarmData() {
     try {
       await fsp.mkdir(path.dirname(farmConfig.farmDataPath), { recursive: true })
       while (farmDataDirty) {
+        const snapshot = serializeFarmStates()
         farmDataDirty = false
-        await fsp.writeFile(farmConfig.farmDataPath, serializeFarmStates(), 'utf8')
+        try {
+          await writeTextFileAtomically(farmConfig.farmDataPath, snapshot)
+        } catch (error) {
+          farmDataDirty = true
+          throw error
+        }
       }
     } catch (error) {
       console.error('[neow][farm] 保存农场数据失败:', error)
@@ -818,6 +837,7 @@ async function flushFarmData() {
 
 function saveFarmData() {
   ensureFarmReady()
+  assertFarmPersistenceReady()
   markFarmDataDirty()
   return flushFarmData()
 }
@@ -850,7 +870,15 @@ function ensureFarmReady() {
 }
 
 function loadFarmStates() {
+  const recovery = recoverSharedStateTransaction(sharedStateTransactionPath)
+  if (recovery.error) {
+    farmStateLoadError = recovery.error
+    farmStates = new Map()
+    return
+  }
+
   farmStates = new Map()
+  farmStateLoadError = ''
   let migratedLegacyState = false
 
   try {
@@ -867,8 +895,10 @@ function loadFarmStates() {
       }
       farmStates.set(normalizeUserId(userId), normalizedState)
     }
-  } catch {
+  } catch (error) {
     farmStates = new Map()
+    farmStateLoadError = `读取 farm 存档失败: ${error?.message || error}`
+    return
   }
 
   for (const state of farmStates.values()) {
@@ -2227,6 +2257,7 @@ function syncFarmState(state, now = Date.now()) {
 
 function ensureFarmState(userId) {
   ensureFarmReady()
+  assertFarmPersistenceReady()
 
   const normalizedUserId = normalizeUserId(userId)
   if (!farmStates.has(normalizedUserId)) {
@@ -3661,6 +3692,25 @@ export function getFarmState(userId) {
   return ensureFarmState(userId)
 }
 
+export function getFarmDataPersistenceSnapshot() {
+  ensureFarmReady()
+  assertFarmPersistenceReady()
+  return {
+    filePath: farmConfig.farmDataPath,
+    content: serializeFarmStates()
+  }
+}
+
+export function acknowledgeFarmDataPersistenceSnapshot(snapshot) {
+  if (!snapshot?.content) {
+    return
+  }
+
+  if (serializeFarmStates() === snapshot.content) {
+    farmDataDirty = false
+  }
+}
+
 export {
   syncFarmState,
   saveFarmData,
@@ -3702,6 +3752,7 @@ export function __configureFarmForTests(overrides = {}) {
   farmDataDirty = false
   farmDataWriting = false
   farmDataFlushPromise = Promise.resolve()
+  farmStateLoadError = ''
   ensureFarmReady()
   return {
     farmDataPath: farmConfig.farmDataPath,

@@ -101,6 +101,31 @@ test('旧存档会迁移到 15 地块、Lv20 与教程完成状态', async () =>
   } finally { await cleanup(t) }
 })
 
+test('坏掉的农场存档不会被当成新号重建并覆盖', async () => {
+  const t = await env()
+  try {
+    await writeJson(t.farmDataPath, {
+      broken: {
+        starterGrantApplied: true,
+        seeds: {
+          radish: {
+            cropAlias: 'radish',
+            count: 7,
+            nameSnapshot: '白萝卜',
+            seedNameSnapshot: '白萝卜种子',
+            seedPriceSnapshot: 4
+          }
+        }
+      }
+    })
+    await fsp.writeFile(t.farmDataPath, '{broken', 'utf8')
+    __configureFarmForTests({ addonDirPath: t.addonDirPath, farmDataPath: t.farmDataPath, coreAddonPath, watchEnabled: false })
+
+    assert.throws(() => getFarmState('broken'), /读取 farm 存档失败/)
+    assert.equal(await fsp.readFile(t.farmDataPath, 'utf8'), '{broken')
+  } finally { await cleanup(t) }
+})
+
 test('25 种核心作物按等级解锁，土地倍率与购地规则生效', async () => {
   const t = await env()
   try {
