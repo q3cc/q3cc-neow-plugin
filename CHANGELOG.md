@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### 重点更新日志
+- [优化] farm 订单板从 `3` 单扩充到 `5` 单，继续共用 `6` 小时刷新，并改为同时需求 `2-3` 种作物的一次性交付订单
+- [新增] `/farm sell seed <作物别名> <数量|all>`，现在可以按种子买入价 `50%` 回收多余种子，且不会提供农场经验或卖作物统计
+- [优化] `/farm shop`、`/farm bag`、`/farm order` 与 `/farm deliver` 文案同步更新，展示种子回收价、多作物订单需求与缺失材料反馈
+- [优化] `resources/farm-core-addon.json` 的核心订单模板升级为多作物 `requirements[]` 结构，同时保留旧单作物订单模板与旧订单存档兼容
+- [测试] `tests/farm-game.test.js` 补充 `5` 单订单板、多作物交付、`requirements[]` 模板加载与种子回收覆盖
 - [新增] `/farm quest`、`/farm land`、`/farm buyplot`、`/farm visit`、`/farm steal`、`/farm pet`、`/farm pet shop`、`/farm pet buy`、`/farm pet food buy`、`/farm pet use`、`/farm pet feed`，补齐农场 v2 主线 / 地块 / 互偷 / 宠物玩法
 - [新增] farm 等级与经验系统、`15` 块分级土地、`3` 条一次性主线任务与 `Lv20` 解锁的偷菜 / 守卫链路
 - [新增] `resources/farm-core-addon.json` 升级到 schema v2，核心内容扩展为 `25` 种作物、`3` 只宠物、`3` 种宠物粮与主线章节数据

@@ -13,7 +13,7 @@ const defaultCoreAddonPath = path.join(__dirname, '../resources/farm-core-addon.
 export const FARM_SCHEMA_VERSION = 2
 export const FARM_SUPPORTED_SCHEMA_VERSIONS = [1, 2]
 export const FARM_PLOT_COUNT = 15
-export const FARM_ORDER_SLOT_COUNT = 3
+export const FARM_ORDER_SLOT_COUNT = 5
 export const FARM_ORDER_REFRESH_MS = 6 * 60 * 60 * 1000
 export const FARM_ADDON_WATCH_DEBOUNCE_MS = 500
 export const FARM_DAILY_STEAL_LIMIT = 5
@@ -241,6 +241,10 @@ function normalizeInteger(value, fallback = 0) {
 function normalizePositiveNumber(value, fallback = 0) {
   const parsed = Number(value)
   return parsed > 0 && Number.isFinite(parsed) ? parsed : fallback
+}
+
+function getSeedSellPrice(seedPrice) {
+  return Math.max(1, Math.floor(Math.max(0, normalizeInteger(seedPrice, 0)) * 0.5))
 }
 
 function nextRandom() {
@@ -510,22 +514,52 @@ function normalizePlot(rawPlot, index) {
   }
 }
 
-function normalizeOrder(order, index, expiresAt) {
-  if (!order || typeof order !== 'object') {
+function normalizeOrderRequirement(rawRequirement) {
+  if (!rawRequirement || typeof rawRequirement !== 'object' || Array.isArray(rawRequirement)) {
     return null
   }
 
-  const cropAlias = normalizeAlias(order.cropAlias)
-  const requiredQty = normalizeInteger(order.requiredQty, 0)
+  const cropAlias = normalizeAlias(rawRequirement.cropAlias)
+  const requiredQty = normalizeInteger(rawRequirement.requiredQty, 0)
   if (!cropAlias || !FARM_ALIAS_PATTERN.test(cropAlias) || !isPositiveInteger(requiredQty)) {
     return null
   }
 
   return {
-    slot: index + 1,
     cropAlias,
-    cropNameSnapshot: String(order.cropNameSnapshot || '').trim(),
-    requiredQty,
+    cropNameSnapshot: String(rawRequirement.cropNameSnapshot || rawRequirement.nameSnapshot || '').trim(),
+    requiredQty
+  }
+}
+
+function normalizeOrder(order, index, expiresAt) {
+  if (!order || typeof order !== 'object') {
+    return null
+  }
+
+  const requirementsSource = Array.isArray(order.requirements) && order.requirements.length
+    ? order.requirements
+    : [order]
+  const requirements = []
+  const seenAliases = new Set()
+
+  for (const rawRequirement of requirementsSource) {
+    const requirement = normalizeOrderRequirement(rawRequirement)
+    if (!requirement || seenAliases.has(requirement.cropAlias)) {
+      return null
+    }
+
+    seenAliases.add(requirement.cropAlias)
+    requirements.push(requirement)
+  }
+
+  if (!requirements.length) {
+    return null
+  }
+
+  return {
+    slot: index + 1,
+    requirements,
     coinReward: Math.max(0, normalizeInteger(order.coinReward, 0)),
     favorReward: Math.max(0, normalizeInteger(order.favorReward, 0)),
     expiresAt: Number(order.expiresAt) || expiresAt || 0
@@ -950,39 +984,77 @@ function validateStarterGrant(grant, source, availableAliases) {
   }
 }
 
+function validateOrderRequirement(rawRequirement, source) {
+  if (!rawRequirement || typeof rawRequirement !== 'object' || Array.isArray(rawRequirement)) {
+    return { ok: false, reason: `${source} 结构不合法` }
+  }
+
+  const cropAlias = normalizeAlias(rawRequirement.cropAlias)
+  if (!cropAlias || !FARM_ALIAS_PATTERN.test(cropAlias)) {
+    return { ok: false, reason: `${source}.cropAlias 不合法` }
+  }
+
+  const qtyMin = Number(rawRequirement.qtyMin)
+  const qtyMax = Number(rawRequirement.qtyMax)
+  if (!isPositiveInteger(qtyMin) || !isPositiveInteger(qtyMax) || qtyMax < qtyMin) {
+    return { ok: false, reason: `${source} 数量范围不合法` }
+  }
+
+  return {
+    ok: true,
+    requirement: {
+      cropAlias,
+      qtyMin,
+      qtyMax
+    }
+  }
+}
+
 function validateOrderTemplate(rawTemplate, source) {
   if (!rawTemplate || typeof rawTemplate !== 'object' || Array.isArray(rawTemplate)) {
     return { ok: false, reason: `${source} 的 orderTemplate 结构不合法` }
   }
 
-  const cropAlias = normalizeAlias(rawTemplate.cropAlias)
-  if (!cropAlias || !FARM_ALIAS_PATTERN.test(cropAlias)) {
-    return { ok: false, reason: `${source} 的 orderTemplate.cropAlias 不合法` }
+  const requirementsSource = Array.isArray(rawTemplate.requirements) && rawTemplate.requirements.length
+    ? rawTemplate.requirements
+    : [rawTemplate]
+  const requirements = []
+  const seenAliases = new Set()
+
+  for (const [index, rawRequirement] of requirementsSource.entries()) {
+    const requirementResult = validateOrderRequirement(
+      rawRequirement,
+      Array.isArray(rawTemplate.requirements)
+        ? `${source} 的 orderTemplate.requirements[${index}]`
+        : `${source} 的 orderTemplate`
+    )
+    if (!requirementResult.ok) {
+      return requirementResult
+    }
+
+    if (seenAliases.has(requirementResult.requirement.cropAlias)) {
+      return { ok: false, reason: `${source} 的 orderTemplate 重复声明了 ${requirementResult.requirement.cropAlias}` }
+    }
+
+    seenAliases.add(requirementResult.requirement.cropAlias)
+    requirements.push(requirementResult.requirement)
   }
 
-  const qtyMin = Number(rawTemplate.qtyMin)
-  const qtyMax = Number(rawTemplate.qtyMax)
   const coinBonusPerUnit = Number(rawTemplate.coinBonusPerUnit)
   const weight = Number(rawTemplate.weight)
 
-  if (!isPositiveInteger(qtyMin) || !isPositiveInteger(qtyMax) || qtyMax < qtyMin) {
-    return { ok: false, reason: `${source} 的 orderTemplate ${cropAlias} 数量范围不合法` }
-  }
-
   if (!isNonNegativeInteger(coinBonusPerUnit)) {
-    return { ok: false, reason: `${source} 的 orderTemplate ${cropAlias} coinBonusPerUnit 不合法` }
+    return { ok: false, reason: `${source} 的 orderTemplate coinBonusPerUnit 不合法` }
   }
 
   if (!isPositiveInteger(weight)) {
-    return { ok: false, reason: `${source} 的 orderTemplate ${cropAlias} weight 不合法` }
+    return { ok: false, reason: `${source} 的 orderTemplate weight 不合法` }
   }
 
   return {
     ok: true,
     template: {
-      cropAlias,
-      qtyMin,
-      qtyMax,
+      requirements,
       coinBonusPerUnit,
       weight
     }
@@ -1424,8 +1496,9 @@ function buildFarmRegistryFromDisk() {
         break
       }
 
-      if (!availableCropAliases.has(templateResult.template.cropAlias)) {
-        skippedAddons.push(makeSkipRecord(source, manifest, `订单模板 ${templateResult.template.cropAlias} 未找到对应 crop，已跳过该模板`))
+      const missingRequirement = templateResult.template.requirements.find(requirement => !availableCropAliases.has(requirement.cropAlias))
+      if (missingRequirement) {
+        skippedAddons.push(makeSkipRecord(source, manifest, `订单模板 ${missingRequirement.cropAlias} 未找到对应 crop，已跳过该模板`))
         continue
       }
 
@@ -1744,8 +1817,10 @@ function applyStarterGrants(state) {
 
 function getAvailableOrderTemplatesForState(state) {
   return farmRegistry.orderTemplates.filter(template => {
-    const crop = getCropByAlias(template.cropAlias)
-    return isCropUnlockedForState(crop, state)
+    return template.requirements.every(requirement => {
+      const crop = getCropByAlias(requirement.cropAlias)
+      return isCropUnlockedForState(crop, state)
+    })
   })
 }
 
@@ -1755,19 +1830,31 @@ function createOrder(state, expiresAt, slot) {
     return null
   }
 
-  const crop = getCropByAlias(template.cropAlias)
-  if (!crop) {
-    return null
+  const requirements = []
+  let coinReward = 0
+  let favorReward = 0
+
+  for (const requirement of template.requirements) {
+    const crop = getCropByAlias(requirement.cropAlias)
+    if (!crop) {
+      return null
+    }
+
+    const requiredQty = rollInt(requirement.qtyMin, requirement.qtyMax)
+    requirements.push({
+      cropAlias: crop.alias,
+      cropNameSnapshot: crop.name,
+      requiredQty
+    })
+    coinReward += requiredQty * (crop.sellPrice + template.coinBonusPerUnit)
+    favorReward += crop.orderFavorReward
   }
 
-  const requiredQty = rollInt(template.qtyMin, template.qtyMax)
   return {
     slot,
-    cropAlias: crop.alias,
-    cropNameSnapshot: crop.name,
-    requiredQty,
-    coinReward: requiredQty * (crop.sellPrice + template.coinBonusPerUnit),
-    favorReward: crop.orderFavorReward,
+    requirements,
+    coinReward,
+    favorReward,
     expiresAt
   }
 }
@@ -1931,7 +2018,7 @@ function syncFarmState(state, now = Date.now()) {
     changed = true
   }
 
-  if (state.orders.length !== FARM_ORDER_SLOT_COUNT || !state.orderBoardExpiresAt || state.orderBoardExpiresAt <= now) {
+  if (!state.orderBoardExpiresAt || state.orderBoardExpiresAt <= now) {
     refreshOrderBoard(state, now)
     changed = true
   } else {
@@ -2568,6 +2655,48 @@ function sellCrops(state, cropAlias, count) {
   }
 }
 
+function sellSeeds(state, seedAlias, count) {
+  syncFarmState(state)
+  const normalizedAlias = normalizeAlias(seedAlias)
+  const seedEntry = getSeedEntry(state, normalizedAlias)
+  if (!seedEntry || seedEntry.count <= 0) {
+    return { ok: false, reason: 'inventory_missing' }
+  }
+
+  const normalizedCount = String(count).trim().toLowerCase() === 'all'
+    ? seedEntry.count
+    : normalizeCount(count)
+  if (!isPositiveInteger(normalizedCount)) {
+    return { ok: false, reason: 'invalid_count' }
+  }
+
+  if (seedEntry.count < normalizedCount) {
+    return {
+      ok: false,
+      reason: 'insufficient_inventory',
+      available: seedEntry.count
+    }
+  }
+
+  seedEntry.count -= normalizedCount
+  if (seedEntry.count <= 0) {
+    delete state.seeds[normalizedAlias]
+  }
+
+  const resalePrice = getSeedSellPrice(seedEntry.seedPriceSnapshot)
+  const coinReward = normalizedCount * resalePrice
+  touchFarmState(state)
+
+  return {
+    ok: true,
+    cropAlias: normalizedAlias,
+    seedNameSnapshot: seedEntry.seedNameSnapshot || `${seedEntry.nameSnapshot}种子`,
+    soldCount: normalizedCount,
+    resalePrice,
+    coinReward
+  }
+}
+
 function replaceOrderSlot(state, slotIndex, now = Date.now()) {
   if (!state.orderBoardExpiresAt || state.orderBoardExpiresAt <= now) {
     refreshOrderBoard(state, now)
@@ -2596,26 +2725,40 @@ function deliverOrder(state, orderIndex, now = Date.now()) {
     return { ok: false, reason: 'order_missing' }
   }
 
-  const cropEntry = getCropEntry(state, order.cropAlias)
-  if (!cropEntry || cropEntry.count < order.requiredQty) {
+  const missingRequirements = order.requirements.reduce((list, requirement) => {
+    const cropEntry = getCropEntry(state, requirement.cropAlias)
+    const available = cropEntry?.count || 0
+    if (available < requirement.requiredQty) {
+      list.push({
+        ...requirement,
+        available,
+        required: requirement.requiredQty
+      })
+    }
+    return list
+  }, [])
+  if (missingRequirements.length) {
     return {
       ok: false,
       reason: 'insufficient_inventory',
-      available: cropEntry?.count || 0,
-      required: order.requiredQty,
+      missingRequirements,
       order
     }
   }
 
-  cropEntry.count -= order.requiredQty
-  if (cropEntry.count <= 0) {
-    delete state.crops[order.cropAlias]
+  for (const requirement of order.requirements) {
+    const cropEntry = getCropEntry(state, requirement.cropAlias)
+    cropEntry.count -= requirement.requiredQty
+    if (cropEntry.count <= 0) {
+      delete state.crops[requirement.cropAlias]
+    }
   }
 
   const completedOrder = cloneData(order)
   replaceOrderSlot(state, slotIndex, now)
   state.stats.deliverOrderCount += 1
-  gainFarmXp(state, 10 + (completedOrder.requiredQty * 3))
+  const totalRequiredQty = completedOrder.requirements.reduce((sum, requirement) => sum + requirement.requiredQty, 0)
+  gainFarmXp(state, 10 + (totalRequiredQty * 3))
 
   const questSummary = progressMainQuests(state, now)
   touchFarmState(state)
@@ -3180,11 +3323,13 @@ export {
   saveFarmData,
   updateFarmProgress,
   recordFarmAction,
+  getSeedSellPrice,
   buySeeds,
   plantSeed,
   waterPlots,
   harvestPlots,
   sellCrops,
+  sellSeeds,
   deliverOrder,
   getFarmQuestView,
   getFarmLandView,

@@ -96,6 +96,7 @@
 - 地块总数固定 `15` 块：`1-5` 普通、`6-10` 黄土地、`11-15` 黑土地；黄土地产量 `x1.5`，黑土地产量 `x2.0` 且成长 `x0.85`。
 - `/farm shop`
   - 只显示当前农场等级已解锁的作物
+  - 同时展示种子买入价、种子回收价与果实卖出价
 - `/farm buy <作物别名> [数量]`
   - 购买种子，数量默认 `1`
   - 扣除对应 `Star 币`
@@ -110,12 +111,19 @@
   - 使用 `actualHarvest = ceil(baseYield * landYieldMultiplier) - yieldStolen`
 - `/farm bag`
   - 查看当前种子、作物与宠物粮背包
+  - 种子区必须展示回收单价
+- `/farm sell seed <作物别名> <数量|all>`
+  - 按种子快照买入价的 `50%` 回收成 `Star 币`
+  - 不提供农场经验
+  - 不计入 `sell_crop_units`
 - `/farm sell <作物别名> <数量|all>`
   - 按作物快照卖出价换成 `Star 币`
 - `/farm order`
-  - 查看当前 `3` 个订单与刷新剩余时间
+  - 查看当前 `5` 个订单与刷新剩余时间
+  - 每个订单默认同时需求 `2-3` 种作物
 - `/farm deliver <订单号>`
   - 交付指定订单，获得 `Star 币 + 好感度`
+  - 必须一次性交齐订单内所有作物
   - 完成后立即补一个同槽位新订单
 - `/farm quest`
   - 查看 `新手教程 / 农场扩张 / 守卫家园` 三条一次性主线当前步骤与进度
@@ -163,6 +171,10 @@
   - `pets[]`
   - `petFoods[]`
   - `mainQuestChapters[]`
+- 订单模板兼容两种写法：
+  - schema v1 / v2 都可使用
+  - 旧写法：`cropAlias + qtyMin + qtyMax`
+  - 新写法：`requirements[]`，每项包含 `cropAlias + qtyMin + qtyMax`
 - `mainQuestChapters[].steps[].type` 仅允许：`open_farm`、`buy_seed`、`plant`、`water`、`harvest`、`sell_crop_units`、`deliver_order`、`reach_level`、`buy_plot`、`harvest_on_land`、`collect_crop_kinds`、`buy_pet`、`buy_pet_food`、`feed_pet_hours`、`visit_farm`、`attempt_steal`、`successful_steal`、`accumulate_guard_hours`。
 - 附加件只允许声明固定字段，不支持任意脚本执行。
 - 冲突与错误处理：

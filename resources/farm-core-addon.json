@@ -373,177 +373,457 @@
   ],
   "orderTemplates": [
     {
-      "cropAlias": "radish",
-      "qtyMin": 3,
-      "qtyMax": 5,
+      "requirements": [
+        {
+          "cropAlias": "radish",
+          "qtyMin": 2,
+          "qtyMax": 3
+        },
+        {
+          "cropAlias": "cabbage",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 2,
       "weight": 10
     },
     {
-      "cropAlias": "cabbage",
-      "qtyMin": 3,
-      "qtyMax": 5,
+      "requirements": [
+        {
+          "cropAlias": "potato",
+          "qtyMin": 2,
+          "qtyMax": 3
+        },
+        {
+          "cropAlias": "carrot",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 2,
       "weight": 10
     },
     {
-      "cropAlias": "potato",
-      "qtyMin": 3,
-      "qtyMax": 5,
+      "requirements": [
+        {
+          "cropAlias": "radish",
+          "qtyMin": 2,
+          "qtyMax": 3
+        },
+        {
+          "cropAlias": "tomato",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 2,
       "weight": 10
     },
     {
-      "cropAlias": "carrot",
-      "qtyMin": 3,
-      "qtyMax": 5,
+      "requirements": [
+        {
+          "cropAlias": "cabbage",
+          "qtyMin": 2,
+          "qtyMax": 3
+        },
+        {
+          "cropAlias": "tomato",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 2,
       "weight": 10
     },
     {
-      "cropAlias": "tomato",
-      "qtyMin": 3,
-      "qtyMax": 5,
+      "requirements": [
+        {
+          "cropAlias": "potato",
+          "qtyMin": 2,
+          "qtyMax": 3
+        },
+        {
+          "cropAlias": "radish",
+          "qtyMin": 2,
+          "qtyMax": 2
+        }
+      ],
       "coinBonusPerUnit": 2,
       "weight": 10
     },
     {
-      "cropAlias": "cucumber",
-      "qtyMin": 2,
-      "qtyMax": 4,
+      "requirements": [
+        {
+          "cropAlias": "cucumber",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "onion",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 3,
       "weight": 8
     },
     {
-      "cropAlias": "onion",
-      "qtyMin": 2,
-      "qtyMax": 4,
+      "requirements": [
+        {
+          "cropAlias": "corn",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "pepper",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 3,
       "weight": 8
     },
     {
-      "cropAlias": "corn",
-      "qtyMin": 2,
-      "qtyMax": 4,
+      "requirements": [
+        {
+          "cropAlias": "eggplant",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "cucumber",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 3,
       "weight": 8
     },
     {
-      "cropAlias": "pepper",
-      "qtyMin": 2,
-      "qtyMax": 4,
+      "requirements": [
+        {
+          "cropAlias": "onion",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "corn",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 3,
       "weight": 8
     },
     {
-      "cropAlias": "eggplant",
-      "qtyMin": 2,
-      "qtyMax": 4,
+      "requirements": [
+        {
+          "cropAlias": "pepper",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "eggplant",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 3,
       "weight": 8
     },
     {
-      "cropAlias": "pumpkin",
-      "qtyMin": 2,
-      "qtyMax": 3,
+      "requirements": [
+        {
+          "cropAlias": "pumpkin",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "strawberry",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 5,
       "weight": 6
     },
     {
-      "cropAlias": "soybean",
-      "qtyMin": 2,
-      "qtyMax": 3,
+      "requirements": [
+        {
+          "cropAlias": "soybean",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "rice",
+          "qtyMin": 2,
+          "qtyMax": 3
+        }
+      ],
       "coinBonusPerUnit": 5,
       "weight": 6
     },
     {
-      "cropAlias": "peanut",
-      "qtyMin": 2,
-      "qtyMax": 3,
+      "requirements": [
+        {
+          "cropAlias": "peanut",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "radish",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "tomato",
+          "qtyMin": 1,
+          "qtyMax": 2
+        }
+      ],
       "coinBonusPerUnit": 5,
       "weight": 6
     },
     {
-      "cropAlias": "strawberry",
-      "qtyMin": 2,
-      "qtyMax": 3,
+      "requirements": [
+        {
+          "cropAlias": "pumpkin",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "cucumber",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "corn",
+          "qtyMin": 1,
+          "qtyMax": 2
+        }
+      ],
       "coinBonusPerUnit": 5,
       "weight": 6
     },
     {
-      "cropAlias": "rice",
-      "qtyMin": 2,
-      "qtyMax": 3,
+      "requirements": [
+        {
+          "cropAlias": "strawberry",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "onion",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "rice",
+          "qtyMin": 1,
+          "qtyMax": 2
+        }
+      ],
       "coinBonusPerUnit": 5,
       "weight": 6
     },
     {
-      "cropAlias": "watermelon",
-      "qtyMin": 1,
-      "qtyMax": 3,
+      "requirements": [
+        {
+          "cropAlias": "watermelon",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "apple",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "tea",
+          "qtyMin": 1,
+          "qtyMax": 1
+        }
+      ],
       "coinBonusPerUnit": 8,
       "weight": 4
     },
     {
-      "cropAlias": "grape",
-      "qtyMin": 1,
-      "qtyMax": 3,
+      "requirements": [
+        {
+          "cropAlias": "grape",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "peach",
+          "qtyMin": 1,
+          "qtyMax": 2
+        }
+      ],
       "coinBonusPerUnit": 8,
       "weight": 4
     },
     {
-      "cropAlias": "peach",
-      "qtyMin": 1,
-      "qtyMax": 3,
+      "requirements": [
+        {
+          "cropAlias": "apple",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "tomato",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "cucumber",
+          "qtyMin": 1,
+          "qtyMax": 2
+        }
+      ],
       "coinBonusPerUnit": 8,
       "weight": 4
     },
     {
-      "cropAlias": "apple",
-      "qtyMin": 1,
-      "qtyMax": 3,
+      "requirements": [
+        {
+          "cropAlias": "tea",
+          "qtyMin": 1,
+          "qtyMax": 1
+        },
+        {
+          "cropAlias": "rice",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "soybean",
+          "qtyMin": 1,
+          "qtyMax": 2
+        }
+      ],
       "coinBonusPerUnit": 8,
       "weight": 4
     },
     {
-      "cropAlias": "tea",
-      "qtyMin": 1,
-      "qtyMax": 3,
+      "requirements": [
+        {
+          "cropAlias": "watermelon",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "pepper",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "strawberry",
+          "qtyMin": 1,
+          "qtyMax": 2
+        }
+      ],
       "coinBonusPerUnit": 8,
       "weight": 4
     },
     {
-      "cropAlias": "blueberry",
-      "qtyMin": 1,
-      "qtyMax": 2,
+      "requirements": [
+        {
+          "cropAlias": "blueberry",
+          "qtyMin": 1,
+          "qtyMax": 1
+        },
+        {
+          "cropAlias": "pineapple",
+          "qtyMin": 1,
+          "qtyMax": 1
+        },
+        {
+          "cropAlias": "coffee",
+          "qtyMin": 1,
+          "qtyMax": 1
+        }
+      ],
       "coinBonusPerUnit": 12,
       "weight": 3
     },
     {
-      "cropAlias": "pineapple",
-      "qtyMin": 1,
-      "qtyMax": 2,
+      "requirements": [
+        {
+          "cropAlias": "lotus",
+          "qtyMin": 1,
+          "qtyMax": 1
+        },
+        {
+          "cropAlias": "cherry",
+          "qtyMin": 1,
+          "qtyMax": 1
+        }
+      ],
       "coinBonusPerUnit": 12,
       "weight": 3
     },
     {
-      "cropAlias": "coffee",
-      "qtyMin": 1,
-      "qtyMax": 2,
+      "requirements": [
+        {
+          "cropAlias": "coffee",
+          "qtyMin": 1,
+          "qtyMax": 1
+        },
+        {
+          "cropAlias": "tea",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "watermelon",
+          "qtyMin": 1,
+          "qtyMax": 1
+        }
+      ],
       "coinBonusPerUnit": 12,
       "weight": 3
     },
     {
-      "cropAlias": "lotus",
-      "qtyMin": 1,
-      "qtyMax": 2,
+      "requirements": [
+        {
+          "cropAlias": "blueberry",
+          "qtyMin": 1,
+          "qtyMax": 1
+        },
+        {
+          "cropAlias": "apple",
+          "qtyMin": 1,
+          "qtyMax": 2
+        },
+        {
+          "cropAlias": "strawberry",
+          "qtyMin": 1,
+          "qtyMax": 1
+        }
+      ],
       "coinBonusPerUnit": 12,
       "weight": 3
     },
     {
-      "cropAlias": "cherry",
-      "qtyMin": 1,
-      "qtyMax": 2,
+      "requirements": [
+        {
+          "cropAlias": "pineapple",
+          "qtyMin": 1,
+          "qtyMax": 1
+        },
+        {
+          "cropAlias": "lotus",
+          "qtyMin": 1,
+          "qtyMax": 1
+        },
+        {
+          "cropAlias": "rice",
+          "qtyMin": 1,
+          "qtyMax": 2
+        }
+      ],
       "coinBonusPerUnit": 12,
       "weight": 3
     }

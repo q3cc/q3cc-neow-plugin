@@ -77,6 +77,7 @@ import {
   setPendingDictSelection
 } from '../utils/dict-selection.js'
 import {
+  FARM_ORDER_SLOT_COUNT,
   buyPet,
   buyPetFood,
   buyPlot,
@@ -90,6 +91,7 @@ import {
   getFarmPetView,
   getFarmQuestView,
   getFarmRegistry,
+  getSeedSellPrice,
   getFarmState,
   getUnlockedFarmCrops,
   harvestPlots,
@@ -97,6 +99,7 @@ import {
   recordFarmAction,
   saveFarmData,
   sellCrops,
+  sellSeeds,
   stealFromFarm,
   usePet,
   visitFarm,
@@ -245,6 +248,10 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?farm\s+bag\s*$/i,
           fnc: 'showFarmBag'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+sell\s+seed\s+([a-z0-9_-]+)\s+(\d+|all)\s*$/i,
+          fnc: 'sellFarmSeed'
         },
         {
           reg: /^(?:\/|#)?farm\s+sell\s+([a-z0-9_-]+)\s+(\d+|all)\s*$/i,
@@ -877,11 +884,15 @@ export class NeowPlugin extends plugin {
     }
 
     const expiresMs = Math.max(0, (order.expiresAt || 0) - now)
-    return `${index + 1}. ${order.cropNameSnapshot} x${order.requiredQty} -> ${order.coinReward} Star 币 + ${order.favorReward} 好感度 (剩余 ${this.formatFarmDuration(expiresMs)})`
+    const requirementText = (order.requirements || [])
+      .map(item => `${item.cropNameSnapshot || item.cropAlias} x${item.requiredQty}`)
+      .join(' + ')
+
+    return `${index + 1}. ${requirementText}\n   奖励 ${order.coinReward} Star 币 + ${order.favorReward} 好感度 | 剩余 ${this.formatFarmDuration(expiresMs)}`
   }
 
   formatFarmSeedLine(entry) {
-    return `${entry.cropAlias} - ${entry.seedNameSnapshot || `${entry.nameSnapshot}种子`} x${entry.count}`
+    return `${entry.cropAlias} - ${entry.seedNameSnapshot || `${entry.nameSnapshot}种子`} x${entry.count} (回收 ${getSeedSellPrice(entry.seedPriceSnapshot)}/颗)`
   }
 
   formatFarmCropLine(entry) {
@@ -1115,6 +1126,7 @@ export class NeowPlugin extends plugin {
       '/farm shop - 查看种子商店',
       '/farm bag - 查看背包',
       '/farm order - 查看订单板',
+      '/farm sell seed radish all - 回收多余种子',
       '/farm quest - 查看主线任务',
       '/farm land - 查看地块购买',
       '/farm pet - 查看宠物与守卫',
@@ -1145,12 +1157,14 @@ export class NeowPlugin extends plugin {
       `🌾 农场等级: ${this.formatFarmLevelText(levelInfo)}`,
       `当前 Star 币: ${farm.user.coins}`,
       '使用 /farm buy <作物别名> [数量] 购买种子',
+      '使用 /farm sell seed <作物别名> <数量|all> 回收多余种子',
       '',
       ...crops.map(crop =>
-        `${crop.alias} - ${crop.seedName} ${crop.seedPrice} Star 币 | ${crop.growMinutes}分钟成熟 | 卖出 ${crop.sellPrice}`
+        `${crop.alias} - ${crop.seedName} 买入 ${crop.seedPrice} | 回收 ${getSeedSellPrice(crop.seedPrice)} | 果实卖出 ${crop.sellPrice} | ${crop.growMinutes}分钟成熟`
       ),
       '',
       '示例: /farm buy radish 2',
+      '示例: /farm sell seed radish all',
       ...this.buildFarmNotificationLines(farm.notifications)
     ]
 
@@ -1410,6 +1424,7 @@ export class NeowPlugin extends plugin {
         ? petFoodEntries.map(entry => `  ${entry.foodAlias} - ${entry.nameSnapshot} x${entry.count} (+${entry.guardHoursSnapshot}h)`)
         : ['  暂时没有宠物粮喵~']),
       '',
+      '卖种子示例: /farm sell seed radish all',
       '卖出示例: /farm sell radish all',
       ...this.buildFarmNotificationLines(farm.notifications)
     ]
@@ -1432,9 +1447,55 @@ export class NeowPlugin extends plugin {
       '农场订单板',
       `刷新剩余: ${this.formatFarmDuration(Math.max(0, farm.state.orderBoardExpiresAt - farm.now))}`,
       '',
-      ...Array.from({ length: 3 }, (_, index) => this.formatFarmOrderLine(farm.state.orders[index], index, farm.now)),
+      ...Array.from({ length: FARM_ORDER_SLOT_COUNT }, (_, index) => this.formatFarmOrderLine(farm.state.orders[index], index, farm.now)),
       '',
       '交付示例: /farm deliver 1',
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async sellFarmSeed(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+sell\s+seed\s+([a-z0-9_-]+)\s+(\d+|all)\s*$/i)
+    const cropAlias = String(match?.[1] || '').trim().toLowerCase()
+    const count = String(match?.[2] || '').trim().toLowerCase()
+    const result = sellSeeds(farm.state, cropAlias, count)
+
+    if (!result.ok) {
+      let message = '回收种子失败喵~'
+      if (result.reason === 'inventory_missing') {
+        message = `背包里没有 ${cropAlias} 对应的种子喵~`
+      } else if (result.reason === 'invalid_count') {
+        message = '回收数量必须是正整数，或者直接写 all 喵~'
+      } else if (result.reason === 'insufficient_inventory') {
+        message = `背包里只剩 ${result.available} 颗，不够回收这么多喵~`
+      }
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    await this.applyFarmUserChanges(farm, {
+      coinDelta: result.coinReward,
+      mutation: result
+    })
+
+    const lines = [
+      '种子回收成功喵~',
+      `回收: ${result.seedNameSnapshot} x${result.soldCount}`,
+      `单价: ${result.resalePrice} Star 币`,
+      `获得: ${result.coinReward} Star 币`,
+      `当前 Star 币: ${farm.user.coins}`,
       ...this.buildFarmNotificationLines(farm.notifications)
     ]
 
@@ -1507,7 +1568,10 @@ export class NeowPlugin extends plugin {
       if (result.reason === 'order_missing') {
         message = '这个订单编号不存在喵，先用 /farm order 看看吧~'
       } else if (result.reason === 'insufficient_inventory') {
-        message = `背包里只有 ${result.available} 个 ${result.order?.cropNameSnapshot || ''}，不够交订单喵~`
+        const missingLines = (result.missingRequirements || []).map(item =>
+          `- ${item.cropNameSnapshot || item.cropAlias}: ${item.available}/${item.required}`
+        )
+        message = ['材料还没凑齐喵，还缺这些：', ...missingLines].join('\n')
       }
       await this.replyWithTimeout(e, message, true)
       return true
@@ -1521,7 +1585,7 @@ export class NeowPlugin extends plugin {
 
     const lines = [
       '订单完成啦喵~',
-      `交付: ${result.order.cropNameSnapshot} x${result.order.requiredQty}`,
+      `交付: ${(result.order.requirements || []).map(item => `${item.cropNameSnapshot || item.cropAlias} x${item.requiredQty}`).join(' + ')}`,
       `获得: ${result.coinReward} Star 币 + ${result.favorReward} 好感度`,
       `当前 Star 币: ${farm.user.coins}`,
       ...this.buildFarmMutationLines(result),
@@ -1529,7 +1593,7 @@ export class NeowPlugin extends plugin {
     ]
 
     if (result.replacement) {
-      lines.splice(4, 0, `新订单: ${this.formatFarmOrderLine(result.replacement, result.replacement.slot - 1, farm.now)}`)
+      lines.splice(4, 0, `新订单:\n${this.formatFarmOrderLine(result.replacement, result.replacement.slot - 1, farm.now)}`)
     }
 
     await this.replyWithTimeout(e, lines.join('\n'), true)

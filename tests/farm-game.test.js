@@ -4,6 +4,7 @@ import path from 'path'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  FARM_ORDER_SLOT_COUNT,
   __configureFarmForTests,
   __getFarmConfigForTests,
   __getFarmFlushPromiseForTests,
@@ -25,7 +26,9 @@ import {
   plantSeed,
   recordFarmAction,
   sellCrops,
+  sellSeeds,
   stealFromFarm,
+  syncFarmState,
   updateFarmProgress,
   usePet,
   visitFarm,
@@ -65,15 +68,19 @@ test('schema v1/v2 附加件可同时加载，冲突与坏引用会被跳过', a
   const t = await env()
   try {
     await writeJson(path.join(t.addonDirPath, 'tea.json'), { schemaVersion: 1, id: 'tea-pack', name: '茶园', version: '1.0.0', enabled: true, priority: 8, starterGrants: [], crops: [crop('green-tea', '青茶')], orderTemplates: [{ cropAlias: 'green-tea', qtyMin: 1, qtyMax: 2, coinBonusPerUnit: 2, weight: 1 }] })
+    await writeJson(path.join(t.addonDirPath, 'combo.json'), { schemaVersion: 2, id: 'combo-pack', name: '拼盘包', version: '1.0.0', enabled: true, priority: 6, starterGrants: [], crops: [crop('lettuce', '生菜'), crop('bean', '豆角')], orderTemplates: [{ requirements: [{ cropAlias: 'lettuce', qtyMin: 1, qtyMax: 2 }, { cropAlias: 'bean', qtyMin: 2, qtyMax: 3 }], coinBonusPerUnit: 3, weight: 2 }] })
     await writeJson(path.join(t.addonDirPath, 'pet.json'), { schemaVersion: 2, id: 'pet-pack', name: '宠物包', version: '1.0.0', enabled: true, priority: 7, starterGrants: [], crops: [], orderTemplates: [{ cropAlias: 'ghost', qtyMin: 1, qtyMax: 1, coinBonusPerUnit: 1, weight: 1 }], pets: [{ alias: 'raven', name: '乌鸦', price: 100, guardInterceptPercent: 20 }], petFoods: [{ alias: 'snack', name: '零食', price: 10, guardHours: 1 }], mainQuestChapters: [{ id: 'miniquest', name: '访客', steps: [{ type: 'visit_farm', target: 1, label: '看别人一眼' }] }] })
     await writeJson(path.join(t.addonDirPath, 'dup.json'), { schemaVersion: 1, id: 'tea-pack', name: '重复包', version: '1.0.0', enabled: true, priority: 1, starterGrants: [], crops: [], orderTemplates: [] })
     __reloadFarmRegistryForTests('mix')
     const registry = getFarmRegistry()
     const status = getFarmAddonStatus()
     assert.ok(registry.cropList.some(item => item.alias === 'green-tea'))
+    assert.ok(registry.cropList.some(item => item.alias === 'lettuce'))
     assert.ok(registry.petList.some(item => item.alias === 'raven'))
     assert.ok(registry.petFoodList.some(item => item.alias === 'snack'))
     assert.ok(registry.mainQuestChapterList.some(item => item.id === 'miniquest'))
+    assert.equal(registry.orderTemplates.find(item => item.addonId === 'tea-pack').requirements.length, 1)
+    assert.equal(registry.orderTemplates.find(item => item.addonId === 'combo-pack').requirements.length, 2)
     assert.ok(status.skippedAddons.some(item => item.reason.includes('ghost')))
     assert.ok(status.skippedAddons.some(item => item.id === 'tea-pack' || item.source.includes('dup.json')))
   } finally { await cleanup(t) }
@@ -109,6 +116,45 @@ test('25 种核心作物按等级解锁，土地倍率与购地规则生效', as
     assert.equal(high.plots[5].yieldTotalSnapshot, 2)
     assert.equal(high.plots[10].yieldTotalSnapshot, 2)
     assert.ok(black.readyAt < yellow.readyAt)
+  } finally { await cleanup(t) }
+})
+
+test('订单板会补满 5 单，并在过期后整板刷新', async () => {
+  const t = await env({ random: rand([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]) })
+  try {
+    const state = getFarmState('board')
+    const firstExpiresAt = state.orderBoardExpiresAt
+    assert.equal(state.orders.length, FARM_ORDER_SLOT_COUNT)
+    assert.deepEqual(state.orders.map(item => item.slot), [1, 2, 3, 4, 5])
+    assert.equal(state.orders.every(item => Array.isArray(item.requirements) && item.requirements.length >= 2), true)
+    syncFarmState(state, firstExpiresAt + 1)
+    assert.equal(state.orders.length, FARM_ORDER_SLOT_COUNT)
+    assert.ok(state.orderBoardExpiresAt > firstExpiresAt)
+  } finally { await cleanup(t) }
+})
+
+test('旧的 3 单订单板会保留旧订单并补满到 5 单', async () => {
+  const future = Date.now() + 60_000
+  const t = await env({
+    seedData: {
+      legacyBoard: {
+        starterGrantApplied: true,
+        orderBoardExpiresAt: future,
+        orders: [
+          { slot: 1, cropAlias: 'radish', cropNameSnapshot: '白萝卜', requiredQty: 2, coinReward: 16, favorReward: 1, expiresAt: future },
+          { slot: 2, cropAlias: 'tomato', cropNameSnapshot: '番茄', requiredQty: 2, coinReward: 16, favorReward: 1, expiresAt: future },
+          { slot: 3, cropAlias: 'cabbage', cropNameSnapshot: '卷心菜', requiredQty: 2, coinReward: 16, favorReward: 1, expiresAt: future }
+        ]
+      }
+    },
+    random: rand([0, 0, 0, 0, 0, 0])
+  })
+  try {
+    const state = getFarmState('legacyBoard')
+    assert.equal(state.orders.length, FARM_ORDER_SLOT_COUNT)
+    assert.equal(state.orders[0].requirements[0].cropAlias, 'radish')
+    assert.equal(state.orders[1].requirements[0].cropAlias, 'tomato')
+    assert.equal(state.orders[2].requirements[0].cropAlias, 'cabbage')
   } finally { await cleanup(t) }
 })
 
@@ -148,7 +194,63 @@ test('买种子到交订单的核心链路仍可工作，且删除附加件后�
     await fsp.unlink(path.join(t.addonDirPath, 'tea.json'))
     __reloadFarmRegistryForTests('tea-removed')
     assert.equal(getFarmRegistry().cropList.some(item => item.alias === 'green-tea'), false)
+    assert.equal(sellSeeds(state, 'green-tea', 1).coinReward, 4)
     assert.equal(deliverOrder(state, 1, Date.now()).coinReward, 44)
+  } finally { await cleanup(t) }
+})
+
+test('多作物订单必须一次性交齐，失败不会部分扣除库存', async () => {
+  const t = await env()
+  try {
+    const state = getFarmState('multi-order')
+    state.crops.radish = { cropAlias: 'radish', count: 3, nameSnapshot: '白萝卜', sellPriceSnapshot: 6 }
+    state.crops.tomato = { cropAlias: 'tomato', count: 1, nameSnapshot: '番茄', sellPriceSnapshot: 6 }
+    state.orders = [{
+      slot: 1,
+      requirements: [
+        { cropAlias: 'radish', cropNameSnapshot: '白萝卜', requiredQty: 2 },
+        { cropAlias: 'tomato', cropNameSnapshot: '番茄', requiredQty: 2 }
+      ],
+      coinReward: 32,
+      favorReward: 2,
+      expiresAt: Date.now() + 60_000
+    }, ...state.orders.slice(1)]
+
+    const failed = deliverOrder(state, 1, Date.now())
+    assert.equal(failed.ok, false)
+    assert.deepEqual(failed.missingRequirements.map(item => item.cropAlias), ['tomato'])
+    assert.equal(state.crops.radish.count, 3)
+    assert.equal(state.crops.tomato.count, 1)
+
+    state.crops.tomato.count = 2
+    const success = deliverOrder(state, 1, Date.now())
+    assert.equal(success.ok, true)
+    assert.equal(success.order.requirements.length, 2)
+    assert.equal(state.crops.radish.count, 1)
+    assert.equal(state.crops.tomato, undefined)
+  } finally { await cleanup(t) }
+})
+
+test('种子支持按 50% 回收，且不会提供经验或卖作物统计', async () => {
+  const t = await env()
+  try {
+    const state = getFarmState('seed-seller')
+    state.seeds.radish = {
+      cropAlias: 'radish',
+      count: 3,
+      nameSnapshot: '白萝卜',
+      seedNameSnapshot: '白萝卜种子',
+      seedPriceSnapshot: 4
+    }
+    const beforeXp = state.farmXp
+    const beforeSellCropUnits = state.stats.sellCropUnits
+    const result = sellSeeds(state, 'radish', 'all')
+    assert.equal(result.ok, true)
+    assert.equal(result.resalePrice, 2)
+    assert.equal(result.coinReward, 6)
+    assert.equal(state.seeds.radish, undefined)
+    assert.equal(state.farmXp, beforeXp)
+    assert.equal(state.stats.sellCropUnits, beforeSellCropUnits)
   } finally { await cleanup(t) }
 })
 
