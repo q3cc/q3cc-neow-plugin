@@ -226,6 +226,10 @@ export class NeowPlugin extends plugin {
           fnc: 'showFarmMenu'
         },
         {
+          reg: /^(?:\/|#)?farm\s+help\s*$/i,
+          fnc: 'showFarmHelp'
+        },
+        {
           reg: /^(?:\/|#)?farm\s+shop\s*$/i,
           fnc: 'showFarmShop'
         },
@@ -1042,6 +1046,19 @@ export class NeowPlugin extends plugin {
     return ['', '📮 农场动态:', ...list.map(item => `- ${item}`)]
   }
 
+  async replyFarmResult(e, lines, options = {}) {
+    const mainLines = Array.isArray(lines) ? [...lines] : [String(lines || '')]
+    mainLines.push(...this.buildFarmNotificationLines(options.notifications))
+    await this.replyWithTimeout(e, mainLines.join('\n'), true)
+
+    const mutationLines = this.buildFarmMutationLines(options.mutation)
+    if (mutationLines.length) {
+      await this.replyWithTimeout(e, mutationLines.join('\n'), false)
+    }
+
+    return true
+  }
+
   async applyFarmUserChanges(farm, options = {}) {
     const mutation = options.mutation || null
     const directCoinDelta = Number.isFinite(Number(options.coinDelta)) ? Number(options.coinDelta) : 0
@@ -1097,6 +1114,11 @@ export class NeowPlugin extends plugin {
     const petView = getFarmPetView(farm.state, farm.now)
     const unlockedCrops = getUnlockedFarmCrops(farm.state)
     const ownedPlots = landView.filter(plot => plot.owned)
+    const emptyPlot = ownedPlots.find(plot => !plot.cropAlias)
+    const seedEntries = Object.values(farm.state.seeds)
+      .sort((left, right) => left.cropAlias.localeCompare(right.cropAlias, 'en'))
+    const quickPlantAlias = seedEntries[0]?.cropAlias || unlockedCrops[0]?.alias || 'radish'
+    const quickPlantPlotId = emptyPlot?.plotId || ownedPlots[0]?.plotId || 1
     const totalSeedCount = Object.values(farm.state.seeds).reduce((sum, entry) => sum + entry.count, 0)
     const totalCropCount = Object.values(farm.state.crops).reduce((sum, entry) => sum + entry.count, 0)
     const completedQuestCount = questView.filter(item => item.completed).length
@@ -1123,21 +1145,79 @@ export class NeowPlugin extends plugin {
         ? ownedPlots.map(plot => `  ${this.formatFarmLandLine(plot, levelInfo.level, farm.now)}`)
         : ['  还没有地块喵~']),
       '',
+      '快捷操作:',
+      '/farm help - 查看种田指令',
       '/farm shop - 查看种子商店',
+      `/farm plant ${quickPlantPlotId} ${quickPlantAlias} - 去播种一块地`,
+      '/farm water all - 给能浇水的地块浇水',
+      '/farm harvest all - 一键收成熟作物',
       '/farm bag - 查看背包',
       '/farm order - 查看订单板',
       '/farm sell seed radish all - 回收多余种子',
-      '/farm quest - 查看主线任务',
       '/farm land - 查看地块购买',
+      '/farm quest - 查看主线任务',
       '/farm pet - 查看宠物与守卫',
-      '/farm harvest all - 一键收成熟作物',
-      ...adminLines,
-      ...this.buildFarmMutationLines(openResult),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      ...adminLines
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: openResult,
+      notifications: farm.notifications
+    })
+  }
+
+  async showFarmHelp(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const lines = [
+      'farm 指令帮助',
+      '',
+      '基础:',
+      '/farm - 查看农田总览',
+      '/farm help - 查看这份指令帮助',
+      '/farm shop - 查看种子商店',
+      '/farm bag - 查看背包',
+      '/farm order - 查看订单板',
+      '/farm quest - 查看主线任务',
+      '/farm land - 查看地块购买',
+      '',
+      '种植:',
+      '/farm buy <作物别名> [数量] - 购买种子',
+      '/farm plant <地块号> <作物别名> - 播种',
+      '/farm water <地块号|all> - 浇水',
+      '/farm harvest <地块号|all> - 收获',
+      '/farm sell seed <作物别名> <数量|all> - 回收种子',
+      '/farm sell <作物别名> <数量|all> - 卖出作物',
+      '/farm deliver <订单号> - 交付订单',
+      '',
+      '进阶:',
+      '/farm buyplot <地块号> - 购买地块',
+      '/farm visit <UID> - 参观别人农场',
+      '/farm steal <UID> <地块号> - 偷成熟作物',
+      '/farm pet - 查看宠物与守卫',
+      '/farm pet shop - 查看宠物商店',
+      '/farm pet buy <petAlias> - 购买宠物',
+      '/farm pet food buy <foodAlias> [数量] - 购买宠物粮',
+      '/farm pet use <petAlias> - 切换驻守宠物',
+      '/farm pet feed <foodAlias> [数量] - 给宠物喂食',
+      '',
+      '示例:',
+      '/farm buy radish 2',
+      '/farm plant 1 radish',
+      '/farm water all',
+      '/farm harvest all'
+    ]
+
+    return this.replyFarmResult(e, lines, {
+      notifications: farm.notifications
+    })
   }
 
   async showFarmShop(e) {
@@ -1164,12 +1244,12 @@ export class NeowPlugin extends plugin {
       ),
       '',
       '示例: /farm buy radish 2',
-      '示例: /farm sell seed radish all',
-      ...this.buildFarmNotificationLines(farm.notifications)
+      '示例: /farm sell seed radish all'
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      notifications: farm.notifications
+    })
   }
 
   async buyFarmSeed(e) {
@@ -1220,13 +1300,13 @@ export class NeowPlugin extends plugin {
       `花费: ${result.totalCost} Star 币`,
       `剩余 Star 币: ${farm.user.coins}`,
       `当前持有: ${result.inventoryCount} 颗`,
-      `🌾 农场等级: ${this.formatFarmLevelText(levelInfo)}`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `🌾 农场等级: ${this.formatFarmLevelText(levelInfo)}`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async plantFarmSeed(e) {
@@ -1282,13 +1362,13 @@ export class NeowPlugin extends plugin {
       '播种完成喵~',
       `${result.plot.plotId}号地已经种下 ${result.crop.name}`,
       `消耗体力: ${result.staminaCost}`,
-      `预计成熟: ${new Date(result.readyAt).toLocaleString('zh-CN')}`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `预计成熟: ${new Date(result.readyAt).toLocaleString('zh-CN')}`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async waterFarmPlot(e) {
@@ -1343,13 +1423,13 @@ export class NeowPlugin extends plugin {
       `消耗体力: ${result.staminaCost}`,
       ...result.plots.map(plot =>
         `${plot.plotId}号地 ${plot.nameSnapshot} 还剩 ${this.formatFarmDuration(Math.max(0, plot.readyAt - farm.now))}`
-      ),
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      )
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async harvestFarmPlot(e) {
@@ -1384,13 +1464,13 @@ export class NeowPlugin extends plugin {
     await this.applyFarmUserChanges(farm, { mutation: result })
     const lines = [
       '收获完成喵~',
-      ...result.harvested.map(item => `${item.plotId}号地收到了 ${item.nameSnapshot} x${item.count}`),
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      ...result.harvested.map(item => `${item.plotId}号地收到了 ${item.nameSnapshot} x${item.count}`)
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async showFarmBag(e) {
@@ -1425,12 +1505,12 @@ export class NeowPlugin extends plugin {
         : ['  暂时没有宠物粮喵~']),
       '',
       '卖种子示例: /farm sell seed radish all',
-      '卖出示例: /farm sell radish all',
-      ...this.buildFarmNotificationLines(farm.notifications)
+      '卖出示例: /farm sell radish all'
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      notifications: farm.notifications
+    })
   }
 
   async showFarmOrders(e) {
@@ -1449,12 +1529,12 @@ export class NeowPlugin extends plugin {
       '',
       ...Array.from({ length: FARM_ORDER_SLOT_COUNT }, (_, index) => this.formatFarmOrderLine(farm.state.orders[index], index, farm.now)),
       '',
-      '交付示例: /farm deliver 1',
-      ...this.buildFarmNotificationLines(farm.notifications)
+      '交付示例: /farm deliver 1'
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      notifications: farm.notifications
+    })
   }
 
   async sellFarmSeed(e) {
@@ -1495,12 +1575,13 @@ export class NeowPlugin extends plugin {
       `回收: ${result.seedNameSnapshot} x${result.soldCount}`,
       `单价: ${result.resalePrice} Star 币`,
       `获得: ${result.coinReward} Star 币`,
-      `当前 Star 币: ${farm.user.coins}`,
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `当前 Star 币: ${farm.user.coins}`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async sellFarmCrop(e) {
@@ -1540,13 +1621,13 @@ export class NeowPlugin extends plugin {
       '卖出成功喵~',
       `卖出: ${result.cropNameSnapshot} x${result.soldCount}`,
       `获得: ${result.coinReward} Star 币`,
-      `当前 Star 币: ${farm.user.coins}`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `当前 Star 币: ${farm.user.coins}`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async deliverFarmOrder(e) {
@@ -1587,17 +1668,17 @@ export class NeowPlugin extends plugin {
       '订单完成啦喵~',
       `交付: ${(result.order.requirements || []).map(item => `${item.cropNameSnapshot || item.cropAlias} x${item.requiredQty}`).join(' + ')}`,
       `获得: ${result.coinReward} Star 币 + ${result.favorReward} 好感度`,
-      `当前 Star 币: ${farm.user.coins}`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `当前 Star 币: ${farm.user.coins}`
     ]
 
     if (result.replacement) {
       lines.splice(4, 0, `新订单:\n${this.formatFarmOrderLine(result.replacement, result.replacement.slot - 1, farm.now)}`)
     }
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async showFarmAddonStatus(e) {
@@ -1662,12 +1743,12 @@ export class NeowPlugin extends plugin {
       `🌾 农场等级: ${this.formatFarmLevelText(levelInfo)}`,
       ...questView.flatMap(item => item.completed
         ? ['', `${item.name} - 已完成`, `当前章节: ${item.totalSteps}/${item.totalSteps}`]
-        : ['', `${item.name} - 进行中 ${item.currentStep}/${item.totalSteps}`, `当前步骤: ${item.step?.label || '进行中'}`, `进度: ${item.progress}/${item.target}`]),
-      ...this.buildFarmNotificationLines(farm.notifications)
+        : ['', `${item.name} - 进行中 ${item.currentStep}/${item.totalSteps}`, `当前步骤: ${item.step?.label || '进行中'}`, `进度: ${item.progress}/${item.target}`])
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      notifications: farm.notifications
+    })
   }
 
   async showFarmLand(e) {
@@ -1689,12 +1770,12 @@ export class NeowPlugin extends plugin {
       '',
       ...landView.map(plot => this.formatFarmLandLine(plot, levelInfo.level, farm.now)),
       '',
-      '购买示例: /farm buyplot 6',
-      ...this.buildFarmNotificationLines(farm.notifications)
+      '购买示例: /farm buyplot 6'
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      notifications: farm.notifications
+    })
   }
 
   async buyFarmPlot(e) {
@@ -1745,13 +1826,13 @@ export class NeowPlugin extends plugin {
       `${result.plot.plotId}号${this.formatFarmLandType(result.plot.landType)}已经归你啦~`,
       `花费: ${result.price} Star 币`,
       `当前 Star 币: ${farm.user.coins}`,
-      `地块进度: ${this.formatFarmLandSummaryLine(landView)}`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `地块进度: ${this.formatFarmLandSummaryLine(landView)}`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async visitOtherFarm(e) {
@@ -1798,13 +1879,13 @@ export class NeowPlugin extends plugin {
       '',
       ...result.view.plots.map(plot => this.formatFarmVisitPlotLine(plot, farm.now)),
       '',
-      `想偷菜就用: /farm steal ${result.targetUid} <plotId>`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `想偷菜就用: /farm steal ${result.targetUid} <plotId>`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async stealFarmCrop(e) {
@@ -1866,12 +1947,12 @@ export class NeowPlugin extends plugin {
 
       const lines = [
         message,
-        `今日剩余尝试: ${Math.max(0, 5 - farm.state.dailyStealAttempts)}`,
-        ...this.buildFarmMutationLines(result),
-        ...this.buildFarmNotificationLines(farm.notifications)
+        `今日剩余尝试: ${Math.max(0, 5 - farm.state.dailyStealAttempts)}`
       ]
-      await this.replyWithTimeout(e, lines.join('\n'), true)
-      return true
+      return this.replyFarmResult(e, lines, {
+        mutation: result,
+        notifications: farm.notifications
+      })
     }
 
     await this.applyFarmUserChanges(farm, { mutation: result })
@@ -1879,13 +1960,13 @@ export class NeowPlugin extends plugin {
       '偷菜成功喵~',
       `从 ${result.plotId} 号地摸走了 ${result.cropNameSnapshot} x${result.stolenCount}`,
       `地主还剩: ${result.remainingForOwner}`,
-      `今日剩余尝试: ${Math.max(0, 5 - farm.state.dailyStealAttempts)}`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `今日剩余尝试: ${Math.max(0, 5 - farm.state.dailyStealAttempts)}`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async showFarmPet(e) {
@@ -1916,9 +1997,9 @@ export class NeowPlugin extends plugin {
       lines.push('', '/farm pet shop - 查看宠物商店')
     }
 
-    lines.push(...this.buildFarmNotificationLines(farm.notifications))
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      notifications: farm.notifications
+    })
   }
 
   async showFarmPetShop(e) {
@@ -1943,12 +2024,12 @@ export class NeowPlugin extends plugin {
       ...farm.registry.petFoodList.map(food => `  ${food.alias} - ${food.name} ${food.price} Star 币 | +${food.guardHours}h`),
       '',
       '购买宠物: /farm pet buy dog',
-      '购买宠物粮: /farm pet food buy small-feed 2',
-      ...this.buildFarmNotificationLines(farm.notifications)
+      '购买宠物粮: /farm pet food buy small-feed 2'
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      notifications: farm.notifications
+    })
   }
 
   async buyFarmPet(e) {
@@ -1997,13 +2078,13 @@ export class NeowPlugin extends plugin {
       '买宠物成功喵~',
       `带回家: ${result.pet.name}`,
       `花费: ${result.price} Star 币`,
-      `当前 Star 币: ${farm.user.coins}`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `当前 Star 币: ${farm.user.coins}`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async buyFarmPetFood(e) {
@@ -2053,13 +2134,13 @@ export class NeowPlugin extends plugin {
       '买宠物粮成功喵~',
       `购入: ${result.food.name} x${result.count}`,
       `花费: ${result.totalCost} Star 币`,
-      `当前持有: ${result.inventoryCount} 份`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `当前持有: ${result.inventoryCount} 份`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async useFarmPet(e) {
@@ -2087,13 +2168,13 @@ export class NeowPlugin extends plugin {
     await this.applyFarmUserChanges(farm, { mutation: result })
     const lines = [
       '切换驻守成功喵~',
-      `当前驻守: ${result.pet.nameSnapshot}`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `当前驻守: ${result.pet.nameSnapshot}`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async feedFarmPet(e) {
@@ -2137,13 +2218,13 @@ export class NeowPlugin extends plugin {
       '喂食成功喵~',
       `消耗: ${result.food.name} x${result.usedCount}`,
       `新增看家: ${result.actualAddedHours} 小时`,
-      `驻守截止: ${new Date(result.guardUntil).toLocaleString('zh-CN')}`,
-      ...this.buildFarmMutationLines(result),
-      ...this.buildFarmNotificationLines(farm.notifications)
+      `驻守截止: ${new Date(result.guardUntil).toLocaleString('zh-CN')}`
     ]
 
-    await this.replyWithTimeout(e, lines.join('\n'), true)
-    return true
+    return this.replyFarmResult(e, lines, {
+      mutation: result,
+      notifications: farm.notifications
+    })
   }
 
   async showMlMenu(e) {
