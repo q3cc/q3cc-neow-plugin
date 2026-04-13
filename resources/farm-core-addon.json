@@ -1,14 +1,18 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "farm-core",
   "name": "基础农田包",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "enabled": true,
   "priority": 1000,
   "starterGrants": [
     {
       "cropAlias": "radish",
       "seedCount": 4
+    },
+    {
+      "cropAlias": "cabbage",
+      "seedCount": 2
     },
     {
       "cropAlias": "tomato",
@@ -27,46 +31,344 @@
       "waterBaseReductionPercent": 25,
       "harvestYield": 1,
       "sellPrice": 6,
-      "orderFavorReward": 1
+      "orderFavorReward": 1,
+      "unlockLevel": 1
+    },
+    {
+      "alias": "cabbage",
+      "name": "卷心菜",
+      "seedName": "卷心菜种子",
+      "seedPrice": 4,
+      "growMinutes": 10,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 6,
+      "orderFavorReward": 1,
+      "unlockLevel": 1
+    },
+    {
+      "alias": "potato",
+      "name": "土豆",
+      "seedName": "土豆种子",
+      "seedPrice": 4,
+      "growMinutes": 10,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 6,
+      "orderFavorReward": 1,
+      "unlockLevel": 1
+    },
+    {
+      "alias": "carrot",
+      "name": "胡萝卜",
+      "seedName": "胡萝卜种子",
+      "seedPrice": 4,
+      "growMinutes": 10,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 6,
+      "orderFavorReward": 1,
+      "unlockLevel": 1
     },
     {
       "alias": "tomato",
       "name": "番茄",
       "seedName": "番茄种子",
+      "seedPrice": 4,
+      "growMinutes": 10,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 6,
+      "orderFavorReward": 1,
+      "unlockLevel": 1
+    },
+    {
+      "alias": "cucumber",
+      "name": "黄瓜",
+      "seedName": "黄瓜种子",
       "seedPrice": 8,
-      "growMinutes": 30,
+      "growMinutes": 25,
       "plantStamina": 5,
       "waterStamina": 2,
       "waterBaseReductionPercent": 25,
       "harvestYield": 1,
       "sellPrice": 12,
-      "orderFavorReward": 2
+      "orderFavorReward": 1,
+      "unlockLevel": 10
+    },
+    {
+      "alias": "onion",
+      "name": "洋葱",
+      "seedName": "洋葱种子",
+      "seedPrice": 8,
+      "growMinutes": 25,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 12,
+      "orderFavorReward": 1,
+      "unlockLevel": 10
+    },
+    {
+      "alias": "corn",
+      "name": "玉米",
+      "seedName": "玉米种子",
+      "seedPrice": 8,
+      "growMinutes": 25,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 12,
+      "orderFavorReward": 1,
+      "unlockLevel": 10
+    },
+    {
+      "alias": "pepper",
+      "name": "辣椒",
+      "seedName": "辣椒种子",
+      "seedPrice": 8,
+      "growMinutes": 25,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 12,
+      "orderFavorReward": 1,
+      "unlockLevel": 10
+    },
+    {
+      "alias": "eggplant",
+      "name": "茄子",
+      "seedName": "茄子种子",
+      "seedPrice": 8,
+      "growMinutes": 25,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 12,
+      "orderFavorReward": 1,
+      "unlockLevel": 10
     },
     {
       "alias": "pumpkin",
       "name": "南瓜",
       "seedName": "南瓜种子",
       "seedPrice": 14,
-      "growMinutes": 60,
+      "growMinutes": 45,
       "plantStamina": 5,
       "waterStamina": 2,
       "waterBaseReductionPercent": 25,
       "harvestYield": 1,
       "sellPrice": 22,
-      "orderFavorReward": 3
+      "orderFavorReward": 2,
+      "unlockLevel": 20
+    },
+    {
+      "alias": "soybean",
+      "name": "黄豆",
+      "seedName": "黄豆种子",
+      "seedPrice": 14,
+      "growMinutes": 45,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 22,
+      "orderFavorReward": 2,
+      "unlockLevel": 20
+    },
+    {
+      "alias": "peanut",
+      "name": "花生",
+      "seedName": "花生种子",
+      "seedPrice": 14,
+      "growMinutes": 45,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 22,
+      "orderFavorReward": 2,
+      "unlockLevel": 20
     },
     {
       "alias": "strawberry",
       "name": "草莓",
       "seedName": "草莓种子",
+      "seedPrice": 14,
+      "growMinutes": 45,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 22,
+      "orderFavorReward": 2,
+      "unlockLevel": 20
+    },
+    {
+      "alias": "rice",
+      "name": "水稻",
+      "seedName": "水稻种子",
+      "seedPrice": 14,
+      "growMinutes": 45,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 22,
+      "orderFavorReward": 2,
+      "unlockLevel": 20
+    },
+    {
+      "alias": "watermelon",
+      "name": "西瓜",
+      "seedName": "西瓜种子",
       "seedPrice": 24,
-      "growMinutes": 120,
+      "growMinutes": 90,
       "plantStamina": 5,
       "waterStamina": 2,
       "waterBaseReductionPercent": 25,
       "harvestYield": 1,
       "sellPrice": 38,
-      "orderFavorReward": 5
+      "orderFavorReward": 3,
+      "unlockLevel": 30
+    },
+    {
+      "alias": "grape",
+      "name": "葡萄",
+      "seedName": "葡萄种子",
+      "seedPrice": 24,
+      "growMinutes": 90,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 38,
+      "orderFavorReward": 3,
+      "unlockLevel": 30
+    },
+    {
+      "alias": "peach",
+      "name": "桃子",
+      "seedName": "桃子种子",
+      "seedPrice": 24,
+      "growMinutes": 90,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 38,
+      "orderFavorReward": 3,
+      "unlockLevel": 30
+    },
+    {
+      "alias": "apple",
+      "name": "苹果",
+      "seedName": "苹果种子",
+      "seedPrice": 24,
+      "growMinutes": 90,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 38,
+      "orderFavorReward": 3,
+      "unlockLevel": 30
+    },
+    {
+      "alias": "tea",
+      "name": "茶叶",
+      "seedName": "茶叶种子",
+      "seedPrice": 24,
+      "growMinutes": 90,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 38,
+      "orderFavorReward": 3,
+      "unlockLevel": 30
+    },
+    {
+      "alias": "blueberry",
+      "name": "蓝莓",
+      "seedName": "蓝莓种子",
+      "seedPrice": 40,
+      "growMinutes": 180,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 64,
+      "orderFavorReward": 5,
+      "unlockLevel": 40
+    },
+    {
+      "alias": "pineapple",
+      "name": "菠萝",
+      "seedName": "菠萝种子",
+      "seedPrice": 40,
+      "growMinutes": 180,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 64,
+      "orderFavorReward": 5,
+      "unlockLevel": 40
+    },
+    {
+      "alias": "coffee",
+      "name": "咖啡豆",
+      "seedName": "咖啡豆种子",
+      "seedPrice": 40,
+      "growMinutes": 180,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 64,
+      "orderFavorReward": 5,
+      "unlockLevel": 40
+    },
+    {
+      "alias": "lotus",
+      "name": "莲藕",
+      "seedName": "莲藕种子",
+      "seedPrice": 40,
+      "growMinutes": 180,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 64,
+      "orderFavorReward": 5,
+      "unlockLevel": 40
+    },
+    {
+      "alias": "cherry",
+      "name": "樱桃",
+      "seedName": "樱桃种子",
+      "seedPrice": 40,
+      "growMinutes": 180,
+      "plantStamina": 5,
+      "waterStamina": 2,
+      "waterBaseReductionPercent": 25,
+      "harvestYield": 1,
+      "sellPrice": 64,
+      "orderFavorReward": 5,
+      "unlockLevel": 40
     }
   ],
   "orderTemplates": [
@@ -78,7 +380,63 @@
       "weight": 10
     },
     {
+      "cropAlias": "cabbage",
+      "qtyMin": 3,
+      "qtyMax": 5,
+      "coinBonusPerUnit": 2,
+      "weight": 10
+    },
+    {
+      "cropAlias": "potato",
+      "qtyMin": 3,
+      "qtyMax": 5,
+      "coinBonusPerUnit": 2,
+      "weight": 10
+    },
+    {
+      "cropAlias": "carrot",
+      "qtyMin": 3,
+      "qtyMax": 5,
+      "coinBonusPerUnit": 2,
+      "weight": 10
+    },
+    {
       "cropAlias": "tomato",
+      "qtyMin": 3,
+      "qtyMax": 5,
+      "coinBonusPerUnit": 2,
+      "weight": 10
+    },
+    {
+      "cropAlias": "cucumber",
+      "qtyMin": 2,
+      "qtyMax": 4,
+      "coinBonusPerUnit": 3,
+      "weight": 8
+    },
+    {
+      "cropAlias": "onion",
+      "qtyMin": 2,
+      "qtyMax": 4,
+      "coinBonusPerUnit": 3,
+      "weight": 8
+    },
+    {
+      "cropAlias": "corn",
+      "qtyMin": 2,
+      "qtyMax": 4,
+      "coinBonusPerUnit": 3,
+      "weight": 8
+    },
+    {
+      "cropAlias": "pepper",
+      "qtyMin": 2,
+      "qtyMax": 4,
+      "coinBonusPerUnit": 3,
+      "weight": 8
+    },
+    {
+      "cropAlias": "eggplant",
       "qtyMin": 2,
       "qtyMax": 4,
       "coinBonusPerUnit": 3,
@@ -92,11 +450,417 @@
       "weight": 6
     },
     {
+      "cropAlias": "soybean",
+      "qtyMin": 2,
+      "qtyMax": 3,
+      "coinBonusPerUnit": 5,
+      "weight": 6
+    },
+    {
+      "cropAlias": "peanut",
+      "qtyMin": 2,
+      "qtyMax": 3,
+      "coinBonusPerUnit": 5,
+      "weight": 6
+    },
+    {
       "cropAlias": "strawberry",
+      "qtyMin": 2,
+      "qtyMax": 3,
+      "coinBonusPerUnit": 5,
+      "weight": 6
+    },
+    {
+      "cropAlias": "rice",
+      "qtyMin": 2,
+      "qtyMax": 3,
+      "coinBonusPerUnit": 5,
+      "weight": 6
+    },
+    {
+      "cropAlias": "watermelon",
       "qtyMin": 1,
-      "qtyMax": 2,
+      "qtyMax": 3,
       "coinBonusPerUnit": 8,
       "weight": 4
+    },
+    {
+      "cropAlias": "grape",
+      "qtyMin": 1,
+      "qtyMax": 3,
+      "coinBonusPerUnit": 8,
+      "weight": 4
+    },
+    {
+      "cropAlias": "peach",
+      "qtyMin": 1,
+      "qtyMax": 3,
+      "coinBonusPerUnit": 8,
+      "weight": 4
+    },
+    {
+      "cropAlias": "apple",
+      "qtyMin": 1,
+      "qtyMax": 3,
+      "coinBonusPerUnit": 8,
+      "weight": 4
+    },
+    {
+      "cropAlias": "tea",
+      "qtyMin": 1,
+      "qtyMax": 3,
+      "coinBonusPerUnit": 8,
+      "weight": 4
+    },
+    {
+      "cropAlias": "blueberry",
+      "qtyMin": 1,
+      "qtyMax": 2,
+      "coinBonusPerUnit": 12,
+      "weight": 3
+    },
+    {
+      "cropAlias": "pineapple",
+      "qtyMin": 1,
+      "qtyMax": 2,
+      "coinBonusPerUnit": 12,
+      "weight": 3
+    },
+    {
+      "cropAlias": "coffee",
+      "qtyMin": 1,
+      "qtyMax": 2,
+      "coinBonusPerUnit": 12,
+      "weight": 3
+    },
+    {
+      "cropAlias": "lotus",
+      "qtyMin": 1,
+      "qtyMax": 2,
+      "coinBonusPerUnit": 12,
+      "weight": 3
+    },
+    {
+      "cropAlias": "cherry",
+      "qtyMin": 1,
+      "qtyMax": 2,
+      "coinBonusPerUnit": 12,
+      "weight": 3
+    }
+  ],
+  "pets": [
+    {
+      "alias": "dog",
+      "name": "看家狗",
+      "price": 800,
+      "guardInterceptPercent": 35
+    },
+    {
+      "alias": "goose",
+      "name": "大白鹅",
+      "price": 1800,
+      "guardInterceptPercent": 55
+    },
+    {
+      "alias": "nightcat",
+      "name": "夜巡猫",
+      "price": 3200,
+      "guardInterceptPercent": 75
+    }
+  ],
+  "petFoods": [
+    {
+      "alias": "small-feed",
+      "name": "小包宠物粮",
+      "price": 60,
+      "guardHours": 2
+    },
+    {
+      "alias": "medium-feed",
+      "name": "中包宠物粮",
+      "price": 150,
+      "guardHours": 6
+    },
+    {
+      "alias": "large-feed",
+      "name": "大包宠物粮",
+      "price": 280,
+      "guardHours": 12
+    }
+  ],
+  "mainQuestChapters": [
+    {
+      "id": "tutorial",
+      "name": "新手教程",
+      "description": "跟着大喵喵完成种田入门，快速冲到 Lv20。",
+      "steps": [
+        {
+          "type": "open_farm",
+          "target": 1,
+          "label": "打开一次 /farm",
+          "reward": {
+            "coins": 20,
+            "seeds": [
+              {
+                "cropAlias": "radish",
+                "count": 2
+              }
+            ]
+          }
+        },
+        {
+          "type": "buy_seed",
+          "target": 3,
+          "label": "购买任意种子 3 次",
+          "reward": {
+            "coins": 30,
+            "seeds": [
+              {
+                "cropAlias": "tomato",
+                "count": 2
+              }
+            ]
+          }
+        },
+        {
+          "type": "plant",
+          "target": 5,
+          "label": "播种 5 次",
+          "reward": {
+            "coins": 40,
+            "seeds": [
+              {
+                "cropAlias": "cabbage",
+                "count": 2
+              }
+            ]
+          }
+        },
+        {
+          "type": "water",
+          "target": 5,
+          "label": "浇水 5 次",
+          "reward": {
+            "coins": 50,
+            "seeds": [
+              {
+                "cropAlias": "potato",
+                "count": 2
+              }
+            ]
+          }
+        },
+        {
+          "type": "harvest",
+          "target": 5,
+          "label": "收获 5 单位作物",
+          "reward": {
+            "coins": 60,
+            "seeds": [
+              {
+                "cropAlias": "carrot",
+                "count": 2
+              }
+            ]
+          }
+        },
+        {
+          "type": "sell_crop_units",
+          "target": 10,
+          "label": "卖出 10 单位作物",
+          "reward": {
+            "coins": 80,
+            "seeds": [
+              {
+                "cropAlias": "cucumber",
+                "count": 2
+              }
+            ]
+          }
+        },
+        {
+          "type": "deliver_order",
+          "target": 3,
+          "label": "完成 3 个订单",
+          "reward": {
+            "coins": 1000,
+            "fillToLevel": 20,
+            "petFoods": [
+              {
+                "foodAlias": "small-feed",
+                "count": 3
+              },
+              {
+                "foodAlias": "medium-feed",
+                "count": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "expansion",
+      "name": "农场扩张",
+      "description": "把普通农田一步步升级成高阶庄园。",
+      "steps": [
+        {
+          "type": "reach_level",
+          "target": 23,
+          "label": "达到 Lv23",
+          "reward": {
+            "coins": 120,
+            "xp": 40
+          }
+        },
+        {
+          "type": "buy_plot",
+          "target": 1,
+          "plotId": 6,
+          "label": "购买 6 号黄土地",
+          "reward": {
+            "coins": 150,
+            "xp": 50
+          }
+        },
+        {
+          "type": "harvest_on_land",
+          "target": 20,
+          "landType": "yellow",
+          "label": "在黄土地累计收获 20 单位作物",
+          "reward": {
+            "coins": 180,
+            "xp": 80
+          }
+        },
+        {
+          "type": "buy_plot",
+          "target": 5,
+          "landType": "yellow",
+          "label": "买满 5 块黄土地",
+          "reward": {
+            "coins": 240,
+            "xp": 100
+          }
+        },
+        {
+          "type": "collect_crop_kinds",
+          "target": 15,
+          "label": "累计收集 15 种不同作物",
+          "reward": {
+            "coins": 320,
+            "xp": 120
+          }
+        },
+        {
+          "type": "reach_level",
+          "target": 35,
+          "label": "达到 Lv35",
+          "reward": {
+            "coins": 420,
+            "xp": 160
+          }
+        },
+        {
+          "type": "buy_plot",
+          "target": 1,
+          "plotId": 11,
+          "label": "购买 11 号黑土地",
+          "reward": {
+            "coins": 600,
+            "xp": 220
+          }
+        }
+      ]
+    },
+    {
+      "id": "guard",
+      "name": "守卫家园",
+      "description": "解锁互偷后养宠巡逻，守住自己的农田。",
+      "steps": [
+        {
+          "type": "buy_pet",
+          "target": 1,
+          "label": "购买任意宠物 1 只",
+          "reward": {
+            "coins": 120,
+            "petFoods": [
+              {
+                "foodAlias": "small-feed",
+                "count": 1
+              }
+            ]
+          }
+        },
+        {
+          "type": "buy_pet_food",
+          "target": 3,
+          "label": "购买宠物食物 3 次",
+          "reward": {
+            "coins": 120,
+            "petFoods": [
+              {
+                "foodAlias": "small-feed",
+                "count": 1
+              }
+            ]
+          }
+        },
+        {
+          "type": "feed_pet_hours",
+          "target": 12,
+          "label": "累计喂食增加看家时长 12 小时",
+          "reward": {
+            "coins": 160,
+            "petFoods": [
+              {
+                "foodAlias": "medium-feed",
+                "count": 1
+              }
+            ]
+          }
+        },
+        {
+          "type": "visit_farm",
+          "target": 3,
+          "label": "参观别人农场 3 次",
+          "reward": {
+            "coins": 180
+          }
+        },
+        {
+          "type": "attempt_steal",
+          "target": 5,
+          "label": "发起偷菜尝试 5 次",
+          "reward": {
+            "coins": 220
+          }
+        },
+        {
+          "type": "successful_steal",
+          "target": 3,
+          "label": "成功偷到作物 3 次",
+          "reward": {
+            "coins": 260,
+            "xp": 120
+          }
+        },
+        {
+          "type": "accumulate_guard_hours",
+          "target": 24,
+          "label": "累计保持宠物看家 24 小时",
+          "reward": {
+            "coins": 680,
+            "xp": 200,
+            "petFoods": [
+              {
+                "foodAlias": "large-feed",
+                "count": 1
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

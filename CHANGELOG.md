@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### 重点更新日志
+- [新增] `/farm quest`、`/farm land`、`/farm buyplot`、`/farm visit`、`/farm steal`、`/farm pet`、`/farm pet shop`、`/farm pet buy`、`/farm pet food buy`、`/farm pet use`、`/farm pet feed`，补齐农场 v2 主线 / 地块 / 互偷 / 宠物玩法
+- [新增] farm 等级与经验系统、`15` 块分级土地、`3` 条一次性主线任务与 `Lv20` 解锁的偷菜 / 守卫链路
+- [新增] `resources/farm-core-addon.json` 升级到 schema v2，核心内容扩展为 `25` 种作物、`3` 只宠物、`3` 种宠物粮与主线章节数据
+- [优化] `/farm` 主菜单、商店、背包、订单与各子指令现在会展示农场等级、任务推进、地块购买、宠物状态与互偷相关反馈
+- [修复] 旧版 farm 存档迁移到 v2 时，现在会自动补齐 `15` 地块结构、设置农场 `Lv20`，并正确标记教程主线为已完成
+- [测试] 重写 `tests/farm-game.test.js`，补充 schema v1/v2 兼容、老存档迁移、25 作物解锁、土地倍率、主线奖励、偷菜、宠物与热重载回退覆盖
 - [新增] `/farm` 种田玩法，支持 `/farm`、`/farm shop`、`/farm buy`、`/farm plant`、`/farm water`、`/farm harvest`、`/farm bag`、`/farm sell`、`/farm order` 与 `/farm deliver`
 - [新增] `utils/farm-game.js`，统一管理 farm registry、作物规则、订单生成、农场持久化与附加件热重载
 - [新增] `resources/farm-core-addon.json` 作为内置基础农田包，默认提供白萝卜、番茄、南瓜、草莓四种基础作物

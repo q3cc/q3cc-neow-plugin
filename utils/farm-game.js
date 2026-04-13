@@ -10,13 +10,61 @@ const defaultFarmDataPath = path.join(dataDirPath, 'farm-state.json')
 const defaultFarmAddonDirPath = path.join(dataDirPath, 'addons/farm')
 const defaultCoreAddonPath = path.join(__dirname, '../resources/farm-core-addon.json')
 
-export const FARM_SCHEMA_VERSION = 1
-export const FARM_PLOT_COUNT = 4
+export const FARM_SCHEMA_VERSION = 2
+export const FARM_SUPPORTED_SCHEMA_VERSIONS = [1, 2]
+export const FARM_PLOT_COUNT = 15
 export const FARM_ORDER_SLOT_COUNT = 3
 export const FARM_ORDER_REFRESH_MS = 6 * 60 * 60 * 1000
 export const FARM_ADDON_WATCH_DEBOUNCE_MS = 500
+export const FARM_DAILY_STEAL_LIMIT = 5
+export const FARM_PET_GUARD_CAP_MS = 48 * 60 * 60 * 1000
+export const FARM_STEAL_UNLOCK_LEVEL = 20
 
+const HOUR_MS = 60 * 60 * 1000
 const FARM_ALIAS_PATTERN = /^[a-z0-9_-]+$/
+const FARM_NOTIFICATION_LIMIT = 20
+const FARM_QUEST_STEP_TYPES = new Set([
+  'open_farm',
+  'buy_seed',
+  'plant',
+  'water',
+  'harvest',
+  'sell_crop_units',
+  'deliver_order',
+  'reach_level',
+  'buy_plot',
+  'harvest_on_land',
+  'collect_crop_kinds',
+  'buy_pet',
+  'buy_pet_food',
+  'feed_pet_hours',
+  'visit_farm',
+  'attempt_steal',
+  'successful_steal',
+  'accumulate_guard_hours'
+])
+const LAND_TYPE_LABELS = {
+  normal: '普通地',
+  yellow: '黄土地',
+  black: '黑土地'
+}
+const LAND_CONFIG = [
+  { plotId: 1, landType: 'normal', name: '普通土地', unlockLevel: 1, price: 0, defaultOwned: true, yieldMultiplier: 1, growMultiplier: 1 },
+  { plotId: 2, landType: 'normal', name: '普通土地', unlockLevel: 1, price: 0, defaultOwned: true, yieldMultiplier: 1, growMultiplier: 1 },
+  { plotId: 3, landType: 'normal', name: '普通土地', unlockLevel: 1, price: 0, defaultOwned: true, yieldMultiplier: 1, growMultiplier: 1 },
+  { plotId: 4, landType: 'normal', name: '普通土地', unlockLevel: 1, price: 0, defaultOwned: true, yieldMultiplier: 1, growMultiplier: 1 },
+  { plotId: 5, landType: 'normal', name: '普通土地', unlockLevel: 1, price: 0, defaultOwned: true, yieldMultiplier: 1, growMultiplier: 1 },
+  { plotId: 6, landType: 'yellow', name: '黄土地', unlockLevel: 20, price: 600, defaultOwned: false, yieldMultiplier: 1.5, growMultiplier: 1 },
+  { plotId: 7, landType: 'yellow', name: '黄土地', unlockLevel: 23, price: 800, defaultOwned: false, yieldMultiplier: 1.5, growMultiplier: 1 },
+  { plotId: 8, landType: 'yellow', name: '黄土地', unlockLevel: 26, price: 1000, defaultOwned: false, yieldMultiplier: 1.5, growMultiplier: 1 },
+  { plotId: 9, landType: 'yellow', name: '黄土地', unlockLevel: 29, price: 1200, defaultOwned: false, yieldMultiplier: 1.5, growMultiplier: 1 },
+  { plotId: 10, landType: 'yellow', name: '黄土地', unlockLevel: 32, price: 1500, defaultOwned: false, yieldMultiplier: 1.5, growMultiplier: 1 },
+  { plotId: 11, landType: 'black', name: '黑土地', unlockLevel: 36, price: 2000, defaultOwned: false, yieldMultiplier: 2, growMultiplier: 0.85 },
+  { plotId: 12, landType: 'black', name: '黑土地', unlockLevel: 40, price: 2600, defaultOwned: false, yieldMultiplier: 2, growMultiplier: 0.85 },
+  { plotId: 13, landType: 'black', name: '黑土地', unlockLevel: 44, price: 3300, defaultOwned: false, yieldMultiplier: 2, growMultiplier: 0.85 },
+  { plotId: 14, landType: 'black', name: '黑土地', unlockLevel: 47, price: 4100, defaultOwned: false, yieldMultiplier: 2, growMultiplier: 0.85 },
+  { plotId: 15, landType: 'black', name: '黑土地', unlockLevel: 50, price: 5000, defaultOwned: false, yieldMultiplier: 2, growMultiplier: 0.85 }
+]
 
 let farmConfig = createFarmConfig()
 let farmInitialized = false
@@ -51,7 +99,13 @@ function createEmptyFarmRegistry() {
     crops: {},
     cropList: [],
     starterGrants: [],
-    orderTemplates: []
+    orderTemplates: [],
+    pets: {},
+    petList: [],
+    petFoods: {},
+    petFoodList: [],
+    mainQuestChapters: {},
+    mainQuestChapterList: []
   }
 }
 
@@ -70,40 +124,50 @@ function createEmptyFarmAddonStatus() {
   }
 }
 
-function ensureFarmReady() {
-  if (farmInitialized || farmInitializing) {
-    return
-  }
-
-  farmInitializing = true
-  farmAddonStatus = createEmptyFarmAddonStatus()
-  farmInitialized = true
-
-  try {
-    ensureFarmRuntimeDirs()
-    reloadFarmRegistry('startup')
-    loadFarmStates()
-    startFarmWatcher()
-  } catch (error) {
-    farmInitialized = false
-    farmAddonStatus.lastReloadError = `初始化 farm 系统失败: ${error?.message || error}`
-  } finally {
-    farmInitializing = false
+function createDefaultFarmStats() {
+  return {
+    openFarmCount: 0,
+    buySeedCount: 0,
+    plantCount: 0,
+    waterCount: 0,
+    harvestUnits: 0,
+    sellCropUnits: 0,
+    deliverOrderCount: 0,
+    buyPlotCount: 0,
+    boughtPlotIds: [],
+    harvestOnLand: {
+      normal: 0,
+      yellow: 0,
+      black: 0
+    },
+    collectedCropAliases: [],
+    buyPetCount: 0,
+    buyPetFoodCount: 0,
+    feedPetAddedMs: 0,
+    visitFarmCount: 0,
+    attemptStealCount: 0,
+    successfulStealCount: 0,
+    stolenUnits: 0,
+    guardAccumulatedMs: 0
   }
 }
 
-function ensureFarmRuntimeDirs() {
-  fs.mkdirSync(path.dirname(farmConfig.farmDataPath), { recursive: true })
-  fs.mkdirSync(farmConfig.addonDirPath, { recursive: true })
+function getLandConfig(plotId) {
+  return LAND_CONFIG[Number(plotId) - 1] || null
 }
 
 function createEmptyPlot(plotId) {
+  const land = getLandConfig(plotId)
+
   return {
     plotId,
+    landType: land?.landType || 'normal',
+    owned: Boolean(land?.defaultOwned),
     cropAlias: '',
     nameSnapshot: '',
     sellPriceSnapshot: 0,
-    harvestYieldSnapshot: 0,
+    yieldTotalSnapshot: 0,
+    yieldStolen: 0,
     growMinutesSnapshot: 0,
     waterStaminaSnapshot: 0,
     waterBaseReductionPercentSnapshot: 0,
@@ -115,14 +179,28 @@ function createEmptyPlot(plotId) {
 
 function createDefaultFarmState() {
   return {
+    stateVersion: 2,
     createdAt: new Date().toISOString(),
     updatedAt: Date.now(),
     starterGrantApplied: false,
+    farmLevel: 1,
+    farmXp: 0,
     plots: Array.from({ length: FARM_PLOT_COUNT }, (_, index) => createEmptyPlot(index + 1)),
     seeds: {},
     crops: {},
+    pets: {},
+    petFoods: {},
+    activePetAlias: '',
+    guardTrackedAt: 0,
+    stats: createDefaultFarmStats(),
+    mainQuests: {},
+    notifications: [],
     orders: [],
-    orderBoardExpiresAt: 0
+    orderBoardExpiresAt: 0,
+    lastVisitedFarmUid: 0,
+    lastVisitedFarmAt: 0,
+    dailyStealDayKey: 0,
+    dailyStealAttempts: 0
   }
 }
 
@@ -134,6 +212,15 @@ function normalizeUserId(userId) {
   return String(userId)
 }
 
+function normalizeAlias(alias) {
+  return String(alias || '').trim().toLowerCase()
+}
+
+function normalizeCount(count) {
+  const parsed = Number(count)
+  return Number.isInteger(parsed) ? parsed : NaN
+}
+
 function isPositiveInteger(value) {
   return Number.isInteger(value) && value > 0
 }
@@ -142,13 +229,18 @@ function isNonNegativeInteger(value) {
   return Number.isInteger(value) && value >= 0
 }
 
-function normalizeAlias(alias) {
-  return String(alias || '').trim().toLowerCase()
+function isPositiveNumber(value) {
+  return Number.isFinite(value) && value > 0
 }
 
-function normalizeCount(count) {
-  const parsed = Number(count)
-  return Number.isInteger(parsed) ? parsed : NaN
+function normalizeInteger(value, fallback = 0) {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) ? parsed : fallback
+}
+
+function normalizePositiveNumber(value, fallback = 0) {
+  const parsed = Number(value)
+  return parsed > 0 && Number.isFinite(parsed) ? parsed : fallback
 }
 
 function nextRandom() {
@@ -180,8 +272,92 @@ function rollWeighted(items) {
   return items[items.length - 1] || null
 }
 
+function xpToNext(level) {
+  return 20 + (Number(level) * 5)
+}
+
+function getLevelStartXp(level) {
+  const normalizedLevel = Math.max(1, normalizeInteger(level, 1))
+  let total = 0
+
+  for (let current = 1; current < normalizedLevel; current++) {
+    total += xpToNext(current)
+  }
+
+  return total
+}
+
+function resolveFarmLevelFromXp(totalXp) {
+  let xp = Math.max(0, normalizeInteger(totalXp, 0))
+  let level = 1
+
+  while (xp >= xpToNext(level)) {
+    xp -= xpToNext(level)
+    level += 1
+  }
+
+  return level
+}
+
+function getFarmLevelProgressInfo(totalXp) {
+  let xp = Math.max(0, normalizeInteger(totalXp, 0))
+  let level = 1
+
+  while (xp >= xpToNext(level)) {
+    xp -= xpToNext(level)
+    level += 1
+  }
+
+  return {
+    level,
+    currentXp: xp,
+    neededXp: xpToNext(level),
+    totalXp: Math.max(0, normalizeInteger(totalXp, 0))
+  }
+}
+
+function gainFarmXp(state, amount) {
+  const normalizedAmount = Math.max(0, normalizeInteger(amount, 0))
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
+
+  if (normalizedAmount <= 0) {
+    return {
+      xpGained: 0,
+      levelBefore: beforeLevel,
+      levelAfter: beforeLevel,
+      totalXpBefore: beforeXp,
+      totalXpAfter: beforeXp
+    }
+  }
+
+  state.farmXp += normalizedAmount
+  state.farmLevel = resolveFarmLevelFromXp(state.farmXp)
+
+  return {
+    xpGained: normalizedAmount,
+    levelBefore: beforeLevel,
+    levelAfter: state.farmLevel,
+    totalXpBefore: beforeXp,
+    totalXpAfter: state.farmXp
+  }
+}
+
+function ensureFarmLevelConsistency(state) {
+  state.farmXp = Math.max(0, normalizeInteger(state.farmXp, 0))
+  state.farmLevel = resolveFarmLevelFromXp(state.farmXp)
+}
+
 function getCropByAlias(alias) {
   return farmRegistry.crops[normalizeAlias(alias)] || null
+}
+
+function getPetByAlias(alias) {
+  return farmRegistry.pets[normalizeAlias(alias)] || null
+}
+
+function getPetFoodByAlias(alias) {
+  return farmRegistry.petFoods[normalizeAlias(alias)] || null
 }
 
 function getSeedEntry(state, alias) {
@@ -192,13 +368,20 @@ function getCropEntry(state, alias) {
   return state.crops?.[normalizeAlias(alias)] || null
 }
 
-function getPlotById(state, plotId) {
-  const normalizedPlotId = Number(plotId)
-  if (!Number.isInteger(normalizedPlotId)) {
-    return null
-  }
+function getPetEntry(state, alias) {
+  return state.pets?.[normalizeAlias(alias)] || null
+}
 
-  return state.plots.find(plot => plot.plotId === normalizedPlotId) || null
+function getPetFoodEntry(state, alias) {
+  return state.petFoods?.[normalizeAlias(alias)] || null
+}
+
+function getPlotById(state, plotId) {
+  return state.plots.find(plot => plot.plotId === Number(plotId)) || null
+}
+
+function getActivePetEntry(state) {
+  return state.activePetAlias ? getPetEntry(state, state.activePetAlias) : null
 }
 
 function isPlotEmpty(plot) {
@@ -206,7 +389,278 @@ function isPlotEmpty(plot) {
 }
 
 function isPlotReady(plot, now = Date.now()) {
-  return !isPlotEmpty(plot) && (plot.readyAt || 0) <= now
+  return Boolean(plot?.owned) && !isPlotEmpty(plot) && (plot.readyAt || 0) <= now
+}
+
+function isCropUnlockedForState(crop, state) {
+  return Boolean(crop) && (crop.unlockLevel || 1) <= state.farmLevel
+}
+
+function isFarmSocialUnlocked(state) {
+  return state.farmLevel >= FARM_STEAL_UNLOCK_LEVEL
+}
+
+function pushFarmNotification(state, message) {
+  const text = String(message || '').trim()
+  if (!text) {
+    return
+  }
+
+  state.notifications = Array.isArray(state.notifications) ? state.notifications : []
+  state.notifications.push(text)
+  if (state.notifications.length > FARM_NOTIFICATION_LIMIT) {
+    state.notifications = state.notifications.slice(-FARM_NOTIFICATION_LIMIT)
+  }
+}
+
+function normalizeSeedEntry(alias, entry) {
+  const cropAlias = normalizeAlias(alias)
+  const count = normalizeCount(entry?.count)
+  if (!cropAlias || !FARM_ALIAS_PATTERN.test(cropAlias) || !isPositiveInteger(count)) {
+    return null
+  }
+
+  return {
+    cropAlias,
+    count,
+    nameSnapshot: String(entry?.nameSnapshot || '').trim(),
+    seedNameSnapshot: String(entry?.seedNameSnapshot || '').trim(),
+    seedPriceSnapshot: Math.max(0, normalizeInteger(entry?.seedPriceSnapshot, 0))
+  }
+}
+
+function normalizeCropEntry(alias, entry) {
+  const cropAlias = normalizeAlias(alias)
+  const count = normalizeCount(entry?.count)
+  if (!cropAlias || !FARM_ALIAS_PATTERN.test(cropAlias) || !isPositiveInteger(count)) {
+    return null
+  }
+
+  return {
+    cropAlias,
+    count,
+    nameSnapshot: String(entry?.nameSnapshot || '').trim(),
+    sellPriceSnapshot: Math.max(0, normalizeInteger(entry?.sellPriceSnapshot, 0))
+  }
+}
+
+function normalizePetEntry(alias, entry) {
+  const petAlias = normalizeAlias(alias)
+  if (!petAlias || !FARM_ALIAS_PATTERN.test(petAlias) || !entry || typeof entry !== 'object') {
+    return null
+  }
+
+  return {
+    petAlias,
+    nameSnapshot: String(entry?.nameSnapshot || '').trim(),
+    guardInterceptPercentSnapshot: Math.max(0, Math.min(100, normalizeInteger(entry?.guardInterceptPercentSnapshot, 0))),
+    boughtAt: Number(entry?.boughtAt) || 0,
+    guardUntil: Math.max(0, Number(entry?.guardUntil) || 0)
+  }
+}
+
+function normalizePetFoodEntry(alias, entry) {
+  const foodAlias = normalizeAlias(alias)
+  const count = normalizeCount(entry?.count)
+  if (!foodAlias || !FARM_ALIAS_PATTERN.test(foodAlias) || !isPositiveInteger(count)) {
+    return null
+  }
+
+  return {
+    foodAlias,
+    count,
+    nameSnapshot: String(entry?.nameSnapshot || '').trim(),
+    guardHoursSnapshot: Math.max(0, normalizeInteger(entry?.guardHoursSnapshot, 0)),
+    priceSnapshot: Math.max(0, normalizeInteger(entry?.priceSnapshot, 0))
+  }
+}
+
+function normalizePlot(rawPlot, index) {
+  const land = LAND_CONFIG[index]
+  const emptyPlot = createEmptyPlot(land.plotId)
+  const plot = rawPlot && typeof rawPlot === 'object' ? rawPlot : {}
+  const owned = land.defaultOwned ? true : Boolean(plot.owned)
+  const cropAlias = normalizeAlias(plot.cropAlias)
+
+  if (!cropAlias) {
+    return {
+      ...emptyPlot,
+      owned
+    }
+  }
+
+  const legacyYield = Math.max(0, normalizeInteger(plot.yieldTotalSnapshot, 0))
+  const migratedYield = Math.max(0, normalizeInteger(plot.harvestYieldSnapshot, 0))
+
+  return {
+    plotId: land.plotId,
+    landType: land.landType,
+    owned,
+    cropAlias,
+    nameSnapshot: String(plot.nameSnapshot || '').trim(),
+    sellPriceSnapshot: Math.max(0, normalizeInteger(plot.sellPriceSnapshot, 0)),
+    yieldTotalSnapshot: legacyYield || migratedYield || 1,
+    yieldStolen: Math.max(0, normalizeInteger(plot.yieldStolen, 0)),
+    growMinutesSnapshot: normalizePositiveNumber(plot.growMinutesSnapshot, 1),
+    waterStaminaSnapshot: Math.max(0, normalizeInteger(plot.waterStaminaSnapshot, 0)),
+    waterBaseReductionPercentSnapshot: Math.max(0, Math.min(100, normalizeInteger(plot.waterBaseReductionPercentSnapshot, 0))),
+    plantedAt: Number(plot.plantedAt) || 0,
+    readyAt: Number(plot.readyAt) || 0,
+    watered: Boolean(plot.watered)
+  }
+}
+
+function normalizeOrder(order, index, expiresAt) {
+  if (!order || typeof order !== 'object') {
+    return null
+  }
+
+  const cropAlias = normalizeAlias(order.cropAlias)
+  const requiredQty = normalizeInteger(order.requiredQty, 0)
+  if (!cropAlias || !FARM_ALIAS_PATTERN.test(cropAlias) || !isPositiveInteger(requiredQty)) {
+    return null
+  }
+
+  return {
+    slot: index + 1,
+    cropAlias,
+    cropNameSnapshot: String(order.cropNameSnapshot || '').trim(),
+    requiredQty,
+    coinReward: Math.max(0, normalizeInteger(order.coinReward, 0)),
+    favorReward: Math.max(0, normalizeInteger(order.favorReward, 0)),
+    expiresAt: Number(order.expiresAt) || expiresAt || 0
+  }
+}
+
+function normalizeStats(rawStats) {
+  const stats = {
+    ...createDefaultFarmStats(),
+    ...(rawStats && typeof rawStats === 'object' ? rawStats : {})
+  }
+
+  stats.openFarmCount = Math.max(0, normalizeInteger(stats.openFarmCount, 0))
+  stats.buySeedCount = Math.max(0, normalizeInteger(stats.buySeedCount, 0))
+  stats.plantCount = Math.max(0, normalizeInteger(stats.plantCount, 0))
+  stats.waterCount = Math.max(0, normalizeInteger(stats.waterCount, 0))
+  stats.harvestUnits = Math.max(0, normalizeInteger(stats.harvestUnits, 0))
+  stats.sellCropUnits = Math.max(0, normalizeInteger(stats.sellCropUnits, 0))
+  stats.deliverOrderCount = Math.max(0, normalizeInteger(stats.deliverOrderCount, 0))
+  stats.buyPlotCount = Math.max(0, normalizeInteger(stats.buyPlotCount, 0))
+  stats.boughtPlotIds = [...new Set((Array.isArray(stats.boughtPlotIds) ? stats.boughtPlotIds : [])
+    .map(plotId => normalizeInteger(plotId, 0))
+    .filter(plotId => plotId >= 1 && plotId <= FARM_PLOT_COUNT))]
+  stats.harvestOnLand = {
+    normal: Math.max(0, normalizeInteger(stats.harvestOnLand?.normal, 0)),
+    yellow: Math.max(0, normalizeInteger(stats.harvestOnLand?.yellow, 0)),
+    black: Math.max(0, normalizeInteger(stats.harvestOnLand?.black, 0))
+  }
+  stats.collectedCropAliases = [...new Set((Array.isArray(stats.collectedCropAliases) ? stats.collectedCropAliases : [])
+    .map(alias => normalizeAlias(alias))
+    .filter(alias => alias && FARM_ALIAS_PATTERN.test(alias)))]
+  stats.buyPetCount = Math.max(0, normalizeInteger(stats.buyPetCount, 0))
+  stats.buyPetFoodCount = Math.max(0, normalizeInteger(stats.buyPetFoodCount, 0))
+  stats.feedPetAddedMs = Math.max(0, Number(stats.feedPetAddedMs) || 0)
+  stats.visitFarmCount = Math.max(0, normalizeInteger(stats.visitFarmCount, 0))
+  stats.attemptStealCount = Math.max(0, normalizeInteger(stats.attemptStealCount, 0))
+  stats.successfulStealCount = Math.max(0, normalizeInteger(stats.successfulStealCount, 0))
+  stats.stolenUnits = Math.max(0, normalizeInteger(stats.stolenUnits, 0))
+  stats.guardAccumulatedMs = Math.max(0, Number(stats.guardAccumulatedMs) || 0)
+
+  return stats
+}
+
+function normalizeQuestState(chapterId, rawState) {
+  const state = rawState && typeof rawState === 'object' ? rawState : {}
+  return {
+    chapterId,
+    currentStep: Math.max(0, normalizeInteger(state.currentStep, 0)),
+    progress: Math.max(0, normalizeInteger(state.progress, 0)),
+    completedAt: Math.max(0, Number(state.completedAt) || 0)
+  }
+}
+
+function hasLegacyFarmProgress(rawState) {
+  if (!rawState || typeof rawState !== 'object' || rawState.stateVersion === 2) {
+    return false
+  }
+
+  return Array.isArray(rawState.plots)
+    || Object.keys(rawState.seeds || {}).length > 0
+    || Object.keys(rawState.crops || {}).length > 0
+    || Array.isArray(rawState.orders)
+    || Boolean(rawState.createdAt)
+    || Boolean(rawState.starterGrantApplied)
+}
+
+function sanitizeFarmState(rawState, options = {}) {
+  const source = rawState && typeof rawState === 'object' ? rawState : {}
+  const normalized = {
+    ...createDefaultFarmState(),
+    ...source
+  }
+
+  normalized.stateVersion = 2
+  normalized.starterGrantApplied = Boolean(normalized.starterGrantApplied)
+  normalized.plots = LAND_CONFIG.map((_, index) => normalizePlot(source.plots?.[index], index))
+  normalized.seeds = Object.fromEntries(
+    Object.entries(source.seeds || {})
+      .map(([alias, entry]) => [normalizeAlias(alias), normalizeSeedEntry(alias, entry)])
+      .filter(([, entry]) => Boolean(entry))
+  )
+  normalized.crops = Object.fromEntries(
+    Object.entries(source.crops || {})
+      .map(([alias, entry]) => [normalizeAlias(alias), normalizeCropEntry(alias, entry)])
+      .filter(([, entry]) => Boolean(entry))
+  )
+  normalized.pets = Object.fromEntries(
+    Object.entries(source.pets || {})
+      .map(([alias, entry]) => [normalizeAlias(alias), normalizePetEntry(alias, entry)])
+      .filter(([, entry]) => Boolean(entry))
+  )
+  normalized.petFoods = Object.fromEntries(
+    Object.entries(source.petFoods || {})
+      .map(([alias, entry]) => [normalizeAlias(alias), normalizePetFoodEntry(alias, entry)])
+      .filter(([, entry]) => Boolean(entry))
+  )
+  normalized.activePetAlias = normalizeAlias(source.activePetAlias)
+  if (normalized.activePetAlias && !normalized.pets[normalized.activePetAlias]) {
+    normalized.activePetAlias = ''
+  }
+  normalized.guardTrackedAt = Math.max(0, Number(source.guardTrackedAt) || 0)
+  normalized.stats = normalizeStats(source.stats)
+  normalized.mainQuests = Object.fromEntries(
+    Object.entries(source.mainQuests || {})
+      .map(([chapterId, questState]) => [normalizeAlias(chapterId), normalizeQuestState(chapterId, questState)])
+      .filter(([chapterId]) => Boolean(chapterId))
+  )
+  normalized.notifications = (Array.isArray(source.notifications) ? source.notifications : [])
+    .map(item => String(item || '').trim())
+    .filter(Boolean)
+    .slice(-FARM_NOTIFICATION_LIMIT)
+  normalized.orders = Array.from({ length: FARM_ORDER_SLOT_COUNT }, (_, index) =>
+    normalizeOrder(source.orders?.[index], index, source.orderBoardExpiresAt)
+  ).filter(Boolean)
+  normalized.orderBoardExpiresAt = Math.max(0, Number(source.orderBoardExpiresAt) || 0)
+  normalized.lastVisitedFarmUid = Math.max(0, normalizeInteger(source.lastVisitedFarmUid, 0))
+  normalized.lastVisitedFarmAt = Math.max(0, Number(source.lastVisitedFarmAt) || 0)
+  normalized.dailyStealDayKey = Math.max(0, normalizeInteger(source.dailyStealDayKey, 0))
+  normalized.dailyStealAttempts = Math.max(0, normalizeInteger(source.dailyStealAttempts, 0))
+  normalized.createdAt = String(source.createdAt || normalized.createdAt)
+
+  if (Number.isFinite(Number(source.farmXp)) && Number(source.farmXp) >= 0) {
+    normalized.farmXp = Math.max(0, normalizeInteger(source.farmXp, 0))
+  } else if (isPositiveInteger(Number(source.farmLevel))) {
+    normalized.farmXp = getLevelStartXp(Number(source.farmLevel))
+  } else {
+    normalized.farmXp = 0
+  }
+
+  if (options.legacyFarm) {
+    normalized.farmXp = Math.max(normalized.farmXp, getLevelStartXp(20))
+  }
+
+  ensureFarmLevelConsistency(normalized)
+  return normalized
 }
 
 function markFarmDataDirty() {
@@ -256,135 +710,36 @@ function saveFarmData() {
   return flushFarmData()
 }
 
-function normalizeSeedEntry(alias, entry) {
-  const normalizedAlias = normalizeAlias(alias)
-  const normalizedCount = normalizeCount(entry?.count)
-  if (!normalizedAlias || !FARM_ALIAS_PATTERN.test(normalizedAlias) || !isPositiveInteger(normalizedCount)) {
-    return null
-  }
-
-  return {
-    cropAlias: normalizedAlias,
-    count: normalizedCount,
-    nameSnapshot: String(entry?.nameSnapshot || '').trim(),
-    seedNameSnapshot: String(entry?.seedNameSnapshot || '').trim(),
-    seedPriceSnapshot: isNonNegativeInteger(Number(entry?.seedPriceSnapshot))
-      ? Number(entry.seedPriceSnapshot)
-      : 0
-  }
+function ensureFarmRuntimeDirs() {
+  fs.mkdirSync(path.dirname(farmConfig.farmDataPath), { recursive: true })
+  fs.mkdirSync(farmConfig.addonDirPath, { recursive: true })
 }
 
-function normalizeCropEntry(alias, entry) {
-  const normalizedAlias = normalizeAlias(alias)
-  const normalizedCount = normalizeCount(entry?.count)
-  if (!normalizedAlias || !FARM_ALIAS_PATTERN.test(normalizedAlias) || !isPositiveInteger(normalizedCount)) {
-    return null
+function ensureFarmReady() {
+  if (farmInitialized || farmInitializing) {
+    return
   }
 
-  return {
-    cropAlias: normalizedAlias,
-    count: normalizedCount,
-    nameSnapshot: String(entry?.nameSnapshot || '').trim(),
-    sellPriceSnapshot: isNonNegativeInteger(Number(entry?.sellPriceSnapshot))
-      ? Number(entry.sellPriceSnapshot)
-      : 0
+  farmInitializing = true
+  farmAddonStatus = createEmptyFarmAddonStatus()
+  farmInitialized = true
+
+  try {
+    ensureFarmRuntimeDirs()
+    reloadFarmRegistry('startup')
+    loadFarmStates()
+    startFarmWatcher()
+  } catch (error) {
+    farmInitialized = false
+    farmAddonStatus.lastReloadError = `初始化 farm 系统失败: ${error?.message || error}`
+  } finally {
+    farmInitializing = false
   }
-}
-
-function normalizePlot(plot, index) {
-  const emptyPlot = createEmptyPlot(index + 1)
-  if (!plot || typeof plot !== 'object') {
-    return emptyPlot
-  }
-
-  const normalizedAlias = normalizeAlias(plot.cropAlias)
-  if (!normalizedAlias) {
-    return {
-      ...emptyPlot,
-      plotId: Number.isInteger(plot.plotId) ? plot.plotId : emptyPlot.plotId
-    }
-  }
-
-  return {
-    plotId: Number.isInteger(plot.plotId) ? plot.plotId : emptyPlot.plotId,
-    cropAlias: normalizedAlias,
-    nameSnapshot: String(plot.nameSnapshot || '').trim(),
-    sellPriceSnapshot: isNonNegativeInteger(Number(plot.sellPriceSnapshot))
-      ? Number(plot.sellPriceSnapshot)
-      : 0,
-    harvestYieldSnapshot: isPositiveInteger(Number(plot.harvestYieldSnapshot))
-      ? Number(plot.harvestYieldSnapshot)
-      : 1,
-    growMinutesSnapshot: isPositiveInteger(Number(plot.growMinutesSnapshot))
-      ? Number(plot.growMinutesSnapshot)
-      : 1,
-    waterStaminaSnapshot: isNonNegativeInteger(Number(plot.waterStaminaSnapshot))
-      ? Number(plot.waterStaminaSnapshot)
-      : 0,
-    waterBaseReductionPercentSnapshot: isNonNegativeInteger(Number(plot.waterBaseReductionPercentSnapshot))
-      ? Number(plot.waterBaseReductionPercentSnapshot)
-      : 0,
-    plantedAt: Number(plot.plantedAt) || 0,
-    readyAt: Number(plot.readyAt) || 0,
-    watered: Boolean(plot.watered)
-  }
-}
-
-function normalizeOrder(order, index, expiresAt) {
-  if (!order || typeof order !== 'object') {
-    return null
-  }
-
-  const cropAlias = normalizeAlias(order.cropAlias)
-  const requiredQty = Number(order.requiredQty)
-  const coinReward = Number(order.coinReward)
-  const favorReward = Number(order.favorReward)
-
-  if (!cropAlias || !FARM_ALIAS_PATTERN.test(cropAlias) || !isPositiveInteger(requiredQty)) {
-    return null
-  }
-
-  return {
-    slot: index + 1,
-    cropAlias,
-    cropNameSnapshot: String(order.cropNameSnapshot || '').trim(),
-    requiredQty,
-    coinReward: isNonNegativeInteger(coinReward) ? coinReward : 0,
-    favorReward: isNonNegativeInteger(favorReward) ? favorReward : 0,
-    expiresAt: Number(order.expiresAt) || expiresAt || 0
-  }
-}
-
-function sanitizeFarmState(state) {
-  const normalizedState = {
-    ...createDefaultFarmState(),
-    ...(state && typeof state === 'object' ? state : {})
-  }
-
-  normalizedState.starterGrantApplied = Boolean(normalizedState.starterGrantApplied)
-  normalizedState.plots = Array.from({ length: FARM_PLOT_COUNT }, (_, index) =>
-    normalizePlot(normalizedState.plots?.[index], index)
-  )
-  normalizedState.seeds = Object.fromEntries(
-    Object.entries(normalizedState.seeds || {})
-      .map(([alias, entry]) => [normalizeAlias(alias), normalizeSeedEntry(alias, entry)])
-      .filter(([, entry]) => Boolean(entry))
-  )
-  normalizedState.crops = Object.fromEntries(
-    Object.entries(normalizedState.crops || {})
-      .map(([alias, entry]) => [normalizeAlias(alias), normalizeCropEntry(alias, entry)])
-      .filter(([, entry]) => Boolean(entry))
-  )
-  normalizedState.orderBoardExpiresAt = Number(normalizedState.orderBoardExpiresAt) || 0
-  normalizedState.orders = Array.from({ length: FARM_ORDER_SLOT_COUNT }, (_, index) =>
-    normalizeOrder(normalizedState.orders?.[index], index, normalizedState.orderBoardExpiresAt)
-  ).filter(Boolean)
-
-  return normalizedState
 }
 
 function loadFarmStates() {
   farmStates = new Map()
+  let migratedLegacyState = false
 
   try {
     if (!fs.existsSync(farmConfig.farmDataPath)) {
@@ -393,7 +748,12 @@ function loadFarmStates() {
 
     const raw = JSON.parse(fs.readFileSync(farmConfig.farmDataPath, 'utf8'))
     for (const [userId, state] of Object.entries(raw || {})) {
-      farmStates.set(normalizeUserId(userId), sanitizeFarmState(state))
+      const legacyFarm = hasLegacyFarmProgress(state)
+      const normalizedState = sanitizeFarmState(state, { legacyFarm })
+      if (legacyFarm && ensureQuestStates(normalizedState, { completeTutorial: true }, Date.now())) {
+        migratedLegacyState = true
+      }
+      farmStates.set(normalizeUserId(userId), normalizedState)
     }
   } catch {
     farmStates = new Map()
@@ -401,6 +761,11 @@ function loadFarmStates() {
 
   for (const state of farmStates.values()) {
     syncFarmState(state)
+  }
+
+  if (migratedLegacyState) {
+    markFarmDataDirty()
+    void flushFarmData()
   }
 }
 
@@ -428,8 +793,8 @@ function validateManifestBase(manifest, source) {
     return { ok: false, reason: `${source} 不是合法的附加件对象` }
   }
 
-  if (manifest.schemaVersion !== FARM_SCHEMA_VERSION) {
-    return { ok: false, reason: `${source} 的 schemaVersion 必须为 ${FARM_SCHEMA_VERSION}` }
+  if (!FARM_SUPPORTED_SCHEMA_VERSIONS.includes(manifest.schemaVersion)) {
+    return { ok: false, reason: `${source} 的 schemaVersion 必须为 1 或 2` }
   }
 
   const id = normalizeAlias(manifest.id)
@@ -467,10 +832,22 @@ function validateManifestBase(manifest, source) {
     return { ok: false, reason: `${source} 的 orderTemplates 必须是数组` }
   }
 
+  if (manifest.schemaVersion >= 2) {
+    if (manifest.pets != null && !Array.isArray(manifest.pets)) {
+      return { ok: false, reason: `${source} 的 pets 必须是数组` }
+    }
+    if (manifest.petFoods != null && !Array.isArray(manifest.petFoods)) {
+      return { ok: false, reason: `${source} 的 petFoods 必须是数组` }
+    }
+    if (manifest.mainQuestChapters != null && !Array.isArray(manifest.mainQuestChapters)) {
+      return { ok: false, reason: `${source} 的 mainQuestChapters 必须是数组` }
+    }
+  }
+
   return {
     ok: true,
     manifest: {
-      schemaVersion: FARM_SCHEMA_VERSION,
+      schemaVersion: manifest.schemaVersion,
       id,
       name,
       version,
@@ -478,12 +855,15 @@ function validateManifestBase(manifest, source) {
       priority: manifest.priority,
       starterGrants: manifest.starterGrants,
       crops: manifest.crops,
-      orderTemplates: manifest.orderTemplates
+      orderTemplates: manifest.orderTemplates,
+      pets: Array.isArray(manifest.pets) ? manifest.pets : [],
+      petFoods: Array.isArray(manifest.petFoods) ? manifest.petFoods : [],
+      mainQuestChapters: Array.isArray(manifest.mainQuestChapters) ? manifest.mainQuestChapters : []
     }
   }
 }
 
-function validateCropDefinition(rawCrop, source) {
+function validateCropDefinition(rawCrop, source, schemaVersion) {
   if (!rawCrop || typeof rawCrop !== 'object' || Array.isArray(rawCrop)) {
     return { ok: false, reason: `${source} 的 crop 结构不合法` }
   }
@@ -517,6 +897,10 @@ function validateCropDefinition(rawCrop, source) {
     }
   }
 
+  const unlockLevel = schemaVersion >= 2
+    ? Math.max(1, normalizeInteger(rawCrop.unlockLevel, 1))
+    : 1
+
   return {
     ok: true,
     crop: {
@@ -530,7 +914,8 @@ function validateCropDefinition(rawCrop, source) {
       waterBaseReductionPercent: Number(rawCrop.waterBaseReductionPercent),
       harvestYield: Number(rawCrop.harvestYield),
       sellPrice: Number(rawCrop.sellPrice),
-      orderFavorReward: Number(rawCrop.orderFavorReward)
+      orderFavorReward: Number(rawCrop.orderFavorReward),
+      unlockLevel
     }
   }
 }
@@ -604,10 +989,216 @@ function validateOrderTemplate(rawTemplate, source) {
   }
 }
 
+function validatePetDefinition(rawPet, source) {
+  if (!rawPet || typeof rawPet !== 'object' || Array.isArray(rawPet)) {
+    return { ok: false, reason: `${source} 的 pet 结构不合法` }
+  }
+
+  const alias = normalizeAlias(rawPet.alias)
+  if (!alias || !FARM_ALIAS_PATTERN.test(alias)) {
+    return { ok: false, reason: `${source} 的 pet.alias 不合法` }
+  }
+
+  const name = String(rawPet.name || '').trim()
+  if (!name) {
+    return { ok: false, reason: `${source} 的 pet ${alias} 缺少名称` }
+  }
+
+  const price = Number(rawPet.price)
+  const guardInterceptPercent = Number(rawPet.guardInterceptPercent)
+  if (!isNonNegativeInteger(price)) {
+    return { ok: false, reason: `${source} 的 pet ${alias}.price 不合法` }
+  }
+
+  if (!isNonNegativeInteger(guardInterceptPercent) || guardInterceptPercent > 100) {
+    return { ok: false, reason: `${source} 的 pet ${alias}.guardInterceptPercent 不合法` }
+  }
+
+  return {
+    ok: true,
+    pet: {
+      alias,
+      name,
+      price,
+      guardInterceptPercent
+    }
+  }
+}
+
+function validatePetFoodDefinition(rawFood, source) {
+  if (!rawFood || typeof rawFood !== 'object' || Array.isArray(rawFood)) {
+    return { ok: false, reason: `${source} 的 petFood 结构不合法` }
+  }
+
+  const alias = normalizeAlias(rawFood.alias)
+  if (!alias || !FARM_ALIAS_PATTERN.test(alias)) {
+    return { ok: false, reason: `${source} 的 petFood.alias 不合法` }
+  }
+
+  const name = String(rawFood.name || '').trim()
+  if (!name) {
+    return { ok: false, reason: `${source} 的 petFood ${alias} 缺少名称` }
+  }
+
+  const price = Number(rawFood.price)
+  const guardHours = Number(rawFood.guardHours)
+  if (!isNonNegativeInteger(price)) {
+    return { ok: false, reason: `${source} 的 petFood ${alias}.price 不合法` }
+  }
+
+  if (!isPositiveInteger(guardHours)) {
+    return { ok: false, reason: `${source} 的 petFood ${alias}.guardHours 不合法` }
+  }
+
+  return {
+    ok: true,
+    petFood: {
+      alias,
+      name,
+      price,
+      guardHours
+    }
+  }
+}
+
+function validateQuestReward(rawReward, source, availableCropAliases, availableFoodAliases) {
+  if (rawReward == null) {
+    return { ok: true, reward: null }
+  }
+
+  if (!rawReward || typeof rawReward !== 'object' || Array.isArray(rawReward)) {
+    return { ok: false, reason: `${source} 的 reward 结构不合法` }
+  }
+
+  const reward = {
+    coins: Math.max(0, normalizeInteger(rawReward.coins, 0)),
+    xp: Math.max(0, normalizeInteger(rawReward.xp, 0)),
+    fillToLevel: rawReward.fillToLevel == null ? 0 : Math.max(0, normalizeInteger(rawReward.fillToLevel, 0)),
+    seeds: [],
+    petFoods: []
+  }
+
+  if (rawReward.seeds != null) {
+    if (!Array.isArray(rawReward.seeds)) {
+      return { ok: false, reason: `${source} 的 reward.seeds 必须是数组` }
+    }
+
+    for (const entry of rawReward.seeds) {
+      const cropAlias = normalizeAlias(entry?.cropAlias)
+      const count = Number(entry?.count)
+      if (!cropAlias || !availableCropAliases.has(cropAlias) || !isPositiveInteger(count)) {
+        return { ok: false, reason: `${source} 的 reward.seeds 声明不合法` }
+      }
+
+      reward.seeds.push({ cropAlias, count })
+    }
+  }
+
+  if (rawReward.petFoods != null) {
+    if (!Array.isArray(rawReward.petFoods)) {
+      return { ok: false, reason: `${source} 的 reward.petFoods 必须是数组` }
+    }
+
+    for (const entry of rawReward.petFoods) {
+      const foodAlias = normalizeAlias(entry?.foodAlias)
+      const count = Number(entry?.count)
+      if (!foodAlias || !availableFoodAliases.has(foodAlias) || !isPositiveInteger(count)) {
+        return { ok: false, reason: `${source} 的 reward.petFoods 声明不合法` }
+      }
+
+      reward.petFoods.push({ foodAlias, count })
+    }
+  }
+
+  return { ok: true, reward }
+}
+
+function validateQuestStep(rawStep, source, availableCropAliases, availableFoodAliases) {
+  if (!rawStep || typeof rawStep !== 'object' || Array.isArray(rawStep)) {
+    return { ok: false, reason: `${source} 的 quest step 结构不合法` }
+  }
+
+  const type = String(rawStep.type || '').trim()
+  if (!FARM_QUEST_STEP_TYPES.has(type)) {
+    return { ok: false, reason: `${source} 的 quest step.type ${type || '(empty)'} 不受支持` }
+  }
+
+  const target = Number(rawStep.target)
+  if (!isPositiveInteger(target)) {
+    return { ok: false, reason: `${source} 的 quest step ${type}.target 必须是正整数` }
+  }
+
+  if (rawStep.landType != null && !LAND_TYPE_LABELS[String(rawStep.landType)]) {
+    return { ok: false, reason: `${source} 的 quest step ${type}.landType 不合法` }
+  }
+
+  if (rawStep.plotId != null) {
+    const plotId = Number(rawStep.plotId)
+    if (!isPositiveInteger(plotId) || plotId > FARM_PLOT_COUNT) {
+      return { ok: false, reason: `${source} 的 quest step ${type}.plotId 不合法` }
+    }
+  }
+
+  const rewardResult = validateQuestReward(rawStep.reward, source, availableCropAliases, availableFoodAliases)
+  if (!rewardResult.ok) {
+    return rewardResult
+  }
+
+  return {
+    ok: true,
+    step: {
+      type,
+      target,
+      label: String(rawStep.label || '').trim(),
+      landType: rawStep.landType ? String(rawStep.landType) : '',
+      plotId: rawStep.plotId == null ? 0 : Number(rawStep.plotId),
+      reward: rewardResult.reward
+    }
+  }
+}
+
+function validateQuestChapter(rawChapter, source, availableCropAliases, availableFoodAliases) {
+  if (!rawChapter || typeof rawChapter !== 'object' || Array.isArray(rawChapter)) {
+    return { ok: false, reason: `${source} 的 mainQuestChapter 结构不合法` }
+  }
+
+  const id = normalizeAlias(rawChapter.id)
+  if (!id || !FARM_ALIAS_PATTERN.test(id)) {
+    return { ok: false, reason: `${source} 的 mainQuestChapter.id 不合法` }
+  }
+
+  const name = String(rawChapter.name || '').trim()
+  if (!name) {
+    return { ok: false, reason: `${source} 的 mainQuestChapter ${id} 缺少 name` }
+  }
+
+  if (!Array.isArray(rawChapter.steps) || !rawChapter.steps.length) {
+    return { ok: false, reason: `${source} 的 mainQuestChapter ${id} 必须至少包含 1 个 step` }
+  }
+
+  const steps = []
+  for (const rawStep of rawChapter.steps) {
+    const result = validateQuestStep(rawStep, source, availableCropAliases, availableFoodAliases)
+    if (!result.ok) {
+      return result
+    }
+    steps.push(result.step)
+  }
+
+  return {
+    ok: true,
+    chapter: {
+      id,
+      name,
+      description: String(rawChapter.description || '').trim(),
+      steps
+    }
+  }
+}
+
 function loadAddonCandidates() {
   const skippedAddons = []
   const loadedCandidates = []
-
   const coreSource = farmConfig.coreAddonPath
   let coreManifest
 
@@ -702,7 +1293,10 @@ function buildFarmRegistryFromDisk() {
   const skippedAddons = [...candidateResult.skippedAddons]
   const loadedAddons = []
   const seenAddonIds = new Set()
-  const seenAliases = new Set()
+  const seenCropAliases = new Set()
+  const seenPetAliases = new Set()
+  const seenFoodAliases = new Set()
+  const seenChapterIds = new Set()
 
   for (const candidate of candidateResult.loadedCandidates) {
     const { source, sourceType, manifest } = candidate
@@ -717,28 +1311,33 @@ function buildFarmRegistryFromDisk() {
       continue
     }
 
-    const packageCrops = []
-    const packageAliases = new Set()
     let packageError = ''
+    const packageCropAliases = new Set()
+    const packagePetAliases = new Set()
+    const packageFoodAliases = new Set()
+    const packageChapterIds = new Set()
+    const packageCrops = []
+    const packagePets = []
+    const packagePetFoods = []
 
     for (const rawCrop of manifest.crops) {
-      const cropResult = validateCropDefinition(rawCrop, source)
+      const cropResult = validateCropDefinition(rawCrop, source, manifest.schemaVersion)
       if (!cropResult.ok) {
         packageError = cropResult.reason
         break
       }
 
-      if (packageAliases.has(cropResult.crop.alias)) {
+      if (packageCropAliases.has(cropResult.crop.alias)) {
         packageError = `${source} 内部重复声明了 crop alias ${cropResult.crop.alias}`
         break
       }
 
-      if (seenAliases.has(cropResult.crop.alias)) {
+      if (seenCropAliases.has(cropResult.crop.alias)) {
         packageError = `${source} 的 crop alias ${cropResult.crop.alias} 与已有附加件冲突`
         break
       }
 
-      packageAliases.add(cropResult.crop.alias)
+      packageCropAliases.add(cropResult.crop.alias)
       packageCrops.push(cropResult.crop)
     }
 
@@ -747,10 +1346,63 @@ function buildFarmRegistryFromDisk() {
       continue
     }
 
-    const availableAliases = new Set([...seenAliases, ...packageAliases])
+    for (const rawPet of manifest.pets) {
+      const petResult = validatePetDefinition(rawPet, source)
+      if (!petResult.ok) {
+        packageError = petResult.reason
+        break
+      }
+
+      if (packagePetAliases.has(petResult.pet.alias)) {
+        packageError = `${source} 内部重复声明了 pet alias ${petResult.pet.alias}`
+        break
+      }
+
+      if (seenPetAliases.has(petResult.pet.alias)) {
+        packageError = `${source} 的 pet alias ${petResult.pet.alias} 与已有附加件冲突`
+        break
+      }
+
+      packagePetAliases.add(petResult.pet.alias)
+      packagePets.push(petResult.pet)
+    }
+
+    if (packageError) {
+      skippedAddons.push(makeSkipRecord(source, manifest, packageError))
+      continue
+    }
+
+    for (const rawFood of manifest.petFoods) {
+      const foodResult = validatePetFoodDefinition(rawFood, source)
+      if (!foodResult.ok) {
+        packageError = foodResult.reason
+        break
+      }
+
+      if (packageFoodAliases.has(foodResult.petFood.alias)) {
+        packageError = `${source} 内部重复声明了 petFood alias ${foodResult.petFood.alias}`
+        break
+      }
+
+      if (seenFoodAliases.has(foodResult.petFood.alias)) {
+        packageError = `${source} 的 petFood alias ${foodResult.petFood.alias} 与已有附加件冲突`
+        break
+      }
+
+      packageFoodAliases.add(foodResult.petFood.alias)
+      packagePetFoods.push(foodResult.petFood)
+    }
+
+    if (packageError) {
+      skippedAddons.push(makeSkipRecord(source, manifest, packageError))
+      continue
+    }
+
+    const availableCropAliases = new Set([...seenCropAliases, ...packageCropAliases])
+    const availableFoodAliases = new Set([...seenFoodAliases, ...packageFoodAliases])
     const packageStarterGrants = []
     for (const rawGrant of manifest.starterGrants) {
-      const grantResult = validateStarterGrant(rawGrant, source, availableAliases)
+      const grantResult = validateStarterGrant(rawGrant, source, availableCropAliases)
       if (!grantResult.ok) {
         packageError = grantResult.reason
         break
@@ -772,12 +1424,39 @@ function buildFarmRegistryFromDisk() {
         break
       }
 
-      if (!availableAliases.has(templateResult.template.cropAlias)) {
+      if (!availableCropAliases.has(templateResult.template.cropAlias)) {
         skippedAddons.push(makeSkipRecord(source, manifest, `订单模板 ${templateResult.template.cropAlias} 未找到对应 crop，已跳过该模板`))
         continue
       }
 
       packageOrderTemplates.push(templateResult.template)
+    }
+
+    if (packageError) {
+      skippedAddons.push(makeSkipRecord(source, manifest, packageError))
+      continue
+    }
+
+    const packageChapters = []
+    for (const rawChapter of manifest.mainQuestChapters) {
+      const chapterResult = validateQuestChapter(rawChapter, source, availableCropAliases, availableFoodAliases)
+      if (!chapterResult.ok) {
+        packageError = chapterResult.reason
+        break
+      }
+
+      if (packageChapterIds.has(chapterResult.chapter.id)) {
+        packageError = `${source} 内部重复声明了 mainQuestChapter id ${chapterResult.chapter.id}`
+        break
+      }
+
+      if (seenChapterIds.has(chapterResult.chapter.id)) {
+        packageError = `${source} 的 mainQuestChapter id ${chapterResult.chapter.id} 与已有附加件冲突`
+        break
+      }
+
+      packageChapterIds.add(chapterResult.chapter.id)
+      packageChapters.push(chapterResult.chapter)
     }
 
     if (packageError) {
@@ -792,7 +1471,38 @@ function buildFarmRegistryFromDisk() {
         addonName: manifest.name,
         source
       }
-      seenAliases.add(crop.alias)
+      seenCropAliases.add(crop.alias)
+    }
+
+    for (const pet of packagePets) {
+      registry.pets[pet.alias] = {
+        ...pet,
+        addonId: manifest.id,
+        addonName: manifest.name,
+        source
+      }
+      seenPetAliases.add(pet.alias)
+    }
+
+    for (const food of packagePetFoods) {
+      registry.petFoods[food.alias] = {
+        ...food,
+        addonId: manifest.id,
+        addonName: manifest.name,
+        source
+      }
+      seenFoodAliases.add(food.alias)
+    }
+
+    for (const chapter of packageChapters) {
+      registry.mainQuestChapters[chapter.id] = {
+        ...chapter,
+        addonId: manifest.id,
+        addonName: manifest.name,
+        source
+      }
+      registry.mainQuestChapterList.push(registry.mainQuestChapters[chapter.id])
+      seenChapterIds.add(chapter.id)
     }
 
     registry.starterGrants.push(...packageStarterGrants)
@@ -822,8 +1532,26 @@ function buildFarmRegistryFromDisk() {
 
   registry.loadedAt = Date.now()
   registry.cropList = Object.values(registry.crops).sort((left, right) => {
+    if (left.unlockLevel !== right.unlockLevel) {
+      return left.unlockLevel - right.unlockLevel
+    }
+
     if (left.seedPrice !== right.seedPrice) {
       return left.seedPrice - right.seedPrice
+    }
+
+    return left.alias.localeCompare(right.alias, 'en')
+  })
+  registry.petList = Object.values(registry.pets).sort((left, right) => {
+    if (left.price !== right.price) {
+      return left.price - right.price
+    }
+
+    return left.alias.localeCompare(right.alias, 'en')
+  })
+  registry.petFoodList = Object.values(registry.petFoods).sort((left, right) => {
+    if (left.price !== right.price) {
+      return left.price - right.price
     }
 
     return left.alias.localeCompare(right.alias, 'en')
@@ -924,6 +1652,75 @@ function startFarmWatcher() {
   }
 }
 
+function addSeedInventory(state, crop, count) {
+  const normalizedCount = Math.max(0, normalizeInteger(count, 0))
+  if (normalizedCount <= 0) {
+    return
+  }
+
+  const entry = state.seeds[crop.alias] || {
+    cropAlias: crop.alias,
+    count: 0,
+    nameSnapshot: crop.name,
+    seedNameSnapshot: crop.seedName,
+    seedPriceSnapshot: crop.seedPrice
+  }
+
+  entry.count += normalizedCount
+  entry.nameSnapshot = crop.name
+  entry.seedNameSnapshot = crop.seedName
+  entry.seedPriceSnapshot = crop.seedPrice
+  state.seeds[crop.alias] = entry
+}
+
+function noteCollectedCropAlias(state, cropAlias) {
+  if (!state.stats.collectedCropAliases.includes(cropAlias)) {
+    state.stats.collectedCropAliases.push(cropAlias)
+  }
+}
+
+function addCropInventory(state, payload) {
+  const cropAlias = normalizeAlias(payload?.cropAlias)
+  const count = Math.max(0, normalizeInteger(payload?.count, 0))
+  if (!cropAlias || count <= 0) {
+    return
+  }
+
+  const entry = state.crops[cropAlias] || {
+    cropAlias,
+    count: 0,
+    nameSnapshot: String(payload?.nameSnapshot || '').trim(),
+    sellPriceSnapshot: Math.max(0, normalizeInteger(payload?.sellPriceSnapshot, 0))
+  }
+
+  entry.count += count
+  entry.nameSnapshot = String(payload?.nameSnapshot || entry.nameSnapshot || '').trim()
+  entry.sellPriceSnapshot = Math.max(0, normalizeInteger(payload?.sellPriceSnapshot, entry.sellPriceSnapshot || 0))
+  state.crops[cropAlias] = entry
+  noteCollectedCropAlias(state, cropAlias)
+}
+
+function addPetFoodInventory(state, food, count) {
+  const normalizedCount = Math.max(0, normalizeInteger(count, 0))
+  if (normalizedCount <= 0) {
+    return
+  }
+
+  const entry = state.petFoods[food.alias] || {
+    foodAlias: food.alias,
+    count: 0,
+    nameSnapshot: food.name,
+    guardHoursSnapshot: food.guardHours,
+    priceSnapshot: food.price
+  }
+
+  entry.count += normalizedCount
+  entry.nameSnapshot = food.name
+  entry.guardHoursSnapshot = food.guardHours
+  entry.priceSnapshot = food.price
+  state.petFoods[food.alias] = entry
+}
+
 function applyStarterGrants(state) {
   for (const grant of farmRegistry.starterGrants) {
     const crop = getCropByAlias(grant.cropAlias)
@@ -931,42 +1728,29 @@ function applyStarterGrants(state) {
       continue
     }
 
-    if (grant.seedCount > 0) {
-      const currentSeed = state.seeds[crop.alias] || {
-        cropAlias: crop.alias,
-        count: 0,
-        nameSnapshot: crop.name,
-        seedNameSnapshot: crop.seedName,
-        seedPriceSnapshot: crop.seedPrice
-      }
-
-      currentSeed.count += grant.seedCount
-      currentSeed.nameSnapshot = crop.name
-      currentSeed.seedNameSnapshot = crop.seedName
-      currentSeed.seedPriceSnapshot = crop.seedPrice
-      state.seeds[crop.alias] = currentSeed
-    }
-
+    addSeedInventory(state, crop, grant.seedCount)
     if (grant.cropCount > 0) {
-      const currentCrop = state.crops[crop.alias] || {
+      addCropInventory(state, {
         cropAlias: crop.alias,
-        count: 0,
+        count: grant.cropCount,
         nameSnapshot: crop.name,
         sellPriceSnapshot: crop.sellPrice
-      }
-
-      currentCrop.count += grant.cropCount
-      currentCrop.nameSnapshot = crop.name
-      currentCrop.sellPriceSnapshot = crop.sellPrice
-      state.crops[crop.alias] = currentCrop
+      })
     }
   }
 
   state.starterGrantApplied = true
 }
 
-function createOrder(expiresAt, slot) {
-  const template = rollWeighted(farmRegistry.orderTemplates)
+function getAvailableOrderTemplatesForState(state) {
+  return farmRegistry.orderTemplates.filter(template => {
+    const crop = getCropByAlias(template.cropAlias)
+    return isCropUnlockedForState(crop, state)
+  })
+}
+
+function createOrder(state, expiresAt, slot) {
+  const template = rollWeighted(getAvailableOrderTemplatesForState(state))
   if (!template) {
     return null
   }
@@ -993,7 +1777,7 @@ function refreshOrderBoard(state, now = Date.now()) {
   const orders = []
 
   for (let index = 0; index < FARM_ORDER_SLOT_COUNT; index++) {
-    const order = createOrder(expiresAt, index + 1)
+    const order = createOrder(state, expiresAt, index + 1)
     if (order) {
       orders.push(order)
     }
@@ -1016,7 +1800,7 @@ function refillMissingOrders(state) {
       continue
     }
 
-    const created = createOrder(state.orderBoardExpiresAt, index + 1)
+    const created = createOrder(state, state.orderBoardExpiresAt, index + 1)
     if (created) {
       orders.push(created)
     }
@@ -1037,6 +1821,80 @@ function cleanupInventoryEntries(state) {
       delete state.crops[alias]
     }
   }
+
+  for (const [alias, entry] of Object.entries(state.petFoods)) {
+    if (!entry || entry.count <= 0) {
+      delete state.petFoods[alias]
+    }
+  }
+}
+
+function resetDailyStealIfNeeded(state, now = Date.now()) {
+  const dayKey = new Date(now).setHours(0, 0, 0, 0)
+  if (state.dailyStealDayKey !== dayKey) {
+    state.dailyStealDayKey = dayKey
+    state.dailyStealAttempts = 0
+    return true
+  }
+
+  return false
+}
+
+function syncGuardProgress(state, now = Date.now()) {
+  const activePet = getActivePetEntry(state)
+  const trackedAt = state.guardTrackedAt > 0 ? state.guardTrackedAt : now
+  let changed = false
+
+  if (activePet && activePet.guardUntil > trackedAt) {
+    const end = Math.min(now, activePet.guardUntil)
+    if (end > trackedAt) {
+      state.stats.guardAccumulatedMs += end - trackedAt
+      changed = true
+    }
+  }
+
+  if (state.guardTrackedAt !== now) {
+    state.guardTrackedAt = now
+    changed = true
+  }
+
+  return changed
+}
+
+function ensureQuestStates(state, options = {}, now = Date.now()) {
+  let changed = false
+
+  for (const chapter of farmRegistry.mainQuestChapterList) {
+    if (!state.mainQuests[chapter.id]) {
+      state.mainQuests[chapter.id] = {
+        chapterId: chapter.id,
+        currentStep: 0,
+        progress: 0,
+        completedAt: 0
+      }
+      changed = true
+    }
+
+    const questState = state.mainQuests[chapter.id]
+    const maxStep = chapter.steps.length
+    if (questState.completedAt && questState.currentStep < maxStep) {
+      questState.currentStep = maxStep
+      changed = true
+    }
+    if (questState.currentStep > maxStep) {
+      questState.currentStep = maxStep
+      changed = true
+    }
+
+    if (options.completeTutorial && chapter.id === 'tutorial' && !questState.completedAt) {
+      questState.currentStep = maxStep
+      questState.progress = chapter.steps[maxStep - 1]?.target || 0
+      questState.completedAt = now
+      changed = true
+    }
+  }
+
+  return changed
 }
 
 function syncFarmState(state, now = Date.now()) {
@@ -1044,7 +1902,7 @@ function syncFarmState(state, now = Date.now()) {
 
   let changed = false
   const serializedBefore = JSON.stringify(state)
-  const normalized = sanitizeFarmState(state)
+  const normalized = sanitizeFarmState(state, { legacyFarm: hasLegacyFarmProgress(state) })
 
   if (serializedBefore !== JSON.stringify(normalized)) {
     for (const key of Object.keys(state)) {
@@ -1061,6 +1919,18 @@ function syncFarmState(state, now = Date.now()) {
     changed = true
   }
 
+  if (resetDailyStealIfNeeded(state, now)) {
+    changed = true
+  }
+
+  if (syncGuardProgress(state, now)) {
+    changed = true
+  }
+
+  if (ensureQuestStates(state, { completeTutorial: hasLegacyFarmProgress(state) }, now)) {
+    changed = true
+  }
+
   if (state.orders.length !== FARM_ORDER_SLOT_COUNT || !state.orderBoardExpiresAt || state.orderBoardExpiresAt <= now) {
     refreshOrderBoard(state, now)
     changed = true
@@ -1073,6 +1943,7 @@ function syncFarmState(state, now = Date.now()) {
   }
 
   cleanupInventoryEntries(state)
+  ensureFarmLevelConsistency(state)
 
   if (changed) {
     touchFarmState(state)
@@ -1098,6 +1969,248 @@ function ensureFarmState(userId) {
   return state
 }
 
+function getQuestStepProgress(state, step, now = Date.now()) {
+  switch (step.type) {
+  case 'open_farm':
+    return state.stats.openFarmCount
+  case 'buy_seed':
+    return state.stats.buySeedCount
+  case 'plant':
+    return state.stats.plantCount
+  case 'water':
+    return state.stats.waterCount
+  case 'harvest':
+    return state.stats.harvestUnits
+  case 'sell_crop_units':
+    return state.stats.sellCropUnits
+  case 'deliver_order':
+    return state.stats.deliverOrderCount
+  case 'reach_level':
+    return state.farmLevel
+  case 'buy_plot':
+    if (step.plotId) {
+      return getPlotById(state, step.plotId)?.owned ? 1 : 0
+    }
+    if (step.landType) {
+      return state.plots.filter(plot => plot.owned && plot.landType === step.landType).length
+    }
+    return state.stats.buyPlotCount
+  case 'harvest_on_land':
+    return Math.max(0, normalizeInteger(state.stats.harvestOnLand?.[step.landType] || 0, 0))
+  case 'collect_crop_kinds':
+    return state.stats.collectedCropAliases.length
+  case 'buy_pet':
+    return Object.keys(state.pets).length
+  case 'buy_pet_food':
+    return state.stats.buyPetFoodCount
+  case 'feed_pet_hours':
+    return Math.floor(state.stats.feedPetAddedMs / HOUR_MS)
+  case 'visit_farm':
+    return state.stats.visitFarmCount
+  case 'attempt_steal':
+    return state.stats.attemptStealCount
+  case 'successful_steal':
+    return state.stats.successfulStealCount
+  case 'accumulate_guard_hours':
+    return Math.floor(state.stats.guardAccumulatedMs / HOUR_MS)
+  default:
+    return 0
+  }
+}
+
+function applyQuestReward(state, reward) {
+  const summary = {
+    coinReward: 0,
+    xpGained: 0,
+    seedRewards: [],
+    petFoodRewards: []
+  }
+
+  if (!reward) {
+    return summary
+  }
+
+  if (reward.coins > 0) {
+    summary.coinReward += reward.coins
+  }
+
+  let xpReward = Math.max(0, normalizeInteger(reward.xp, 0))
+  if (reward.fillToLevel > 0) {
+    const requiredXp = getLevelStartXp(reward.fillToLevel)
+    if (state.farmXp < requiredXp) {
+      xpReward += requiredXp - state.farmXp
+    }
+  }
+
+  if (xpReward > 0) {
+    summary.xpGained = gainFarmXp(state, xpReward).xpGained
+  }
+
+  for (const seedReward of reward.seeds || []) {
+    const crop = getCropByAlias(seedReward.cropAlias)
+    if (!crop) {
+      continue
+    }
+
+    addSeedInventory(state, crop, seedReward.count)
+    summary.seedRewards.push({
+      cropAlias: crop.alias,
+      seedName: crop.seedName,
+      count: seedReward.count
+    })
+  }
+
+  for (const foodReward of reward.petFoods || []) {
+    const food = getPetFoodByAlias(foodReward.foodAlias)
+    if (!food) {
+      continue
+    }
+
+    addPetFoodInventory(state, food, foodReward.count)
+    summary.petFoodRewards.push({
+      foodAlias: food.alias,
+      name: food.name,
+      count: foodReward.count
+    })
+  }
+
+  return summary
+}
+
+function progressMainQuests(state, now = Date.now()) {
+  let changed = false
+  let coinReward = 0
+  let xpGained = 0
+  const stepCompletions = []
+  const chapterCompletions = []
+
+  for (const chapter of farmRegistry.mainQuestChapterList) {
+    const questState = state.mainQuests[chapter.id] || {
+      chapterId: chapter.id,
+      currentStep: 0,
+      progress: 0,
+      completedAt: 0
+    }
+    state.mainQuests[chapter.id] = questState
+
+    const maxStep = chapter.steps.length
+    while (questState.currentStep < maxStep) {
+      const step = chapter.steps[questState.currentStep]
+      const progressValue = Math.min(step.target, getQuestStepProgress(state, step, now))
+      if (questState.progress !== progressValue) {
+        questState.progress = progressValue
+        changed = true
+      }
+
+      if (progressValue < step.target) {
+        break
+      }
+
+      const rewardSummary = applyQuestReward(state, step.reward)
+      coinReward += rewardSummary.coinReward
+      xpGained += rewardSummary.xpGained
+      questState.currentStep += 1
+      questState.progress = 0
+      changed = true
+      stepCompletions.push({
+        chapterId: chapter.id,
+        chapterName: chapter.name,
+        stepIndex: questState.currentStep,
+        totalSteps: maxStep,
+        step,
+        reward: rewardSummary
+      })
+
+      if (questState.currentStep >= maxStep) {
+        questState.completedAt = questState.completedAt || now
+        chapterCompletions.push({
+          chapterId: chapter.id,
+          chapterName: chapter.name
+        })
+      }
+    }
+
+    if (questState.currentStep < maxStep) {
+      const currentStep = chapter.steps[questState.currentStep]
+      const progressValue = Math.min(currentStep.target, getQuestStepProgress(state, currentStep, now))
+      if (questState.progress !== progressValue) {
+        questState.progress = progressValue
+        changed = true
+      }
+    }
+  }
+
+  return {
+    changed,
+    coinReward,
+    xpGained,
+    stepCompletions,
+    chapterCompletions
+  }
+}
+
+function buildMutationMeta(state, beforeXp, beforeLevel, questSummary) {
+  return {
+    farmXpGained: Math.max(0, state.farmXp - beforeXp),
+    levelBefore: beforeLevel,
+    levelAfter: state.farmLevel,
+    questCoinReward: questSummary.coinReward,
+    questProgress: {
+      stepCompletions: questSummary.stepCompletions,
+      chapterCompletions: questSummary.chapterCompletions
+    }
+  }
+}
+
+function updateFarmProgress(state, now = Date.now()) {
+  syncFarmState(state, now)
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
+  const questSummary = progressMainQuests(state, now)
+  if (questSummary.changed) {
+    touchFarmState(state)
+  }
+
+  return {
+    ok: true,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+  }
+}
+
+function recordFarmAction(state, action, now = Date.now()) {
+  syncFarmState(state, now)
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
+  let changed = false
+
+  if (action === 'open_farm') {
+    state.stats.openFarmCount += 1
+    changed = true
+  }
+
+  const questSummary = progressMainQuests(state, now)
+  if (changed || questSummary.changed) {
+    touchFarmState(state)
+  }
+
+  return {
+    ok: true,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+  }
+}
+
+function getPlotWaterCost(plot) {
+  const crop = getCropByAlias(plot.cropAlias)
+  return crop?.waterStamina ?? plot.waterStaminaSnapshot ?? 0
+}
+
+function getPlotWaterReductionMs(plot) {
+  const crop = getCropByAlias(plot.cropAlias)
+  const growMinutes = crop?.growMinutes ?? plot.growMinutesSnapshot ?? 0
+  const reductionPercent = crop?.waterBaseReductionPercent ?? plot.waterBaseReductionPercentSnapshot ?? 0
+  return Math.floor(growMinutes * 60 * 1000 * (reductionPercent / 100))
+}
+
 function previewBuySeeds(state, seedAlias, count) {
   syncFarmState(state)
 
@@ -1110,6 +2223,10 @@ function previewBuySeeds(state, seedAlias, count) {
   const crop = getCropByAlias(normalizedAlias)
   if (!crop) {
     return { ok: false, reason: 'unknown_crop' }
+  }
+
+  if (!isCropUnlockedForState(crop, state)) {
+    return { ok: false, reason: 'crop_locked', crop }
   }
 
   return {
@@ -1126,19 +2243,14 @@ function buySeeds(state, seedAlias, count, options = {}) {
     return preview
   }
 
-  const currentSeed = state.seeds[preview.crop.alias] || {
-    cropAlias: preview.crop.alias,
-    count: 0,
-    nameSnapshot: preview.crop.name,
-    seedNameSnapshot: preview.crop.seedName,
-    seedPriceSnapshot: preview.crop.seedPrice
-  }
+  const now = Date.now()
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
 
-  currentSeed.count += preview.count
-  currentSeed.nameSnapshot = preview.crop.name
-  currentSeed.seedNameSnapshot = preview.crop.seedName
-  currentSeed.seedPriceSnapshot = preview.crop.seedPrice
-  state.seeds[preview.crop.alias] = currentSeed
+  addSeedInventory(state, preview.crop, preview.count)
+  state.stats.buySeedCount += preview.count
+
+  const questSummary = progressMainQuests(state, now)
   touchFarmState(state)
 
   return {
@@ -1146,7 +2258,8 @@ function buySeeds(state, seedAlias, count, options = {}) {
     crop: preview.crop,
     count: preview.count,
     totalCost: preview.totalCost,
-    inventoryCount: currentSeed.count
+    inventoryCount: state.seeds[preview.crop.alias].count,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
   }
 }
 
@@ -1158,6 +2271,10 @@ function previewPlantSeed(state, plotId, seedAlias, now = Date.now()) {
     return { ok: false, reason: 'plot_out_of_range' }
   }
 
+  if (!plot.owned) {
+    return { ok: false, reason: 'plot_locked', plot }
+  }
+
   if (!isPlotEmpty(plot)) {
     return { ok: false, reason: 'plot_occupied', plot }
   }
@@ -1167,17 +2284,25 @@ function previewPlantSeed(state, plotId, seedAlias, now = Date.now()) {
     return { ok: false, reason: 'unknown_crop' }
   }
 
+  if (!isCropUnlockedForState(crop, state)) {
+    return { ok: false, reason: 'crop_locked', crop }
+  }
+
   const seedEntry = getSeedEntry(state, crop.alias)
   if (!seedEntry || seedEntry.count <= 0) {
     return { ok: false, reason: 'seed_missing', crop }
   }
 
+  const land = getLandConfig(plot.plotId)
+  const growMinutes = crop.growMinutes * (land?.growMultiplier || 1)
   return {
     ok: true,
     crop,
     plot,
     staminaCost: crop.plantStamina,
-    readyAt: now + (crop.growMinutes * 60 * 1000)
+    readyAt: now + Math.ceil(growMinutes * 60 * 1000),
+    growMinutes,
+    yieldTotal: Math.max(0, Math.ceil(crop.harvestYield * (land?.yieldMultiplier || 1)))
   }
 }
 
@@ -1187,46 +2312,40 @@ function plantSeed(state, plotId, seedAlias, now = Date.now(), options = {}) {
     return preview
   }
 
-  const plot = preview.plot
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
   const seedEntry = getSeedEntry(state, preview.crop.alias)
   seedEntry.count -= 1
   if (seedEntry.count <= 0) {
     delete state.seeds[preview.crop.alias]
   }
 
-  Object.assign(plot, {
+  Object.assign(preview.plot, {
     cropAlias: preview.crop.alias,
     nameSnapshot: preview.crop.name,
     sellPriceSnapshot: preview.crop.sellPrice,
-    harvestYieldSnapshot: preview.crop.harvestYield,
-    growMinutesSnapshot: preview.crop.growMinutes,
+    yieldTotalSnapshot: preview.yieldTotal,
+    yieldStolen: 0,
+    growMinutesSnapshot: preview.growMinutes,
     waterStaminaSnapshot: preview.crop.waterStamina,
     waterBaseReductionPercentSnapshot: preview.crop.waterBaseReductionPercent,
     plantedAt: now,
     readyAt: preview.readyAt,
     watered: false
   })
+  state.stats.plantCount += 1
+
+  const questSummary = progressMainQuests(state, now)
   touchFarmState(state)
 
   return {
     ok: true,
     crop: preview.crop,
-    plot,
+    plot: preview.plot,
     staminaCost: preview.staminaCost,
-    readyAt: preview.readyAt
+    readyAt: preview.readyAt,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
   }
-}
-
-function getPlotWaterCost(plot) {
-  const crop = getCropByAlias(plot.cropAlias)
-  return crop?.waterStamina ?? plot.waterStaminaSnapshot ?? 0
-}
-
-function getPlotWaterReductionMs(plot) {
-  const crop = getCropByAlias(plot.cropAlias)
-  const growMinutes = crop?.growMinutes ?? plot.growMinutesSnapshot ?? 0
-  const reductionPercent = crop?.waterBaseReductionPercent ?? plot.waterBaseReductionPercentSnapshot ?? 0
-  return Math.floor(growMinutes * 60 * 1000 * (reductionPercent / 100))
 }
 
 function previewWaterPlots(state, target, now = Date.now()) {
@@ -1234,7 +2353,7 @@ function previewWaterPlots(state, target, now = Date.now()) {
 
   const targetText = String(target || '').trim().toLowerCase()
   const selectedPlots = targetText === 'all'
-    ? state.plots.filter(plot => !isPlotEmpty(plot))
+    ? state.plots.filter(plot => plot.owned && !isPlotEmpty(plot))
     : [getPlotById(state, Number(target))]
 
   if (targetText === 'all' && !selectedPlots.length) {
@@ -1247,32 +2366,32 @@ function previewWaterPlots(state, target, now = Date.now()) {
 
   if (targetText !== 'all') {
     const plot = selectedPlots[0]
+    if (!plot.owned) {
+      return { ok: false, reason: 'plot_locked', plot }
+    }
     if (isPlotEmpty(plot)) {
       return { ok: false, reason: 'plot_empty', plot }
     }
-
     if (isPlotReady(plot, now)) {
       return { ok: false, reason: 'already_ready', plot }
     }
-
     if (plot.watered) {
       return { ok: false, reason: 'already_watered', plot }
     }
   }
 
   const eligiblePlots = selectedPlots.filter(plot =>
-    plot && !isPlotEmpty(plot) && !isPlotReady(plot, now) && !plot.watered
+    plot && plot.owned && !isPlotEmpty(plot) && !isPlotReady(plot, now) && !plot.watered
   )
 
   if (!eligiblePlots.length) {
     return { ok: false, reason: 'no_eligible_plots' }
   }
 
-  const staminaCost = eligiblePlots.reduce((sum, plot) => sum + getPlotWaterCost(plot), 0)
   return {
     ok: true,
     plots: eligiblePlots,
-    staminaCost
+    staminaCost: eligiblePlots.reduce((sum, plot) => sum + getPlotWaterCost(plot), 0)
   }
 }
 
@@ -1282,6 +2401,8 @@ function waterPlots(state, target, now = Date.now(), options = {}) {
     return preview
   }
 
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
   const wateredPlots = []
   for (const plot of preview.plots) {
     plot.readyAt = Math.max(now, plot.readyAt - getPlotWaterReductionMs(plot))
@@ -1294,27 +2415,16 @@ function waterPlots(state, target, now = Date.now(), options = {}) {
     })
   }
 
+  state.stats.waterCount += wateredPlots.length
+  const questSummary = progressMainQuests(state, now)
   touchFarmState(state)
 
   return {
     ok: true,
     plots: wateredPlots,
-    staminaCost: preview.staminaCost
+    staminaCost: preview.staminaCost,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
   }
-}
-
-function addHarvestedCrop(state, plot) {
-  const currentCrop = state.crops[plot.cropAlias] || {
-    cropAlias: plot.cropAlias,
-    count: 0,
-    nameSnapshot: plot.nameSnapshot,
-    sellPriceSnapshot: plot.sellPriceSnapshot
-  }
-
-  currentCrop.count += plot.harvestYieldSnapshot || 1
-  currentCrop.nameSnapshot = plot.nameSnapshot || currentCrop.nameSnapshot
-  currentCrop.sellPriceSnapshot = plot.sellPriceSnapshot || currentCrop.sellPriceSnapshot
-  state.crops[plot.cropAlias] = currentCrop
 }
 
 function previewHarvestPlots(state, target, now = Date.now()) {
@@ -1322,7 +2432,7 @@ function previewHarvestPlots(state, target, now = Date.now()) {
 
   const targetText = String(target || '').trim().toLowerCase()
   const selectedPlots = targetText === 'all'
-    ? state.plots.filter(plot => !isPlotEmpty(plot))
+    ? state.plots.filter(plot => plot.owned && !isPlotEmpty(plot))
     : [getPlotById(state, Number(target))]
 
   if (targetText === 'all' && !selectedPlots.length) {
@@ -1335,16 +2445,18 @@ function previewHarvestPlots(state, target, now = Date.now()) {
 
   if (targetText !== 'all') {
     const plot = selectedPlots[0]
+    if (!plot.owned) {
+      return { ok: false, reason: 'plot_locked', plot }
+    }
     if (isPlotEmpty(plot)) {
       return { ok: false, reason: 'plot_empty', plot }
     }
-
     if (!isPlotReady(plot, now)) {
       return { ok: false, reason: 'not_ready', plot }
     }
   }
 
-  const readyPlots = selectedPlots.filter(plot => plot && isPlotReady(plot, now))
+  const readyPlots = selectedPlots.filter(plot => plot && plot.owned && isPlotReady(plot, now))
   if (!readyPlots.length) {
     return { ok: false, reason: 'no_ready_plots' }
   }
@@ -1361,29 +2473,56 @@ function harvestPlots(state, target, now = Date.now()) {
     return preview
   }
 
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
   const harvested = []
+  let totalUnits = 0
+
   for (const plot of preview.plots) {
-    addHarvestedCrop(state, plot)
+    const count = Math.max(0, normalizeInteger(plot.yieldTotalSnapshot, 0) - normalizeInteger(plot.yieldStolen, 0))
+    if (count > 0) {
+      addCropInventory(state, {
+        cropAlias: plot.cropAlias,
+        count,
+        nameSnapshot: plot.nameSnapshot,
+        sellPriceSnapshot: plot.sellPriceSnapshot
+      })
+      state.stats.harvestUnits += count
+      state.stats.harvestOnLand[plot.landType] += count
+      totalUnits += count
+    }
+
     harvested.push({
       plotId: plot.plotId,
       cropAlias: plot.cropAlias,
       nameSnapshot: plot.nameSnapshot,
-      count: plot.harvestYieldSnapshot || 1
+      count
     })
-    Object.assign(plot, createEmptyPlot(plot.plotId))
+
+    Object.assign(plot, createEmptyPlot(plot.plotId), {
+      owned: plot.owned
+    })
   }
 
+  if (totalUnits > 0) {
+    gainFarmXp(state, totalUnits * 2)
+  }
+
+  const questSummary = progressMainQuests(state, now)
   touchFarmState(state)
 
   return {
     ok: true,
-    harvested
+    harvested,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
   }
 }
 
 function sellCrops(state, cropAlias, count) {
   syncFarmState(state)
-
+  const now = Date.now()
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
   const normalizedAlias = normalizeAlias(cropAlias)
   const cropEntry = getCropEntry(state, normalizedAlias)
   if (!cropEntry || cropEntry.count <= 0) {
@@ -1409,6 +2548,14 @@ function sellCrops(state, cropAlias, count) {
   if (cropEntry.count <= 0) {
     delete state.crops[normalizedAlias]
   }
+
+  const coinReward = normalizedCount * cropEntry.sellPriceSnapshot
+  state.stats.sellCropUnits += normalizedCount
+  if (coinReward > 0) {
+    gainFarmXp(state, Math.floor(coinReward / 10))
+  }
+
+  const questSummary = progressMainQuests(state, now)
   touchFarmState(state)
 
   return {
@@ -1416,7 +2563,8 @@ function sellCrops(state, cropAlias, count) {
     cropAlias: normalizedAlias,
     cropNameSnapshot: cropEntry.nameSnapshot,
     soldCount: normalizedCount,
-    coinReward: normalizedCount * cropEntry.sellPriceSnapshot
+    coinReward,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
   }
 }
 
@@ -1426,7 +2574,7 @@ function replaceOrderSlot(state, slotIndex, now = Date.now()) {
     return
   }
 
-  const replacement = createOrder(state.orderBoardExpiresAt, slotIndex + 1)
+  const replacement = createOrder(state, state.orderBoardExpiresAt, slotIndex + 1)
   if (replacement) {
     state.orders[slotIndex] = replacement
   } else {
@@ -1436,7 +2584,8 @@ function replaceOrderSlot(state, slotIndex, now = Date.now()) {
 
 function deliverOrder(state, orderIndex, now = Date.now()) {
   syncFarmState(state, now)
-
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
   const slotIndex = Number(orderIndex) - 1
   if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= state.orders.length) {
     return { ok: false, reason: 'order_missing' }
@@ -1465,6 +2614,10 @@ function deliverOrder(state, orderIndex, now = Date.now()) {
 
   const completedOrder = cloneData(order)
   replaceOrderSlot(state, slotIndex, now)
+  state.stats.deliverOrderCount += 1
+  gainFarmXp(state, 10 + (completedOrder.requiredQty * 3))
+
+  const questSummary = progressMainQuests(state, now)
   touchFarmState(state)
 
   return {
@@ -1472,8 +2625,532 @@ function deliverOrder(state, orderIndex, now = Date.now()) {
     order: completedOrder,
     replacement: state.orders[slotIndex] || null,
     coinReward: completedOrder.coinReward,
-    favorReward: completedOrder.favorReward
+    favorReward: completedOrder.favorReward,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
   }
+}
+
+function getFarmLevelInfo(state) {
+  syncFarmState(state)
+  const levelInfo = getFarmLevelProgressInfo(state.farmXp)
+  return {
+    level: state.farmLevel,
+    totalXp: state.farmXp,
+    currentXp: levelInfo.currentXp,
+    neededXp: levelInfo.neededXp,
+    nextLevel: state.farmLevel + 1
+  }
+}
+
+function getUnlockedFarmCrops(state) {
+  syncFarmState(state)
+  return cloneData(farmRegistry.cropList.filter(crop => isCropUnlockedForState(crop, state)))
+}
+
+function getFarmQuestView(state, now = Date.now()) {
+  syncFarmState(state, now)
+
+  return farmRegistry.mainQuestChapterList.map(chapter => {
+    const questState = state.mainQuests[chapter.id] || {
+      chapterId: chapter.id,
+      currentStep: 0,
+      progress: 0,
+      completedAt: 0
+    }
+    const completed = questState.currentStep >= chapter.steps.length
+    const currentStepIndex = completed ? chapter.steps.length - 1 : questState.currentStep
+    const currentStep = chapter.steps[currentStepIndex] || null
+    const progress = completed
+      ? currentStep?.target || 0
+      : currentStep
+        ? Math.min(currentStep.target, getQuestStepProgress(state, currentStep, now))
+        : 0
+
+    return {
+      chapterId: chapter.id,
+      name: chapter.name,
+      description: chapter.description,
+      totalSteps: chapter.steps.length,
+      currentStep: completed ? chapter.steps.length : (questState.currentStep + 1),
+      completed,
+      completedAt: questState.completedAt || 0,
+      progress,
+      target: currentStep?.target || 0,
+      step: currentStep,
+      steps: chapter.steps
+    }
+  })
+}
+
+function getFarmLandView(state) {
+  syncFarmState(state)
+
+  return LAND_CONFIG.map(land => {
+    const plot = getPlotById(state, land.plotId)
+    return {
+      ...land,
+      owned: Boolean(plot?.owned),
+      cropAlias: plot?.cropAlias || '',
+      nameSnapshot: plot?.nameSnapshot || '',
+      readyAt: plot?.readyAt || 0,
+      yieldTotalSnapshot: plot?.yieldTotalSnapshot || 0,
+      yieldStolen: plot?.yieldStolen || 0,
+      watered: Boolean(plot?.watered)
+    }
+  })
+}
+
+function buyPlot(state, plotId, options = {}) {
+  syncFarmState(state)
+  const land = getLandConfig(plotId)
+  if (!land) {
+    return { ok: false, reason: 'plot_out_of_range' }
+  }
+
+  const plot = getPlotById(state, plotId)
+  if (plot?.owned) {
+    return { ok: false, reason: 'plot_already_owned', plot, land }
+  }
+
+  if (state.farmLevel < land.unlockLevel) {
+    return { ok: false, reason: 'plot_locked_by_level', plot, land }
+  }
+
+  if (options.preview) {
+    return {
+      ok: true,
+      plot,
+      land,
+      price: land.price
+    }
+  }
+
+  const now = options.now || Date.now()
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
+  plot.owned = true
+  state.stats.buyPlotCount += 1
+  if (!state.stats.boughtPlotIds.includes(plot.plotId)) {
+    state.stats.boughtPlotIds.push(plot.plotId)
+  }
+
+  const questSummary = progressMainQuests(state, now)
+  touchFarmState(state)
+
+  return {
+    ok: true,
+    plot,
+    land,
+    price: land.price,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+  }
+}
+
+function getFarmPetView(state, now = Date.now()) {
+  syncFarmState(state, now)
+  const activePet = getActivePetEntry(state)
+
+  return {
+    unlocked: isFarmSocialUnlocked(state),
+    activePetAlias: state.activePetAlias,
+    activePet: activePet
+      ? {
+        ...cloneData(activePet),
+        remainingGuardMs: Math.max(0, activePet.guardUntil - now)
+      }
+      : null,
+    pets: Object.values(state.pets)
+      .sort((left, right) => left.petAlias.localeCompare(right.petAlias, 'en'))
+      .map(entry => ({
+        ...cloneData(entry),
+        remainingGuardMs: Math.max(0, entry.guardUntil - now)
+      })),
+    petFoods: Object.values(state.petFoods)
+      .sort((left, right) => left.foodAlias.localeCompare(right.foodAlias, 'en'))
+      .map(entry => cloneData(entry))
+  }
+}
+
+function buyPet(state, petAlias, options = {}) {
+  syncFarmState(state)
+  if (!isFarmSocialUnlocked(state)) {
+    return { ok: false, reason: 'feature_locked' }
+  }
+
+  const pet = getPetByAlias(petAlias)
+  if (!pet) {
+    return { ok: false, reason: 'unknown_pet' }
+  }
+
+  if (getPetEntry(state, pet.alias)) {
+    return { ok: false, reason: 'pet_owned', pet }
+  }
+
+  if (options.preview) {
+    return {
+      ok: true,
+      pet,
+      price: pet.price
+    }
+  }
+
+  const now = options.now || Date.now()
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
+  state.pets[pet.alias] = {
+    petAlias: pet.alias,
+    nameSnapshot: pet.name,
+    guardInterceptPercentSnapshot: pet.guardInterceptPercent,
+    boughtAt: now,
+    guardUntil: 0
+  }
+  state.stats.buyPetCount += 1
+  if (!state.activePetAlias) {
+    state.activePetAlias = pet.alias
+    state.guardTrackedAt = now
+  }
+
+  const questSummary = progressMainQuests(state, now)
+  touchFarmState(state)
+
+  return {
+    ok: true,
+    pet,
+    price: pet.price,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+  }
+}
+
+function buyPetFood(state, foodAlias, count, options = {}) {
+  syncFarmState(state)
+  if (!isFarmSocialUnlocked(state)) {
+    return { ok: false, reason: 'feature_locked' }
+  }
+
+  const food = getPetFoodByAlias(foodAlias)
+  if (!food) {
+    return { ok: false, reason: 'unknown_food' }
+  }
+
+  const normalizedCount = normalizeCount(count)
+  if (!isPositiveInteger(normalizedCount)) {
+    return { ok: false, reason: 'invalid_count' }
+  }
+
+  if (options.preview) {
+    return {
+      ok: true,
+      food,
+      count: normalizedCount,
+      totalCost: food.price * normalizedCount
+    }
+  }
+
+  const now = options.now || Date.now()
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
+  addPetFoodInventory(state, food, normalizedCount)
+  state.stats.buyPetFoodCount += normalizedCount
+
+  const questSummary = progressMainQuests(state, now)
+  touchFarmState(state)
+
+  return {
+    ok: true,
+    food,
+    count: normalizedCount,
+    totalCost: food.price * normalizedCount,
+    inventoryCount: state.petFoods[food.alias].count,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+  }
+}
+
+function usePet(state, petAlias, now = Date.now()) {
+  syncFarmState(state, now)
+  if (!isFarmSocialUnlocked(state)) {
+    return { ok: false, reason: 'feature_locked' }
+  }
+
+  const normalizedAlias = normalizeAlias(petAlias)
+  const petEntry = getPetEntry(state, normalizedAlias)
+  if (!petEntry) {
+    return { ok: false, reason: 'pet_not_owned' }
+  }
+
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
+  state.activePetAlias = normalizedAlias
+  state.guardTrackedAt = now
+  const questSummary = progressMainQuests(state, now)
+  touchFarmState(state)
+
+  return {
+    ok: true,
+    pet: cloneData(petEntry),
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+  }
+}
+
+function feedPet(state, foodAlias, count, now = Date.now()) {
+  syncFarmState(state, now)
+  if (!isFarmSocialUnlocked(state)) {
+    return { ok: false, reason: 'feature_locked' }
+  }
+
+  const activePet = getActivePetEntry(state)
+  if (!activePet) {
+    return { ok: false, reason: 'no_active_pet' }
+  }
+
+  const food = getPetFoodByAlias(foodAlias)
+  if (!food) {
+    return { ok: false, reason: 'unknown_food' }
+  }
+
+  const normalizedCount = normalizeCount(count)
+  if (!isPositiveInteger(normalizedCount)) {
+    return { ok: false, reason: 'invalid_count' }
+  }
+
+  const foodEntry = getPetFoodEntry(state, food.alias)
+  if (!foodEntry || foodEntry.count <= 0) {
+    return { ok: false, reason: 'food_missing' }
+  }
+
+  if (foodEntry.count < normalizedCount) {
+    return {
+      ok: false,
+      reason: 'insufficient_food',
+      available: foodEntry.count,
+      food
+    }
+  }
+
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
+  const baseUntil = Math.max(now, activePet.guardUntil)
+  const maxUntil = now + FARM_PET_GUARD_CAP_MS
+  const requestedMs = food.guardHours * normalizedCount * HOUR_MS
+  const newUntil = Math.min(maxUntil, baseUntil + requestedMs)
+  const actualAddedMs = Math.max(0, newUntil - baseUntil)
+  if (actualAddedMs <= 0) {
+    return { ok: false, reason: 'guard_full', pet: activePet }
+  }
+
+  const usedCount = Math.min(normalizedCount, Math.max(1, Math.ceil(actualAddedMs / (food.guardHours * HOUR_MS))))
+  foodEntry.count -= usedCount
+  if (foodEntry.count <= 0) {
+    delete state.petFoods[food.alias]
+  }
+
+  activePet.guardUntil = newUntil
+  state.stats.feedPetAddedMs += actualAddedMs
+  if (state.activePetAlias === activePet.petAlias) {
+    state.guardTrackedAt = now
+  }
+
+  const questSummary = progressMainQuests(state, now)
+  touchFarmState(state)
+
+  return {
+    ok: true,
+    pet: cloneData(activePet),
+    food,
+    usedCount,
+    actualAddedHours: Math.floor(actualAddedMs / HOUR_MS),
+    guardUntil: activePet.guardUntil,
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+  }
+}
+
+function getFarmVisitView(targetState, now = Date.now()) {
+  syncFarmState(targetState, now)
+  const activePet = getActivePetEntry(targetState)
+
+  return {
+    farmLevel: targetState.farmLevel,
+    activePet: activePet
+      ? {
+        petAlias: activePet.petAlias,
+        nameSnapshot: activePet.nameSnapshot,
+        guardInterceptPercentSnapshot: activePet.guardInterceptPercentSnapshot,
+        guardUntil: activePet.guardUntil,
+        remainingGuardMs: Math.max(0, activePet.guardUntil - now)
+      }
+      : null,
+    plots: targetState.plots
+      .filter(plot => plot.owned)
+      .map(plot => ({
+        plotId: plot.plotId,
+        landType: plot.landType,
+        cropAlias: plot.cropAlias,
+        nameSnapshot: plot.nameSnapshot,
+        readyAt: plot.readyAt,
+        watered: plot.watered,
+        yieldTotalSnapshot: plot.yieldTotalSnapshot,
+        yieldStolen: plot.yieldStolen,
+        ready: isPlotReady(plot, now),
+        visibleHarvest: isPlotReady(plot, now)
+          ? Math.max(0, plot.yieldTotalSnapshot - plot.yieldStolen)
+          : 0,
+        canSteal: isPlotReady(plot, now) && plot.cropAlias && plot.yieldStolen <= 0 && (plot.yieldTotalSnapshot - plot.yieldStolen) > 1
+      }))
+  }
+}
+
+function visitFarm(state, targetState, targetUid, now = Date.now()) {
+  syncFarmState(state, now)
+  syncFarmState(targetState, now)
+  if (!isFarmSocialUnlocked(state)) {
+    return { ok: false, reason: 'feature_locked' }
+  }
+
+  const normalizedUid = normalizeInteger(targetUid, 0)
+  if (!isPositiveInteger(normalizedUid)) {
+    return { ok: false, reason: 'invalid_target' }
+  }
+
+  const beforeXp = state.farmXp
+  const beforeLevel = state.farmLevel
+  state.lastVisitedFarmUid = normalizedUid
+  state.lastVisitedFarmAt = now
+  state.stats.visitFarmCount += 1
+  const questSummary = progressMainQuests(state, now)
+  touchFarmState(state)
+
+  return {
+    ok: true,
+    targetUid: normalizedUid,
+    view: getFarmVisitView(targetState, now),
+    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+  }
+}
+
+function stealFromFarm(attackerState, targetState, targetUid, plotId, now = Date.now()) {
+  syncFarmState(attackerState, now)
+  syncFarmState(targetState, now)
+  if (!isFarmSocialUnlocked(attackerState)) {
+    return { ok: false, reason: 'feature_locked' }
+  }
+
+  const normalizedUid = normalizeInteger(targetUid, 0)
+  if (!isPositiveInteger(normalizedUid)) {
+    return { ok: false, reason: 'invalid_target' }
+  }
+
+  if (attackerState.lastVisitedFarmUid !== normalizedUid) {
+    return { ok: false, reason: 'visit_required' }
+  }
+
+  if (attackerState.dailyStealAttempts >= FARM_DAILY_STEAL_LIMIT) {
+    return { ok: false, reason: 'attempt_limit' }
+  }
+
+  const plot = getPlotById(targetState, plotId)
+  if (!plot) {
+    return { ok: false, reason: 'plot_out_of_range' }
+  }
+
+  if (!plot.owned) {
+    return { ok: false, reason: 'plot_not_owned', plot }
+  }
+
+  if (isPlotEmpty(plot)) {
+    return { ok: false, reason: 'plot_empty', plot }
+  }
+
+  if (!isPlotReady(plot, now)) {
+    return { ok: false, reason: 'plot_not_ready', plot }
+  }
+
+  if (plot.yieldStolen > 0) {
+    return { ok: false, reason: 'already_stolen', plot }
+  }
+
+  const beforeXp = attackerState.farmXp
+  const beforeLevel = attackerState.farmLevel
+  attackerState.dailyStealAttempts += 1
+  attackerState.stats.attemptStealCount += 1
+
+  const activePet = getActivePetEntry(targetState)
+  const interceptRate = activePet && activePet.guardUntil > now
+    ? activePet.guardInterceptPercentSnapshot / 100
+    : 0
+  if (interceptRate > 0 && nextRandom() < interceptRate) {
+    const questSummary = progressMainQuests(attackerState, now)
+    pushFarmNotification(targetState, `有访客想偷 ${plot.plotId} 号地的 ${plot.nameSnapshot}，被 ${activePet.nameSnapshot} 拦下啦喵~`)
+    touchFarmState(attackerState)
+    touchFarmState(targetState)
+    return {
+      ok: false,
+      reason: 'pet_blocked',
+      plot,
+      activePet: cloneData(activePet),
+      ...buildMutationMeta(attackerState, beforeXp, beforeLevel, questSummary)
+    }
+  }
+
+  const stealRoll = nextRandom()
+  const desiredCount = stealRoll < 0.65 ? 1 : (stealRoll < 0.85 ? 2 : 0)
+  const maxSteal = Math.max(0, (plot.yieldTotalSnapshot - plot.yieldStolen) - 1)
+  if (desiredCount <= 0 || maxSteal <= 0) {
+    const questSummary = progressMainQuests(attackerState, now)
+    touchFarmState(attackerState)
+    return {
+      ok: false,
+      reason: maxSteal <= 0 ? 'owner_min_keep' : 'steal_failed',
+      plot,
+      ...buildMutationMeta(attackerState, beforeXp, beforeLevel, questSummary)
+    }
+  }
+
+  const stolenCount = Math.min(desiredCount, maxSteal)
+  if (stolenCount <= 0) {
+    const questSummary = progressMainQuests(attackerState, now)
+    touchFarmState(attackerState)
+    return {
+      ok: false,
+      reason: 'owner_min_keep',
+      plot,
+      ...buildMutationMeta(attackerState, beforeXp, beforeLevel, questSummary)
+    }
+  }
+
+  addCropInventory(attackerState, {
+    cropAlias: plot.cropAlias,
+    count: stolenCount,
+    nameSnapshot: plot.nameSnapshot,
+    sellPriceSnapshot: plot.sellPriceSnapshot
+  })
+  plot.yieldStolen += stolenCount
+  attackerState.stats.successfulStealCount += 1
+  attackerState.stats.stolenUnits += stolenCount
+  gainFarmXp(attackerState, stolenCount * 8)
+
+  const questSummary = progressMainQuests(attackerState, now)
+  pushFarmNotification(targetState, `你的 ${plot.plotId} 号地 ${plot.nameSnapshot} 被偷走了 x${stolenCount}，还剩 ${Math.max(0, plot.yieldTotalSnapshot - plot.yieldStolen)} 喵~`)
+  touchFarmState(attackerState)
+  touchFarmState(targetState)
+
+  return {
+    ok: true,
+    cropAlias: plot.cropAlias,
+    cropNameSnapshot: plot.nameSnapshot,
+    stolenCount,
+    plotId: plot.plotId,
+    remainingForOwner: Math.max(0, plot.yieldTotalSnapshot - plot.yieldStolen),
+    ...buildMutationMeta(attackerState, beforeXp, beforeLevel, questSummary)
+  }
+}
+
+function consumeFarmNotifications(state) {
+  syncFarmState(state)
+  const notifications = Array.isArray(state.notifications) ? [...state.notifications] : []
+  if (notifications.length) {
+    state.notifications = []
+    touchFarmState(state)
+  }
+  return notifications
 }
 
 function cloneRegistryView() {
@@ -1498,7 +3175,32 @@ export function getFarmState(userId) {
   return ensureFarmState(userId)
 }
 
-export { syncFarmState, saveFarmData, buySeeds, plantSeed, waterPlots, harvestPlots, sellCrops, deliverOrder }
+export {
+  syncFarmState,
+  saveFarmData,
+  updateFarmProgress,
+  recordFarmAction,
+  buySeeds,
+  plantSeed,
+  waterPlots,
+  harvestPlots,
+  sellCrops,
+  deliverOrder,
+  getFarmQuestView,
+  getFarmLandView,
+  getFarmLevelInfo,
+  getUnlockedFarmCrops,
+  getFarmPetView,
+  getFarmVisitView,
+  buyPlot,
+  visitFarm,
+  stealFromFarm,
+  buyPet,
+  buyPetFood,
+  usePet,
+  feedPet,
+  consumeFarmNotifications
+}
 
 export function __configureFarmForTests(overrides = {}) {
   stopFarmWatcher()

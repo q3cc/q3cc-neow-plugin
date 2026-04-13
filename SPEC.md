@@ -81,46 +81,74 @@
 - 查询失败、超时或词典未返回有效内容时，提示用户换一个单词重试。
 
 ## 种田规范
-- 用户输入 `/farm` 时，显示农场总览、地块状态、订单板刷新剩余时间与快捷指令。
+- 用户输入 `/farm` 时，必须显示农场等级、主线摘要、地块进度、宠物摘要与快捷指令。
 - 种田玩法按 `用户ID` 全局持久化，不区分群聊与私聊。
 - 种田不属于短局互斥游戏，可与 `/24g`、`/ml`、`/wordle`、`/boom` 并行存在。
 - 首次进入农场时：
-  - 自动创建 `4` 块地
-  - 发放新手种子包：`白萝卜 x4`、`番茄 x2`
+  - 默认拥有 `5` 块普通地
+  - 发放新手种子包：`白萝卜 x4`、`卷心菜 x2`、`番茄 x2`
+- 农场等级与主账号资料分离，经验来源固定为：
+  - 收获：`2 * 实际收获单位数`
+  - 卖出：`floor(卖出 Star 币 / 10)`
+  - 交订单：`10 + requiredQty * 3`
+  - 偷菜成功：`8 * 实际偷到单位数`
+  - 主线奖励：按章节 reward 定义
+- 地块总数固定 `15` 块：`1-5` 普通、`6-10` 黄土地、`11-15` 黑土地；黄土地产量 `x1.5`，黑土地产量 `x2.0` 且成长 `x0.85`。
 - `/farm shop`
-  - 显示当前已加载作物的种子商店
+  - 只显示当前农场等级已解锁的作物
 - `/farm buy <作物别名> [数量]`
   - 购买种子，数量默认 `1`
   - 扣除对应 `Star 币`
 - `/farm plant <地块号> <作物别名>`
-  - 在空地播种
+  - 只能在已拥有空地播种
   - 扣除该作物定义中的播种体力
 - `/farm water <地块号|all>`
-  - 给一块地或全部可浇水地块浇水
   - 每轮作物只能浇水一次
-  - 会按该作物基础成长时长缩短固定比例
+  - 会按作物基础成长时长缩短固定比例
 - `/farm harvest <地块号|all>`
   - 收获成熟作物
-  - 不消耗体力
+  - 使用 `actualHarvest = ceil(baseYield * landYieldMultiplier) - yieldStolen`
 - `/farm bag`
-  - 查看当前种子与作物背包
+  - 查看当前种子、作物与宠物粮背包
 - `/farm sell <作物别名> <数量|all>`
   - 按作物快照卖出价换成 `Star 币`
 - `/farm order`
   - 查看当前 `3` 个订单与刷新剩余时间
 - `/farm deliver <订单号>`
-  - 交付指定订单
-  - 获得 `Star 币 + 好感度`
+  - 交付指定订单，获得 `Star 币 + 好感度`
   - 完成后立即补一个同槽位新订单
+- `/farm quest`
+  - 查看 `新手教程 / 农场扩张 / 守卫家园` 三条一次性主线当前步骤与进度
+- `/farm land`
+  - 查看 `15` 块地、解锁等级、价格与拥有状态
+- `/farm buyplot <地块号>`
+  - 购买已解锁未拥有地块
+- `/farm visit <UID>` / `/farm steal <UID> <地块号>`
+  - `Lv20` 开放
+  - 必须先 visit 再 steal
+  - 每人每天最多 `5` 次尝试
+  - 每块地每轮作物最多成功被偷 `1` 次
+  - 地主至少保留 `1` 个可收获单位
+- `/farm pet`
+  - 查看当前驻守宠物、已拥有宠物与宠物粮
+- `/farm pet shop`
+  - 查看核心包与外部附加件提供的宠物、宠物粮商店
+- `/farm pet buy <petAlias>` / `/farm pet food buy <foodAlias> [数量]`
+  - `Lv20` 开放
+  - 购买永久宠物或宠物粮
+- `/farm pet use <petAlias>` / `/farm pet feed <foodAlias> [数量]`
+  - 同一时间只允许 `1` 只宠物驻守
+  - 宠物粮只延长当前驻守宠物的 `guardUntil`
+  - 看家总时长上限 `48h`
 - `/farm addon`
   - 仅管理员可用
-  - 查看 farm 附加件、热重载时间与被跳过的坏包
+  - 查看 farm 附加件、最近热重载时间与被跳过的坏包
 
 ## farm 附加件规范
 - 内置基础包使用与外部附加件相同的 schema，位于 `resources/farm-core-addon.json`。
 - 外部附加件目录固定为 `data/q3cc-neow-plugin/addons/farm/`，扫描所有 `*.json` 文件。
-- v1 仅支持 **数据包 + 固定规则字段**，不支持自定义脚本执行。
-- 每个附加件固定字段：
+- 当前同时兼容 `schemaVersion: 1` 与 `schemaVersion: 2`。
+- schema v1 固定字段：
   - `schemaVersion`
   - `id`
   - `name`
@@ -130,24 +158,13 @@
   - `starterGrants`
   - `crops`
   - `orderTemplates`
-- `crops` 固定字段：
-  - `alias`
-  - `name`
-  - `seedName`
-  - `seedPrice`
-  - `growMinutes`
-  - `plantStamina`
-  - `waterStamina`
-  - `waterBaseReductionPercent`
-  - `harvestYield`
-  - `sellPrice`
-  - `orderFavorReward`
-- `orderTemplates` 固定字段：
-  - `cropAlias`
-  - `qtyMin`
-  - `qtyMax`
-  - `coinBonusPerUnit`
-  - `weight`
+- schema v2 额外支持：
+  - `crops[].unlockLevel`
+  - `pets[]`
+  - `petFoods[]`
+  - `mainQuestChapters[]`
+- `mainQuestChapters[].steps[].type` 仅允许：`open_farm`、`buy_seed`、`plant`、`water`、`harvest`、`sell_crop_units`、`deliver_order`、`reach_level`、`buy_plot`、`harvest_on_land`、`collect_crop_kinds`、`buy_pet`、`buy_pet_food`、`feed_pet_hours`、`visit_farm`、`attempt_steal`、`successful_steal`、`accumulate_guard_hours`。
+- 附加件只允许声明固定字段，不支持任意脚本执行。
 - 冲突与错误处理：
   - 重复 `id`：后加载包跳过
   - 冲突 `alias`：整个包跳过

@@ -36,15 +36,26 @@
 - `/dict <1-5>` - 查看上一轮搜索结果中对应编号的详细释义
 - `/查词 <词语>` - `/dict` 的中文别名
 - `/farm` - 查看农田总览
-- `/farm shop` - 查看种子商店
+- `/farm shop` - 查看当前等级可购买的种子商店
 - `/farm buy <作物别名> [数量]` - 购买种子
 - `/farm plant <地块号> <作物别名>` - 在指定地块播种
 - `/farm water <地块号|all>` - 给一块地或全部可浇水地块浇水
 - `/farm harvest <地块号|all>` - 收获成熟作物
-- `/farm bag` - 查看农场背包
+- `/farm bag` - 查看农场背包（含宠物粮）
 - `/farm sell <作物别名> <数量|all>` - 卖出背包里的作物
 - `/farm order` - 查看订单板
 - `/farm deliver <订单号>` - 交付订单
+- `/farm quest` - 查看三条主线任务进度
+- `/farm land` - 查看 15 块地与购买条件
+- `/farm buyplot <地块号>` - 购买已解锁地块
+- `/farm visit <UID>` - 参观目标农场
+- `/farm steal <UID> <地块号>` - 尝试偷成熟作物
+- `/farm pet` - 查看宠物与看家状态
+- `/farm pet shop` - 查看宠物与宠物粮商店
+- `/farm pet buy <petAlias>` - 购买宠物
+- `/farm pet food buy <foodAlias> [数量]` - 购买宠物粮
+- `/farm pet use <petAlias>` - 切换当前驻守宠物
+- `/farm pet feed <foodAlias> [数量]` - 给当前驻守宠物喂食
 - `/farm addon` - 管理员查看 farm 附加件状态
 - `/ml` - 查看密码破译菜单
 - `/ml start` - 开始一局密码破译
@@ -129,39 +140,24 @@
 ## 种田规则
 
 - 种田是长期养成系统，不与 `/ml`、`/wordle`、`/boom`、`/24g` 互斥
-- 农田按用户维度持久化，首次进入会自动获得 `4` 块地
-- 初次创建农田会发放一份新手种子包：`白萝卜 x4`、`番茄 x2`
-- `/farm shop` 使用作物别名购买种子，例如 `/farm buy radish 2`
-- `/farm plant` 会消耗当前作物定义中的播种体力，播种后按真实时间成长
-- `/farm water` 每轮作物只能浇水一次，会按作物基础成长时长缩短固定比例
-- `/farm harvest` 不消耗体力，只会把成熟作物收进背包
-- `/farm sell` 会按背包里记录的卖出快照价格换成 `Star 币`
-- `/farm order` 维护 `3` 个订单槽位，每 `6` 小时整板刷新一次
-- `/farm deliver` 交付订单后会获得 `Star 币 + 好感度`，并立即补一个同槽位新订单
+- 农场按用户维度持久化，首次进入默认拥有 `5` 块普通地，并发放新手种子包：`白萝卜 x4`、`卷心菜 x2`、`番茄 x2`
+- 农场等级与主账号等级分离，经验主要来自收获、卖出、交订单、偷菜成功与主线奖励
+- core addon 现内置 `25` 种作物，按 `Lv1 / Lv10 / Lv20 / Lv30 / Lv40` 五档解锁；`/farm shop` 只展示当前等级已开放的作物
+- 农场总地块固定 `15` 块：`1-5` 普通地、`6-10` 黄土地、`11-15` 黑土地；使用 `/farm land` 查看解锁等级与价格，使用 `/farm buyplot` 购买
+- 土地收益固定为：普通地 `产量 x1.0 / 成长 x1.0`、黄土地 `产量 x1.5`、黑土地 `产量 x2.0 / 成长 x0.85`
+- `/farm quest` 会展示 `新手教程 / 农场扩张 / 守卫家园` 三条一次性主线；完成教程末步后会自动补足到 `Lv20`
+- `/farm visit` 与 `/farm steal` 在 `Lv20` 开放：每天最多 `5` 次尝试，每块地每轮作物最多成功被偷 `1` 次，且地主至少保留 `1` 个收成
+- `/farm pet` 系统同样在 `Lv20` 开放：同一时间只能有 `1` 只宠物驻守，宠物粮会延长 `guardUntil`，总看家时长上限 `48h`
+- `/farm bag` 会同时展示种子、作物与宠物粮；地块、背包、订单都带快照，即使附加件被删除，旧存档仍可继续收获、卖出与交付
 
 ## farm 附加件
 
-- farm 的作物、种子、订单模板全部来自附加件数据包，而不是写死在代码里
-- 内置基础包位于 `resources/farm-core-addon.json`
-- 外部附加件会从运行目录 `data/q3cc-neow-plugin/addons/farm/*.json` 自动扫描
-- 支持热重载：向该目录新增、修改、删除 JSON 后，farm registry 会自动重建
-- v1 只支持 **数据包 + 固定规则字段**，不支持任意 JS 脚本
-- 每个附加件必须包含这些字段：
-  - `schemaVersion`
-  - `id`
-  - `name`
-  - `version`
-  - `enabled`
-  - `priority`
-  - `starterGrants`
-  - `crops`
-  - `orderTemplates`
-- `crops[].alias` 必须全局唯一，命令中统一使用这个别名
-- 冲突与错误处理：
-  - 重复 `id`：后加载包跳过
-  - 冲突 `alias`：整个包跳过
-  - 订单模板引用不存在的 `cropAlias`：只跳过那条模板
-  - JSON 或字段校验失败：跳过坏包，保留上一份可用 registry
+- farm 内容继续走“引擎 + 附加件数据包”模式，内置基础包位于 `resources/farm-core-addon.json`
+- 外部附加件目录固定为 `data/q3cc-neow-plugin/addons/farm/*.json`，目录变更会触发自动热重载
+- 当前同时兼容 `schemaVersion: 1` 与 `schemaVersion: 2`
+- schema v2 在 v1 基础上新增：`crops[].unlockLevel`、`pets[]`、`petFoods[]`、`mainQuestChapters[]`
+- 附加件仍然只允许声明固定字段，不支持任意脚本执行
+- 冲突与错误处理保持“坏包跳过、旧 registry 保留”策略：重复 `id` 跳过、冲突 `alias` 整包跳过、坏引用模板单条跳过、整体重建失败则继续保留上一份可用 registry
 
 ## 查词规则
 

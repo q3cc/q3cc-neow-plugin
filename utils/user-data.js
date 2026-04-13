@@ -486,6 +486,28 @@ export function getUserData(userId) {
   return user
 }
 
+export function findUserByUid(uid) {
+  const normalizedUid = Number(uid)
+  if (!Number.isInteger(normalizedUid) || normalizedUid <= 0) {
+    return null
+  }
+
+  for (const [userId, user] of users.entries()) {
+    if (hasValidUid(user) && user.uid === normalizedUid) {
+      return {
+        userId,
+        user
+      }
+    }
+  }
+
+  return null
+}
+
+export function findUserIdByUid(uid) {
+  return findUserByUid(uid)?.userId || ''
+}
+
 export function updateUserNickname(userId, nickname) {
   const normalizedNickname = normalizeUserName(nickname)
   if (!normalizedNickname) {

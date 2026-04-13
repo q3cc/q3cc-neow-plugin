@@ -1,5 +1,6 @@
 import {
   getUserData,
+  findUserByUid,
   syncUserData,
   saveUserData,
   buildHelpLines,
@@ -76,15 +77,29 @@ import {
   setPendingDictSelection
 } from '../utils/dict-selection.js'
 import {
+  buyPet,
+  buyPetFood,
+  buyPlot,
   buySeeds,
+  consumeFarmNotifications,
   deliverOrder,
+  feedPet,
   getFarmAddonStatus,
+  getFarmLandView,
+  getFarmLevelInfo,
+  getFarmPetView,
+  getFarmQuestView,
   getFarmRegistry,
   getFarmState,
+  getUnlockedFarmCrops,
   harvestPlots,
   plantSeed,
+  recordFarmAction,
   saveFarmData,
   sellCrops,
+  stealFromFarm,
+  usePet,
+  visitFarm,
   waterPlots
 } from '../utils/farm-game.js'
 import { isBlockedSexualWord } from '../utils/blocked-words.js'
@@ -242,6 +257,50 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?farm\s+deliver\s+(\d+)\s*$/i,
           fnc: 'deliverFarmOrder'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+quest\s*$/i,
+          fnc: 'showFarmQuest'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+land\s*$/i,
+          fnc: 'showFarmLand'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+buyplot\s+(\d+)\s*$/i,
+          fnc: 'buyFarmPlot'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+visit\s+(\d+)\s*$/i,
+          fnc: 'visitOtherFarm'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+steal\s+(\d+)\s+(\d+)\s*$/i,
+          fnc: 'stealFarmCrop'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+pet\s+shop\s*$/i,
+          fnc: 'showFarmPetShop'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+pet\s+buy\s+([a-z0-9_-]+)\s*$/i,
+          fnc: 'buyFarmPet'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+pet\s+food\s+buy\s+([a-z0-9_-]+)(?:\s+(\d+))?\s*$/i,
+          fnc: 'buyFarmPetFood'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+pet\s+use\s+([a-z0-9_-]+)\s*$/i,
+          fnc: 'useFarmPet'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+pet\s+feed\s+([a-z0-9_-]+)(?:\s+(\d+))?\s*$/i,
+          fnc: 'feedFarmPet'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+pet\s*$/i,
+          fnc: 'showFarmPet'
         },
         {
           reg: /^(?:\/|#)?farm\s+addon\s*$/i,
@@ -750,11 +809,18 @@ export class NeowPlugin extends plugin {
       return null
     }
 
+    const state = getFarmState(e.user_id)
+    const notifications = consumeFarmNotifications(state)
+    if (notifications.length) {
+      await saveFarmData()
+    }
+
     return {
       registry,
-      state: getFarmState(e.user_id),
+      state,
       user: getUserData(e.user_id),
-      now: Date.now()
+      now: Date.now(),
+      notifications
     }
   }
 
@@ -822,6 +888,185 @@ export class NeowPlugin extends plugin {
     return `${entry.cropAlias} - ${entry.nameSnapshot} x${entry.count} (卖出 ${entry.sellPriceSnapshot}/个)`
   }
 
+  formatFarmLevelText(levelInfo) {
+    return `Lv${levelInfo.level} (${levelInfo.currentXp}/${levelInfo.neededXp} XP)`
+  }
+
+  formatFarmLandType(landType) {
+    const labelMap = {
+      normal: '普通地',
+      yellow: '黄土地',
+      black: '黑土地'
+    }
+    return labelMap[landType] || '土地'
+  }
+
+  formatFarmQuestLine(quest) {
+    if (!quest) {
+      return ''
+    }
+
+    if (quest.completed) {
+      return `${quest.name}: 已完成 (${quest.totalSteps}/${quest.totalSteps})`
+    }
+
+    return `${quest.name}: ${quest.currentStep}/${quest.totalSteps} - ${quest.step?.label || '进行中'} (${quest.progress}/${quest.target})`
+  }
+
+  formatFarmLandSummaryLine(landView) {
+    const landTypes = ['normal', 'yellow', 'black']
+    return landTypes.map(landType => {
+      const items = landView.filter(item => item.landType === landType)
+      const ownedCount = items.filter(item => item.owned).length
+      return `${this.formatFarmLandType(landType)} ${ownedCount}/${items.length}`
+    }).join(' | ')
+  }
+
+  formatFarmLandLine(land, userLevel, now = Date.now()) {
+    const landLabel = this.formatFarmLandType(land.landType)
+    if (!land.owned) {
+      const status = userLevel >= land.unlockLevel ? '可购买' : `Lv${land.unlockLevel} 解锁`
+      return `${land.plotId}号[${landLabel}] ${status} - ${land.price} Star 币`
+    }
+
+    if (!land.cropAlias) {
+      return `${land.plotId}号[${landLabel}] 已拥有 - 空地`
+    }
+
+    const remainingMs = Math.max(0, (land.readyAt || 0) - now)
+    const visibleYield = Math.max(0, (land.yieldTotalSnapshot || 0) - (land.yieldStolen || 0))
+    const stolenText = land.yieldStolen > 0 ? ` / 已被偷 ${land.yieldStolen}` : ''
+    const status = remainingMs <= 0
+      ? `已成熟 / 可收 ${visibleYield}${stolenText}`
+      : `剩余 ${this.formatFarmDuration(remainingMs)}${stolenText}`
+    return `${land.plotId}号[${landLabel}] 已拥有 - ${land.nameSnapshot} (${status})`
+  }
+
+  formatFarmPetStatusLine(petView) {
+    if (!petView.unlocked) {
+      return 'Lv20 开放'
+    }
+
+    if (!petView.activePet) {
+      return '暂无驻守宠物'
+    }
+
+    return `${petView.activePet.nameSnapshot} - 剩余 ${this.formatFarmDuration(petView.activePet.remainingGuardMs)}`
+  }
+
+  formatFarmOwnedPetLine(pet, activePetAlias) {
+    const activeText = pet.petAlias === activePetAlias ? ' (当前驻守)' : ''
+    return `${pet.petAlias} - ${pet.nameSnapshot} / 拦截 ${pet.guardInterceptPercentSnapshot}% / 看家 ${this.formatFarmDuration(pet.remainingGuardMs)}${activeText}`
+  }
+
+  formatFarmVisitPlotLine(plot, now = Date.now()) {
+    const landLabel = this.formatFarmLandType(plot.landType)
+    if (!plot.cropAlias) {
+      return `${plot.plotId}号[${landLabel}] 空地`
+    }
+
+    if (!plot.ready) {
+      return `${plot.plotId}号[${landLabel}] ${plot.nameSnapshot} - 未成熟，还要 ${this.formatFarmDuration(Math.max(0, plot.readyAt - now))}`
+    }
+
+    const stealTag = plot.canSteal ? '可偷' : '不可偷'
+    return `${plot.plotId}号[${landLabel}] ${plot.nameSnapshot} - 已成熟 / 当前 ${plot.visibleHarvest} / ${stealTag}`
+  }
+
+  formatFarmQuestRewardText(reward) {
+    if (!reward) {
+      return ''
+    }
+
+    const parts = []
+    if (reward.coinReward > 0) {
+      parts.push(`${reward.coinReward} Star 币`)
+    }
+    if (reward.xpGained > 0) {
+      parts.push(`${reward.xpGained} 农场经验`)
+    }
+    for (const seedReward of reward.seedRewards || []) {
+      parts.push(`${seedReward.seedName}x${seedReward.count}`)
+    }
+    for (const foodReward of reward.petFoodRewards || []) {
+      parts.push(`${foodReward.name}x${foodReward.count}`)
+    }
+    return parts.join(' + ')
+  }
+
+  buildFarmMutationLines(mutation) {
+    if (!mutation || typeof mutation.questCoinReward !== 'number') {
+      return []
+    }
+
+    const lines = []
+    if (mutation.farmXpGained > 0) {
+      lines.push(`🌟 农场经验 +${mutation.farmXpGained}`)
+    }
+    if (mutation.levelAfter > mutation.levelBefore) {
+      lines.push(`⬆️ 农场升到 Lv${mutation.levelAfter} 啦喵~`)
+    }
+
+    for (const item of mutation.questProgress?.stepCompletions || []) {
+      lines.push(`✅ 主线[${item.chapterName}] ${item.stepIndex}/${item.totalSteps}: ${item.step?.label || '任务完成'}`)
+      const rewardText = this.formatFarmQuestRewardText(item.reward)
+      if (rewardText) {
+        lines.push(`   奖励: ${rewardText}`)
+      }
+    }
+
+    for (const item of mutation.questProgress?.chapterCompletions || []) {
+      lines.push(`🎉 主线[${item.chapterName}] 已完成`)
+    }
+
+    return lines
+  }
+
+  buildFarmNotificationLines(notifications) {
+    const list = Array.isArray(notifications) ? notifications.filter(Boolean) : []
+    if (!list.length) {
+      return []
+    }
+
+    return ['', '📮 农场动态:', ...list.map(item => `- ${item}`)]
+  }
+
+  async applyFarmUserChanges(farm, options = {}) {
+    const mutation = options.mutation || null
+    const directCoinDelta = Number.isFinite(Number(options.coinDelta)) ? Number(options.coinDelta) : 0
+    const favorDelta = Number.isFinite(Number(options.favorDelta)) ? Number(options.favorDelta) : 0
+    const staminaDelta = Number.isFinite(Number(options.staminaDelta)) ? Number(options.staminaDelta) : 0
+    const questCoinReward = Math.max(0, Number(mutation?.questCoinReward) || 0)
+    const totalCoinDelta = directCoinDelta + questCoinReward
+    let userChanged = false
+
+    if (totalCoinDelta !== 0) {
+      farm.user.coins += totalCoinDelta
+      userChanged = true
+    }
+    if (favorDelta !== 0) {
+      farm.user.favor += favorDelta
+      userChanged = true
+    }
+    if (staminaDelta !== 0) {
+      farm.user.stamina += staminaDelta
+      userChanged = true
+    }
+
+    if (userChanged) {
+      syncUserData(farm.user, { persist: true })
+    }
+    await saveFarmData()
+
+    return {
+      directCoinDelta,
+      favorDelta,
+      staminaDelta,
+      questCoinReward,
+      totalCoinDelta
+    }
+  }
+
   async showFarmMenu(e) {
     if (!await this.ensureUsable(e)) {
       return true
@@ -832,32 +1077,54 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const { registry, state, user, now } = farm
-    const plotLines = state.plots.map(plot => this.formatFarmPlotLine(plot, now))
-    const totalSeedCount = Object.values(state.seeds).reduce((sum, entry) => sum + entry.count, 0)
-    const totalCropCount = Object.values(state.crops).reduce((sum, entry) => sum + entry.count, 0)
-    const adminLines = isTemporaryAdmin(user)
+    const openResult = recordFarmAction(farm.state, 'open_farm', farm.now)
+    await this.applyFarmUserChanges(farm, { mutation: openResult })
+
+    const levelInfo = getFarmLevelInfo(farm.state)
+    const questView = getFarmQuestView(farm.state, farm.now)
+    const landView = getFarmLandView(farm.state)
+    const petView = getFarmPetView(farm.state, farm.now)
+    const unlockedCrops = getUnlockedFarmCrops(farm.state)
+    const ownedPlots = landView.filter(plot => plot.owned)
+    const totalSeedCount = Object.values(farm.state.seeds).reduce((sum, entry) => sum + entry.count, 0)
+    const totalCropCount = Object.values(farm.state.crops).reduce((sum, entry) => sum + entry.count, 0)
+    const completedQuestCount = questView.filter(item => item.completed).length
+    const adminLines = isTemporaryAdmin(farm.user)
       ? ['', '/farm addon - 查看附加件状态']
       : []
 
-    await this.replyWithTimeout(e, [
+    const lines = [
       '大喵喵的小农田开张啦喵~',
-      `当前 Star 币: ${user.coins}`,
-      `⚡ 当前体力: ${user.stamina}/${user.maxStamina}`,
-      `🌱 已加载作物: ${registry.cropList.length} 种`,
+      `🌾 农场等级: ${this.formatFarmLevelText(levelInfo)}`,
+      `当前 Star 币: ${farm.user.coins}`,
+      `⚡ 当前体力: ${farm.user.stamina}/${farm.user.maxStamina}`,
+      `🌱 已解锁作物: ${unlockedCrops.length}/${farm.registry.cropList.length}`,
       `📦 背包概况: ${totalSeedCount} 颗种子 / ${totalCropCount} 个作物`,
-      `📋 订单板刷新: ${this.formatFarmDuration(Math.max(0, state.orderBoardExpiresAt - now))}`,
+      `🗺️ 地块进度: ${this.formatFarmLandSummaryLine(landView)}`,
+      `🐾 宠物驻守: ${this.formatFarmPetStatusLine(petView)}`,
+      `📋 主线完成: ${completedQuestCount}/${questView.length}`,
       '',
-      '地块状态:',
-      ...plotLines,
+      '主线进度:',
+      ...questView.map(item => `  ${this.formatFarmQuestLine(item)}`),
+      '',
+      '已拥有地块:',
+      ...(ownedPlots.length
+        ? ownedPlots.map(plot => `  ${this.formatFarmLandLine(plot, levelInfo.level, farm.now)}`)
+        : ['  还没有地块喵~']),
       '',
       '/farm shop - 查看种子商店',
       '/farm bag - 查看背包',
       '/farm order - 查看订单板',
+      '/farm quest - 查看主线任务',
+      '/farm land - 查看地块购买',
+      '/farm pet - 查看宠物与守卫',
       '/farm harvest all - 一键收成熟作物',
-      ...adminLines
-    ].join('\n'), true)
+      ...adminLines,
+      ...this.buildFarmMutationLines(openResult),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
 
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 
@@ -871,20 +1138,23 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const { registry, user } = farm
-
-    await this.replyWithTimeout(e, [
+    const levelInfo = getFarmLevelInfo(farm.state)
+    const crops = getUnlockedFarmCrops(farm.state)
+    const lines = [
       '农场商店',
-      `当前 Star 币: ${user.coins}`,
+      `🌾 农场等级: ${this.formatFarmLevelText(levelInfo)}`,
+      `当前 Star 币: ${farm.user.coins}`,
       '使用 /farm buy <作物别名> [数量] 购买种子',
       '',
-      ...registry.cropList.map(crop =>
+      ...crops.map(crop =>
         `${crop.alias} - ${crop.seedName} ${crop.seedPrice} Star 币 | ${crop.growMinutes}分钟成熟 | 卖出 ${crop.sellPrice}`
       ),
       '',
-      '示例: /farm buy radish 2'
-    ].join('\n'), true)
+      '示例: /farm buy radish 2',
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
 
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 
@@ -904,9 +1174,13 @@ export class NeowPlugin extends plugin {
     const preview = buySeeds(farm.state, cropAlias, count, { preview: true })
 
     if (!preview.ok) {
-      await this.replyWithTimeout(e, preview.reason === 'unknown_crop'
-        ? '这个作物别名不存在喵，先用 /farm shop 看看商店吧~'
-        : '购买数量必须是大于 0 的整数喵~', true)
+      let message = '购买数量必须是大于 0 的整数喵~'
+      if (preview.reason === 'unknown_crop') {
+        message = '这个作物别名不存在喵，先用 /farm shop 看看商店吧~'
+      } else if (preview.reason === 'crop_locked') {
+        message = `${preview.crop?.name || cropAlias} 要到农场 Lv${preview.crop?.unlockLevel || '?'} 才会开放喵~`
+      }
+      await this.replyWithTimeout(e, message, true)
       return true
     }
 
@@ -920,18 +1194,24 @@ export class NeowPlugin extends plugin {
     }
 
     const result = buySeeds(farm.state, cropAlias, count)
-    farm.user.coins -= result.totalCost
-    syncUserData(farm.user, { persist: true })
-    await saveFarmData()
+    await this.applyFarmUserChanges(farm, {
+      coinDelta: -result.totalCost,
+      mutation: result
+    })
 
-    await this.replyWithTimeout(e, [
+    const levelInfo = getFarmLevelInfo(farm.state)
+    const lines = [
       '买种子成功喵~',
       `购入: ${result.crop.seedName} x${result.count}`,
       `花费: ${result.totalCost} Star 币`,
       `剩余 Star 币: ${farm.user.coins}`,
-      `当前持有: ${result.inventoryCount} 颗`
-    ].join('\n'), true)
+      `当前持有: ${result.inventoryCount} 颗`,
+      `🌾 农场等级: ${this.formatFarmLevelText(levelInfo)}`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
 
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 
@@ -952,17 +1232,19 @@ export class NeowPlugin extends plugin {
 
     if (!preview.ok) {
       let message = '播种失败喵~'
-
       if (preview.reason === 'plot_out_of_range') {
         message = `地块编号不对喵，目前只有 1-${farm.state.plots.length} 号地`
+      } else if (preview.reason === 'plot_locked') {
+        message = `${plotId}号地还没买下来喵，先用 /farm land 看看解锁条件吧~`
       } else if (preview.reason === 'plot_occupied') {
         message = `${plotId}号地已经种着东西啦，先收掉再播种吧~`
       } else if (preview.reason === 'unknown_crop') {
         message = '这个作物别名不存在喵，先用 /farm shop 看看商店吧~'
+      } else if (preview.reason === 'crop_locked') {
+        message = `${preview.crop?.name || cropAlias} 要到农场 Lv${preview.crop?.unlockLevel || '?'} 才会开放喵~`
       } else if (preview.reason === 'seed_missing') {
         message = `背包里没有 ${preview.crop?.seedName || cropAlias} 了喵，先去 /farm shop 买点吧~`
       }
-
       await this.replyWithTimeout(e, message, true)
       return true
     }
@@ -977,17 +1259,21 @@ export class NeowPlugin extends plugin {
     }
 
     const result = plantSeed(farm.state, plotId, cropAlias, farm.now)
-    farm.user.stamina -= result.staminaCost
-    syncUserData(farm.user, { persist: true })
-    await saveFarmData()
+    await this.applyFarmUserChanges(farm, {
+      staminaDelta: -result.staminaCost,
+      mutation: result
+    })
 
-    await this.replyWithTimeout(e, [
+    const lines = [
       '播种完成喵~',
       `${result.plot.plotId}号地已经种下 ${result.crop.name}`,
       `消耗体力: ${result.staminaCost}`,
-      `预计成熟: ${new Date(result.readyAt).toLocaleString('zh-CN')}`
-    ].join('\n'), true)
+      `预计成熟: ${new Date(result.readyAt).toLocaleString('zh-CN')}`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
 
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 
@@ -1007,9 +1293,10 @@ export class NeowPlugin extends plugin {
 
     if (!preview.ok) {
       let message = '现在没有能浇水的地块喵~'
-
       if (preview.reason === 'plot_out_of_range') {
         message = `地块编号不对喵，目前只有 1-${farm.state.plots.length} 号地`
+      } else if (preview.reason === 'plot_locked') {
+        message = '这块地还没买下来喵，先去 /farm land 看看吧~'
       } else if (preview.reason === 'plot_empty') {
         message = '这块地还是空的喵，先播种再浇水吧~'
       } else if (preview.reason === 'already_ready') {
@@ -1017,7 +1304,6 @@ export class NeowPlugin extends plugin {
       } else if (preview.reason === 'already_watered') {
         message = '这块地这轮已经浇过水啦喵~'
       }
-
       await this.replyWithTimeout(e, message, true)
       return true
     }
@@ -1032,19 +1318,23 @@ export class NeowPlugin extends plugin {
     }
 
     const result = waterPlots(farm.state, target, farm.now)
-    farm.user.stamina -= result.staminaCost
-    syncUserData(farm.user, { persist: true })
-    await saveFarmData()
+    await this.applyFarmUserChanges(farm, {
+      staminaDelta: -result.staminaCost,
+      mutation: result
+    })
 
-    await this.replyWithTimeout(e, [
+    const lines = [
       '浇水完成喵~',
       `照料地块: ${result.plots.map(plot => `${plot.plotId}号地`).join('、')}`,
       `消耗体力: ${result.staminaCost}`,
       ...result.plots.map(plot =>
         `${plot.plotId}号地 ${plot.nameSnapshot} 还剩 ${this.formatFarmDuration(Math.max(0, plot.readyAt - farm.now))}`
-      )
-    ].join('\n'), true)
+      ),
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
 
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 
@@ -1064,27 +1354,28 @@ export class NeowPlugin extends plugin {
 
     if (!result.ok) {
       let message = '现在还没有能收的作物喵~'
-
       if (result.reason === 'plot_out_of_range') {
         message = `地块编号不对喵，目前只有 1-${farm.state.plots.length} 号地`
+      } else if (result.reason === 'plot_locked') {
+        message = '这块地还没买下来喵，先去 /farm land 看看吧~'
       } else if (result.reason === 'plot_empty') {
         message = '这块地还是空的喵，没东西可以收~'
       } else if (result.reason === 'not_ready') {
         message = '这块地还没熟喵，再等等吧~'
       }
-
       await this.replyWithTimeout(e, message, true)
       return true
     }
 
-    await saveFarmData()
-    await this.replyWithTimeout(e, [
+    await this.applyFarmUserChanges(farm, { mutation: result })
+    const lines = [
       '收获完成喵~',
-      ...result.harvested.map(item =>
-        `${item.plotId}号地收到了 ${item.nameSnapshot} x${item.count}`
-      )
-    ].join('\n'), true)
+      ...result.harvested.map(item => `${item.plotId}号地收到了 ${item.nameSnapshot} x${item.count}`),
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
 
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 
@@ -1102,8 +1393,10 @@ export class NeowPlugin extends plugin {
       .sort((left, right) => left.cropAlias.localeCompare(right.cropAlias, 'en'))
     const cropEntries = Object.values(farm.state.crops)
       .sort((left, right) => left.cropAlias.localeCompare(right.cropAlias, 'en'))
+    const petFoodEntries = Object.values(farm.state.petFoods)
+      .sort((left, right) => left.foodAlias.localeCompare(right.foodAlias, 'en'))
 
-    await this.replyWithTimeout(e, [
+    const lines = [
       '农场背包',
       '',
       '种子:',
@@ -1112,9 +1405,16 @@ export class NeowPlugin extends plugin {
       '作物:',
       ...(cropEntries.length ? cropEntries.map(entry => `  ${this.formatFarmCropLine(entry)}`) : ['  暂时没有作物喵~']),
       '',
-      '卖出示例: /farm sell radish all'
-    ].join('\n'), true)
+      '宠物粮:',
+      ...(petFoodEntries.length
+        ? petFoodEntries.map(entry => `  ${entry.foodAlias} - ${entry.nameSnapshot} x${entry.count} (+${entry.guardHoursSnapshot}h)`)
+        : ['  暂时没有宠物粮喵~']),
+      '',
+      '卖出示例: /farm sell radish all',
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
 
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 
@@ -1128,15 +1428,17 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    await this.replyWithTimeout(e, [
+    const lines = [
       '农场订单板',
       `刷新剩余: ${this.formatFarmDuration(Math.max(0, farm.state.orderBoardExpiresAt - farm.now))}`,
       '',
       ...Array.from({ length: 3 }, (_, index) => this.formatFarmOrderLine(farm.state.orders[index], index, farm.now)),
       '',
-      '交付示例: /farm deliver 1'
-    ].join('\n'), true)
+      '交付示例: /farm deliver 1',
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
 
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 
@@ -1157,7 +1459,6 @@ export class NeowPlugin extends plugin {
 
     if (!result.ok) {
       let message = '卖出失败喵~'
-
       if (result.reason === 'inventory_missing') {
         message = `背包里没有 ${cropAlias} 对应的作物喵~`
       } else if (result.reason === 'invalid_count') {
@@ -1165,22 +1466,25 @@ export class NeowPlugin extends plugin {
       } else if (result.reason === 'insufficient_inventory') {
         message = `背包里只剩 ${result.available} 个，不够卖这么多喵~`
       }
-
       await this.replyWithTimeout(e, message, true)
       return true
     }
 
-    farm.user.coins += result.coinReward
-    syncUserData(farm.user, { persist: true })
-    await saveFarmData()
+    await this.applyFarmUserChanges(farm, {
+      coinDelta: result.coinReward,
+      mutation: result
+    })
 
-    await this.replyWithTimeout(e, [
+    const lines = [
       '卖出成功喵~',
       `卖出: ${result.cropNameSnapshot} x${result.soldCount}`,
       `获得: ${result.coinReward} Star 币`,
-      `当前 Star 币: ${farm.user.coins}`
-    ].join('\n'), true)
+      `当前 Star 币: ${farm.user.coins}`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
 
+    await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
   }
 
@@ -1200,31 +1504,32 @@ export class NeowPlugin extends plugin {
 
     if (!result.ok) {
       let message = '交付失败喵~'
-
       if (result.reason === 'order_missing') {
         message = '这个订单编号不存在喵，先用 /farm order 看看吧~'
       } else if (result.reason === 'insufficient_inventory') {
         message = `背包里只有 ${result.available} 个 ${result.order?.cropNameSnapshot || ''}，不够交订单喵~`
       }
-
       await this.replyWithTimeout(e, message, true)
       return true
     }
 
-    farm.user.coins += result.coinReward
-    farm.user.favor += result.favorReward
-    syncUserData(farm.user, { persist: true })
-    await saveFarmData()
+    await this.applyFarmUserChanges(farm, {
+      coinDelta: result.coinReward,
+      favorDelta: result.favorReward,
+      mutation: result
+    })
 
     const lines = [
       '订单完成啦喵~',
       `交付: ${result.order.cropNameSnapshot} x${result.order.requiredQty}`,
       `获得: ${result.coinReward} Star 币 + ${result.favorReward} 好感度`,
-      `当前 Star 币: ${farm.user.coins}`
+      `当前 Star 币: ${farm.user.coins}`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
     ]
 
     if (result.replacement) {
-      lines.push(`新订单: ${this.formatFarmOrderLine(result.replacement, result.replacement.slot - 1, farm.now)}`)
+      lines.splice(4, 0, `新订单: ${this.formatFarmOrderLine(result.replacement, result.replacement.slot - 1, farm.now)}`)
     }
 
     await this.replyWithTimeout(e, lines.join('\n'), true)
@@ -1271,6 +1576,507 @@ export class NeowPlugin extends plugin {
     if (status.lastReloadError) {
       lines.push('', `最近错误: ${status.lastReloadError}`)
     }
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async showFarmQuest(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const levelInfo = getFarmLevelInfo(farm.state)
+    const questView = getFarmQuestView(farm.state, farm.now)
+    const lines = [
+      '农场主线',
+      `🌾 农场等级: ${this.formatFarmLevelText(levelInfo)}`,
+      ...questView.flatMap(item => item.completed
+        ? ['', `${item.name} - 已完成`, `当前章节: ${item.totalSteps}/${item.totalSteps}`]
+        : ['', `${item.name} - 进行中 ${item.currentStep}/${item.totalSteps}`, `当前步骤: ${item.step?.label || '进行中'}`, `进度: ${item.progress}/${item.target}`]),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async showFarmLand(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const levelInfo = getFarmLevelInfo(farm.state)
+    const landView = getFarmLandView(farm.state)
+    const lines = [
+      '农场地块',
+      `🌾 农场等级: ${this.formatFarmLevelText(levelInfo)}`,
+      `地块进度: ${this.formatFarmLandSummaryLine(landView)}`,
+      '',
+      ...landView.map(plot => this.formatFarmLandLine(plot, levelInfo.level, farm.now)),
+      '',
+      '购买示例: /farm buyplot 6',
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async buyFarmPlot(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+buyplot\s+(\d+)\s*$/i)
+    const plotId = parseInt(match?.[1])
+    const preview = buyPlot(farm.state, plotId, { preview: true })
+
+    if (!preview.ok) {
+      let message = '买地失败喵~'
+      if (preview.reason === 'plot_out_of_range') {
+        message = '这块地编号不对喵~'
+      } else if (preview.reason === 'plot_already_owned') {
+        message = `${plotId}号地已经是你的啦喵~`
+      } else if (preview.reason === 'plot_locked_by_level') {
+        message = `${plotId}号地要到农场 Lv${preview.land?.unlockLevel || '?'} 才能购买喵~`
+      }
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    if (farm.user.coins < preview.price) {
+      await this.replyWithTimeout(e, [
+        'Star 币不够买地喵~',
+        `当前拥有: ${farm.user.coins}`,
+        `需要花费: ${preview.price}`
+      ].join('\n'), true)
+      return true
+    }
+
+    const result = buyPlot(farm.state, plotId, { now: farm.now })
+    await this.applyFarmUserChanges(farm, {
+      coinDelta: -result.price,
+      mutation: result
+    })
+
+    const landView = getFarmLandView(farm.state)
+    const lines = [
+      '买地成功喵~',
+      `${result.plot.plotId}号${this.formatFarmLandType(result.plot.landType)}已经归你啦~`,
+      `花费: ${result.price} Star 币`,
+      `当前 Star 币: ${farm.user.coins}`,
+      `地块进度: ${this.formatFarmLandSummaryLine(landView)}`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async visitOtherFarm(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+visit\s+(\d+)\s*$/i)
+    const targetUid = parseInt(match?.[1])
+    const targetRecord = findUserByUid(targetUid)
+    if (!targetRecord) {
+      await this.replyWithTimeout(e, '没找到这个 UID 对应的农场主喵~', true)
+      return true
+    }
+    if (String(targetRecord.userId) === String(e.user_id)) {
+      await this.replyWithTimeout(e, '不能参观自己家喵，直接 /farm 看就好啦~', true)
+      return true
+    }
+
+    const targetState = getFarmState(targetRecord.userId)
+    const result = visitFarm(farm.state, targetState, targetUid, farm.now)
+    if (!result.ok) {
+      const message = result.reason === 'feature_locked'
+        ? '互偷和宠物系统要到农场 Lv20 才开放喵~'
+        : '目标 UID 不对喵~'
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    await this.applyFarmUserChanges(farm, { mutation: result })
+    const guardText = result.view.activePet
+      ? `${result.view.activePet.nameSnapshot} / 拦截 ${result.view.activePet.guardInterceptPercentSnapshot}% / 剩余 ${this.formatFarmDuration(result.view.activePet.remainingGuardMs)}`
+      : '暂无驻守宠物'
+    const lines = [
+      '参观农场成功喵~',
+      `目标 UID: ${result.targetUid}`,
+      `对方农场等级: Lv${result.view.farmLevel}`,
+      `当前守卫: ${guardText}`,
+      '',
+      ...result.view.plots.map(plot => this.formatFarmVisitPlotLine(plot, farm.now)),
+      '',
+      `想偷菜就用: /farm steal ${result.targetUid} <plotId>`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async stealFarmCrop(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+steal\s+(\d+)\s+(\d+)\s*$/i)
+    const targetUid = parseInt(match?.[1])
+    const plotId = parseInt(match?.[2])
+    const targetRecord = findUserByUid(targetUid)
+    if (!targetRecord) {
+      await this.replyWithTimeout(e, '没找到这个 UID 对应的农场主喵~', true)
+      return true
+    }
+    if (String(targetRecord.userId) === String(e.user_id)) {
+      await this.replyWithTimeout(e, '不可以偷自己家的菜喵~', true)
+      return true
+    }
+
+    const targetState = getFarmState(targetRecord.userId)
+    const result = stealFromFarm(farm.state, targetState, targetUid, plotId, farm.now)
+    const hasMutation = typeof result.questCoinReward === 'number'
+
+    if (!result.ok) {
+      if (hasMutation) {
+        await this.applyFarmUserChanges(farm, { mutation: result })
+      }
+
+      let message = '偷菜失败喵~'
+      if (result.reason === 'feature_locked') {
+        message = '互偷和宠物系统要到农场 Lv20 才开放喵~'
+      } else if (result.reason === 'visit_required') {
+        message = `先 /farm visit ${targetUid} 再决定偷哪块地喵~`
+      } else if (result.reason === 'attempt_limit') {
+        message = '今天已经偷满 5 次啦，明天再来喵~'
+      } else if (result.reason === 'plot_out_of_range') {
+        message = `对方没有 ${plotId} 号地喵~`
+      } else if (result.reason === 'plot_not_owned') {
+        message = '这块地还没买下来喵~'
+      } else if (result.reason === 'plot_empty') {
+        message = '这块地是空的，偷不到东西喵~'
+      } else if (result.reason === 'plot_not_ready') {
+        message = '这块地还没成熟喵，再等等吧~'
+      } else if (result.reason === 'already_stolen') {
+        message = '这块地这轮已经被偷过啦喵~'
+      } else if (result.reason === 'pet_blocked') {
+        message = `想偷失败，被 ${result.activePet?.nameSnapshot || '守卫宠物'} 拦下啦喵~`
+      } else if (result.reason === 'owner_min_keep') {
+        message = '地主至少要留 1 个收成，这块地已经偷不动啦喵~'
+      } else if (result.reason === 'steal_failed') {
+        message = '这次下手太慢啦，什么也没偷到喵~'
+      }
+
+      const lines = [
+        message,
+        `今日剩余尝试: ${Math.max(0, 5 - farm.state.dailyStealAttempts)}`,
+        ...this.buildFarmMutationLines(result),
+        ...this.buildFarmNotificationLines(farm.notifications)
+      ]
+      await this.replyWithTimeout(e, lines.join('\n'), true)
+      return true
+    }
+
+    await this.applyFarmUserChanges(farm, { mutation: result })
+    const lines = [
+      '偷菜成功喵~',
+      `从 ${result.plotId} 号地摸走了 ${result.cropNameSnapshot} x${result.stolenCount}`,
+      `地主还剩: ${result.remainingForOwner}`,
+      `今日剩余尝试: ${Math.max(0, 5 - farm.state.dailyStealAttempts)}`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async showFarmPet(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const petView = getFarmPetView(farm.state, farm.now)
+    const lines = [
+      '宠物驻守',
+      `当前状态: ${this.formatFarmPetStatusLine(petView)}`
+    ]
+
+    if (petView.unlocked) {
+      lines.push('', '已拥有宠物:')
+      lines.push(...(petView.pets.length
+        ? petView.pets.map(pet => `  ${this.formatFarmOwnedPetLine(pet, petView.activePetAlias)}`)
+        : ['  还没有宠物喵~']))
+      lines.push('', '宠物粮:')
+      lines.push(...(petView.petFoods.length
+        ? petView.petFoods.map(entry => `  ${entry.foodAlias} - ${entry.nameSnapshot} x${entry.count} (+${entry.guardHoursSnapshot}h)`)
+        : ['  还没有宠物粮喵~']))
+      lines.push('', '/farm pet shop - 查看宠物商店')
+    }
+
+    lines.push(...this.buildFarmNotificationLines(farm.notifications))
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async showFarmPetShop(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const petView = getFarmPetView(farm.state, farm.now)
+    const lines = [
+      '宠物商店',
+      `当前状态: ${this.formatFarmPetStatusLine(petView)}`,
+      '',
+      '宠物:',
+      ...farm.registry.petList.map(pet => `  ${pet.alias} - ${pet.name} ${pet.price} Star 币 | 拦截 ${pet.guardInterceptPercent}%`),
+      '',
+      '宠物粮:',
+      ...farm.registry.petFoodList.map(food => `  ${food.alias} - ${food.name} ${food.price} Star 币 | +${food.guardHours}h`),
+      '',
+      '购买宠物: /farm pet buy dog',
+      '购买宠物粮: /farm pet food buy small-feed 2',
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async buyFarmPet(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+pet\s+buy\s+([a-z0-9_-]+)\s*$/i)
+    const petAlias = String(match?.[1] || '').trim().toLowerCase()
+    const preview = buyPet(farm.state, petAlias, { preview: true })
+
+    if (!preview.ok) {
+      let message = '买宠物失败喵~'
+      if (preview.reason === 'feature_locked') {
+        message = '互偷和宠物系统要到农场 Lv20 才开放喵~'
+      } else if (preview.reason === 'unknown_pet') {
+        message = '这个宠物别名不存在喵，先去 /farm pet shop 看看吧~'
+      } else if (preview.reason === 'pet_owned') {
+        message = `${preview.pet?.name || petAlias} 已经在你家啦喵~`
+      }
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    if (farm.user.coins < preview.price) {
+      await this.replyWithTimeout(e, [
+        'Star 币不够买宠物喵~',
+        `当前拥有: ${farm.user.coins}`,
+        `需要花费: ${preview.price}`
+      ].join('\n'), true)
+      return true
+    }
+
+    const result = buyPet(farm.state, petAlias, { now: farm.now })
+    await this.applyFarmUserChanges(farm, {
+      coinDelta: -result.price,
+      mutation: result
+    })
+
+    const lines = [
+      '买宠物成功喵~',
+      `带回家: ${result.pet.name}`,
+      `花费: ${result.price} Star 币`,
+      `当前 Star 币: ${farm.user.coins}`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async buyFarmPetFood(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+pet\s+food\s+buy\s+([a-z0-9_-]+)(?:\s+(\d+))?\s*$/i)
+    const foodAlias = String(match?.[1] || '').trim().toLowerCase()
+    const count = match?.[2] ? parseInt(match[2]) : 1
+    const preview = buyPetFood(farm.state, foodAlias, count, { preview: true })
+
+    if (!preview.ok) {
+      let message = '买宠物粮失败喵~'
+      if (preview.reason === 'feature_locked') {
+        message = '互偷和宠物系统要到农场 Lv20 才开放喵~'
+      } else if (preview.reason === 'unknown_food') {
+        message = '这个宠物粮别名不存在喵，先去 /farm pet shop 看看吧~'
+      } else if (preview.reason === 'invalid_count') {
+        message = '购买数量必须是大于 0 的整数喵~'
+      }
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    if (farm.user.coins < preview.totalCost) {
+      await this.replyWithTimeout(e, [
+        'Star 币不够买宠物粮喵~',
+        `当前拥有: ${farm.user.coins}`,
+        `需要花费: ${preview.totalCost}`
+      ].join('\n'), true)
+      return true
+    }
+
+    const result = buyPetFood(farm.state, foodAlias, count, { now: farm.now })
+    await this.applyFarmUserChanges(farm, {
+      coinDelta: -result.totalCost,
+      mutation: result
+    })
+
+    const lines = [
+      '买宠物粮成功喵~',
+      `购入: ${result.food.name} x${result.count}`,
+      `花费: ${result.totalCost} Star 币`,
+      `当前持有: ${result.inventoryCount} 份`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async useFarmPet(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+pet\s+use\s+([a-z0-9_-]+)\s*$/i)
+    const petAlias = String(match?.[1] || '').trim().toLowerCase()
+    const result = usePet(farm.state, petAlias, farm.now)
+
+    if (!result.ok) {
+      const message = result.reason === 'feature_locked'
+        ? '互偷和宠物系统要到农场 Lv20 才开放喵~'
+        : '这只宠物你还没买到手喵~'
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    await this.applyFarmUserChanges(farm, { mutation: result })
+    const lines = [
+      '切换驻守成功喵~',
+      `当前驻守: ${result.pet.nameSnapshot}`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
+
+    await this.replyWithTimeout(e, lines.join('\n'), true)
+    return true
+  }
+
+  async feedFarmPet(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+pet\s+feed\s+([a-z0-9_-]+)(?:\s+(\d+))?\s*$/i)
+    const foodAlias = String(match?.[1] || '').trim().toLowerCase()
+    const count = match?.[2] ? parseInt(match[2]) : 1
+    const result = feedPet(farm.state, foodAlias, count, farm.now)
+
+    if (!result.ok) {
+      let message = '喂食失败喵~'
+      if (result.reason === 'feature_locked') {
+        message = '互偷和宠物系统要到农场 Lv20 才开放喵~'
+      } else if (result.reason === 'no_active_pet') {
+        message = '先用 /farm pet use <petAlias> 选一只驻守宠物喵~'
+      } else if (result.reason === 'unknown_food') {
+        message = '这个宠物粮别名不存在喵~'
+      } else if (result.reason === 'invalid_count') {
+        message = '喂食数量必须是大于 0 的整数喵~'
+      } else if (result.reason === 'food_missing') {
+        message = '背包里没有这个宠物粮喵~'
+      } else if (result.reason === 'insufficient_food') {
+        message = `背包里只有 ${result.available} 份，不够喂这么多喵~`
+      } else if (result.reason === 'guard_full') {
+        message = '当前看家时长已经接近 48 小时上限啦喵~'
+      }
+      await this.replyWithTimeout(e, message, true)
+      return true
+    }
+
+    await this.applyFarmUserChanges(farm, { mutation: result })
+    const lines = [
+      '喂食成功喵~',
+      `消耗: ${result.food.name} x${result.usedCount}`,
+      `新增看家: ${result.actualAddedHours} 小时`,
+      `驻守截止: ${new Date(result.guardUntil).toLocaleString('zh-CN')}`,
+      ...this.buildFarmMutationLines(result),
+      ...this.buildFarmNotificationLines(farm.notifications)
+    ]
 
     await this.replyWithTimeout(e, lines.join('\n'), true)
     return true
