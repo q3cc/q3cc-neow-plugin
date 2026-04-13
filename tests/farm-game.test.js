@@ -174,6 +174,22 @@ test('教程主线完成时会补足到 Lv20，并发放宠物粮奖励', async 
   } finally { await cleanup(t) }
 })
 
+test('农场主线按章节顺序逐步解锁显示', async () => {
+  const t = await env()
+  try {
+    const state = getFarmState('quest-unlock')
+    let questView = getFarmQuestView(state, 1)
+    assert.deepEqual(questView.map(item => item.chapterId), ['tutorial'])
+
+    recordFarmAction(state, 'open_farm', 1)
+    Object.assign(state.stats, { buySeedCount: 3, plantCount: 5, waterCount: 5, harvestUnits: 5, sellCropUnits: 10, deliverOrderCount: 3 })
+    updateFarmProgress(state, 2)
+    questView = getFarmQuestView(state, 2)
+    assert.deepEqual(questView.map(item => item.chapterId), ['tutorial', 'expansion'])
+    assert.equal(questView.some(item => item.chapterId === 'guard'), false)
+  } finally { await cleanup(t) }
+})
+
 test('买种子到交订单的核心链路仍可工作，且删除附加件后旧快照仍可继续处理', async () => {
   const t = await env({ random: rand([0, 0, 0, 0, 0, 0, 0]) })
   try {
@@ -291,8 +307,8 @@ test('宠物支持购买、切换、买粮、喂食与 48 小时上限', async (
     assert.equal(feed.ok, true)
     assert.equal(feed.actualAddedHours, 48)
     assert.equal(state.pets.goose.guardUntil, 48 * 60 * 60 * 1000)
-    const petView = getFarmQuestView(state, 0)
-    assert.ok(petView.some(item => item.chapterId === 'guard'))
+    const questView = getFarmQuestView(state, 0)
+    assert.deepEqual(questView.map(item => item.chapterId), ['tutorial'])
     assert.equal(getFarmLevelInfo(state).level >= 20, true)
   } finally { await cleanup(t) }
 })

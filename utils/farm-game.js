@@ -1984,6 +1984,29 @@ function ensureQuestStates(state, options = {}, now = Date.now()) {
   return changed
 }
 
+function isQuestChapterCompleted(chapter, questState) {
+  if (!chapter) {
+    return false
+  }
+
+  const maxStep = chapter.steps.length
+  return Boolean(questState?.completedAt) || (Number(questState?.currentStep) || 0) >= maxStep
+}
+
+function getVisibleQuestChapters(state) {
+  const visible = []
+
+  for (const chapter of farmRegistry.mainQuestChapterList) {
+    visible.push(chapter)
+    const questState = state.mainQuests?.[chapter.id]
+    if (!isQuestChapterCompleted(chapter, questState)) {
+      break
+    }
+  }
+
+  return visible
+}
+
 function syncFarmState(state, now = Date.now()) {
   ensureFarmReady()
 
@@ -2224,6 +2247,10 @@ function progressMainQuests(state, now = Date.now()) {
         questState.progress = progressValue
         changed = true
       }
+    }
+
+    if (!isQuestChapterCompleted(chapter, questState)) {
+      break
     }
   }
 
@@ -2793,7 +2820,7 @@ function getUnlockedFarmCrops(state) {
 function getFarmQuestView(state, now = Date.now()) {
   syncFarmState(state, now)
 
-  return farmRegistry.mainQuestChapterList.map(chapter => {
+  return getVisibleQuestChapters(state).map(chapter => {
     const questState = state.mainQuests[chapter.id] || {
       chapterId: chapter.id,
       currentStep: 0,
