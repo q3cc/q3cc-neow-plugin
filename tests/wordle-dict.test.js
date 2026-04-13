@@ -10,7 +10,8 @@ import {
   formatWordleMeaningBlock,
   hasYoudaoWordDetails,
   parseYoudaoSuggestions,
-  parseYoudaoWordMeaning
+  parseYoudaoWordMeaning,
+  resolveWordSuggestionDetail
 } from '../utils/wordle-dict.js'
 
 test('parseYoudaoWordMeaning and formatWordleMeaningBlock support the arise sample', () => {
@@ -229,6 +230,143 @@ test('formatWordSuggestionDetailBlock builds fallback detail from search results
     entry: '大猫',
     explain: ''
   }), '')
+})
+
+test('resolveWordSuggestionDetail falls back to explain lookup before plain search gloss', async () => {
+  const result = await resolveWordSuggestionDetail({
+    entry: '大猫',
+    explain: 'a big cat'
+  }, {
+    fetchImpl: async url => {
+      if (url === 'https://dict.youdao.com/jsonapi?q=%E5%A4%A7%E7%8C%AB') {
+        return {
+          ok: true,
+          async json() {
+            return {}
+          }
+        }
+      }
+
+      if (url === 'https://dict.youdao.com/jsonapi?q=a%20big%20cat') {
+        return {
+          ok: true,
+          async json() {
+            return {
+              ec: {
+                word: [
+                  {
+                    'return-phrase': 'a big cat',
+                    trs: [
+                      {
+                        tr: [
+                          {
+                            l: {
+                              i: ['n. 大型猫科动物；大猫']
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+
+      throw new Error(`unexpected url: ${url}`)
+    }
+  })
+
+  assert.equal(
+    result,
+    [
+      'a big cat',
+      '',
+      'n. 大型猫科动物；大猫'
+    ].join('\n')
+  )
+})
+
+test('resolveWordSuggestionDetail falls back to plain search gloss when all lookups miss', async () => {
+  const result = await resolveWordSuggestionDetail({
+    entry: '大猫',
+    explain: 'a big cat'
+  }, {
+    fetchImpl: async () => ({
+      ok: true,
+      async json() {
+        return {}
+      }
+    })
+  })
+
+  assert.equal(
+    result,
+    [
+      '大猫',
+      '',
+      '搜索释义：a big cat'
+    ].join('\n')
+  )
+})
+
+test('resolveWordSuggestionDetail returns entry lookup detail immediately when entry matches', async () => {
+  const result = await resolveWordSuggestionDetail({
+    entry: 'arise',
+    explain: '出现'
+  }, {
+    fetchImpl: async url => ({
+      ok: true,
+      async json() {
+        return url === 'https://dict.youdao.com/jsonapi?q=arise'
+          ? {
+              ec: {
+                word: [
+                  {
+                    'return-phrase': 'arise',
+                    trs: [
+                      {
+                        tr: [
+                          {
+                            l: {
+                              i: ['v. 出现；产生']
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          : {}
+      }
+    })
+  })
+
+  assert.equal(result, ['arise', '', 'v. 出现；产生'].join('\n'))
+})
+
+test('resolveWordSuggestionDetail reports entry and explain lookup errors', async () => {
+  const errors = []
+
+  const result = await resolveWordSuggestionDetail({
+    entry: '大猫',
+    explain: 'a big cat'
+  }, {
+    fetchImpl: async () => {
+      throw new Error('timeout')
+    },
+    onLookupError: (source, query, error) => errors.push([source, query, error.message])
+  })
+
+  assert.equal(result, ['大猫', '', '搜索释义：a big cat'].join('\n'))
+  assert.deepEqual(errors, [
+    ['entry', '大猫', 'timeout'],
+    ['explain', 'a big cat', 'timeout']
+  ])
 })
 
 test('parseYoudaoWordMeaning safely degrades on incomplete payloads', () => {

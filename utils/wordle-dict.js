@@ -298,6 +298,62 @@ export function formatWordSuggestionDetailBlock(entry) {
   ].join('\n')
 }
 
+function buildLookupOptions(options, onError) {
+  const nextOptions = {
+    ...options
+  }
+
+  delete nextOptions.onLookupError
+
+  if (typeof onError === 'function') {
+    nextOptions.onError = onError
+  } else {
+    delete nextOptions.onError
+  }
+
+  return nextOptions
+}
+
+export async function resolveWordSuggestionDetail(entry, options = {}) {
+  const normalizedEntry = {
+    entry: normalizeLookupQuery(entry?.entry),
+    explain: normalizeText(entry?.explain)
+  }
+
+  if (!normalizedEntry.entry) {
+    return ''
+  }
+
+  const onLookupError = typeof options.onLookupError === 'function' ? options.onLookupError : null
+  const entryMeaning = await fetchWordleMeaning(
+    normalizedEntry.entry,
+    buildLookupOptions(options, error => {
+      onLookupError?.('entry', normalizedEntry.entry, error)
+    })
+  )
+  const entryDetail = formatWordLookupBlock(entryMeaning)
+
+  if (entryDetail) {
+    return entryDetail
+  }
+
+  if (normalizedEntry.explain) {
+    const explainMeaning = await fetchWordleMeaning(
+      normalizedEntry.explain,
+      buildLookupOptions(options, error => {
+        onLookupError?.('explain', normalizedEntry.explain, error)
+      })
+    )
+    const explainDetail = formatWordLookupBlock(explainMeaning)
+
+    if (explainDetail) {
+      return explainDetail
+    }
+  }
+
+  return formatWordSuggestionDetailBlock(normalizedEntry)
+}
+
 export async function fetchWordleMeaning(word, options = {}) {
   const normalizedWord = normalizeWord(word)
 
