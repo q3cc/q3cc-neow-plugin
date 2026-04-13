@@ -19,10 +19,21 @@ export const FARM_ADDON_WATCH_DEBOUNCE_MS = 500
 export const FARM_DAILY_STEAL_LIMIT = 5
 export const FARM_PET_GUARD_CAP_MS = 48 * 60 * 60 * 1000
 export const FARM_STEAL_UNLOCK_LEVEL = 20
+export const FARM_DAILY_TASK_SLOT_COUNT = 3
 
 const HOUR_MS = 60 * 60 * 1000
+const DAY_MS = 24 * HOUR_MS
 const FARM_ALIAS_PATTERN = /^[a-z0-9_-]+$/
 const FARM_NOTIFICATION_LIMIT = 20
+const FARM_DAILY_TASK_TEMPLATES = [
+  { id: 'open-farm', type: 'open_farm', title: '打开一次 /farm', targetMin: 1, targetMax: 1, coinReward: 20, xpReward: 5, weight: 12 },
+  { id: 'buy-seed', type: 'buy_seed', title: '购买种子', targetMin: 2, targetMax: 4, coinReward: 30, xpReward: 8, weight: 10 },
+  { id: 'plant', type: 'plant', title: '播种作物', targetMin: 3, targetMax: 5, coinReward: 35, xpReward: 10, weight: 10 },
+  { id: 'water', type: 'water', title: '给作物浇水', targetMin: 3, targetMax: 5, coinReward: 35, xpReward: 10, weight: 10 },
+  { id: 'harvest', type: 'harvest', title: '收获作物', targetMin: 4, targetMax: 8, coinReward: 45, xpReward: 12, weight: 9 },
+  { id: 'sell-crops', type: 'sell_crop_units', title: '卖出作物', targetMin: 4, targetMax: 8, coinReward: 50, xpReward: 15, weight: 8 },
+  { id: 'deliver-order', type: 'deliver_order', title: '完成订单', targetMin: 1, targetMax: 2, coinReward: 70, xpReward: 20, weight: 5 }
+]
 const FARM_QUEST_STEP_TYPES = new Set([
   'open_farm',
   'buy_seed',
@@ -152,6 +163,18 @@ function createDefaultFarmStats() {
   }
 }
 
+function createDefaultDailyFarmStats() {
+  return {
+    openFarmCount: 0,
+    buySeedCount: 0,
+    plantCount: 0,
+    waterCount: 0,
+    harvestUnits: 0,
+    sellCropUnits: 0,
+    deliverOrderCount: 0
+  }
+}
+
 function getLandConfig(plotId) {
   return LAND_CONFIG[Number(plotId) - 1] || null
 }
@@ -197,6 +220,9 @@ function createDefaultFarmState() {
     notifications: [],
     orders: [],
     orderBoardExpiresAt: 0,
+    dailyTaskDayKey: 0,
+    dailyStats: createDefaultDailyFarmStats(),
+    dailyTasks: [],
     lastVisitedFarmUid: 0,
     lastVisitedFarmAt: 0,
     dailyStealDayKey: 0,
@@ -245,6 +271,10 @@ function normalizePositiveNumber(value, fallback = 0) {
 
 function getSeedSellPrice(seedPrice) {
   return Math.max(1, Math.floor(Math.max(0, normalizeInteger(seedPrice, 0)) * 0.5))
+}
+
+function getFarmDayKey(now = Date.now()) {
+  return new Date(now).setHours(0, 0, 0, 0)
 }
 
 function nextRandom() {
@@ -603,6 +633,48 @@ function normalizeStats(rawStats) {
   return stats
 }
 
+function normalizeDailyStats(rawStats) {
+  const stats = {
+    ...createDefaultDailyFarmStats(),
+    ...(rawStats && typeof rawStats === 'object' ? rawStats : {})
+  }
+
+  stats.openFarmCount = Math.max(0, normalizeInteger(stats.openFarmCount, 0))
+  stats.buySeedCount = Math.max(0, normalizeInteger(stats.buySeedCount, 0))
+  stats.plantCount = Math.max(0, normalizeInteger(stats.plantCount, 0))
+  stats.waterCount = Math.max(0, normalizeInteger(stats.waterCount, 0))
+  stats.harvestUnits = Math.max(0, normalizeInteger(stats.harvestUnits, 0))
+  stats.sellCropUnits = Math.max(0, normalizeInteger(stats.sellCropUnits, 0))
+  stats.deliverOrderCount = Math.max(0, normalizeInteger(stats.deliverOrderCount, 0))
+
+  return stats
+}
+
+function normalizeDailyTask(rawTask) {
+  if (!rawTask || typeof rawTask !== 'object' || Array.isArray(rawTask)) {
+    return null
+  }
+
+  const templateId = normalizeAlias(rawTask.templateId)
+  const type = normalizeAlias(rawTask.type)
+  const title = String(rawTask.title || '').trim()
+  const target = Math.max(0, normalizeInteger(rawTask.target, 0))
+  if (!templateId || !type || !title || !isPositiveInteger(target)) {
+    return null
+  }
+
+  return {
+    templateId,
+    type,
+    title,
+    target,
+    progress: Math.max(0, normalizeInteger(rawTask.progress, 0)),
+    coinReward: Math.max(0, normalizeInteger(rawTask.coinReward, 0)),
+    xpReward: Math.max(0, normalizeInteger(rawTask.xpReward, 0)),
+    completedAt: Math.max(0, Number(rawTask.completedAt) || 0)
+  }
+}
+
 function normalizeQuestState(chapterId, rawState) {
   const state = rawState && typeof rawState === 'object' ? rawState : {}
   return {
@@ -675,6 +747,12 @@ function sanitizeFarmState(rawState, options = {}) {
     normalizeOrder(source.orders?.[index], index, source.orderBoardExpiresAt)
   ).filter(Boolean)
   normalized.orderBoardExpiresAt = Math.max(0, Number(source.orderBoardExpiresAt) || 0)
+  normalized.dailyTaskDayKey = Math.max(0, normalizeInteger(source.dailyTaskDayKey, 0))
+  normalized.dailyStats = normalizeDailyStats(source.dailyStats)
+  normalized.dailyTasks = (Array.isArray(source.dailyTasks) ? source.dailyTasks : [])
+    .map(task => normalizeDailyTask(task))
+    .filter(Boolean)
+    .slice(0, FARM_DAILY_TASK_SLOT_COUNT)
   normalized.lastVisitedFarmUid = Math.max(0, normalizeInteger(source.lastVisitedFarmUid, 0))
   normalized.lastVisitedFarmAt = Math.max(0, Number(source.lastVisitedFarmAt) || 0)
   normalized.dailyStealDayKey = Math.max(0, normalizeInteger(source.dailyStealDayKey, 0))
@@ -1916,8 +1994,88 @@ function cleanupInventoryEntries(state) {
   }
 }
 
+function getDailyTaskProgressValue(state, type) {
+  switch (type) {
+  case 'open_farm':
+    return state.dailyStats.openFarmCount
+  case 'buy_seed':
+    return state.dailyStats.buySeedCount
+  case 'plant':
+    return state.dailyStats.plantCount
+  case 'water':
+    return state.dailyStats.waterCount
+  case 'harvest':
+    return state.dailyStats.harvestUnits
+  case 'sell_crop_units':
+    return state.dailyStats.sellCropUnits
+  case 'deliver_order':
+    return state.dailyStats.deliverOrderCount
+  default:
+    return 0
+  }
+}
+
+function createDailyTask(template, state) {
+  const target = rollInt(template.targetMin, template.targetMax)
+  return {
+    templateId: template.id,
+    type: template.type,
+    title: template.title,
+    target,
+    progress: Math.min(target, getDailyTaskProgressValue(state, template.type)),
+    coinReward: template.coinReward,
+    xpReward: template.xpReward,
+    completedAt: 0
+  }
+}
+
+function fillDailyTasks(state) {
+  let changed = false
+  const existingTemplateIds = new Set((state.dailyTasks || []).map(task => task.templateId))
+
+  while (state.dailyTasks.length < FARM_DAILY_TASK_SLOT_COUNT) {
+    const availableTemplates = FARM_DAILY_TASK_TEMPLATES.filter(template => !existingTemplateIds.has(template.id))
+    const template = rollWeighted(availableTemplates)
+    if (!template) {
+      break
+    }
+
+    state.dailyTasks.push(createDailyTask(template, state))
+    existingTemplateIds.add(template.id)
+    changed = true
+  }
+
+  return changed
+}
+
+function syncDailyTasks(state, now = Date.now()) {
+  let changed = false
+  const dayKey = getFarmDayKey(now)
+
+  if (state.dailyTaskDayKey !== dayKey) {
+    state.dailyTaskDayKey = dayKey
+    state.dailyStats = createDefaultDailyFarmStats()
+    state.dailyTasks = []
+    changed = true
+  }
+
+  if (fillDailyTasks(state)) {
+    changed = true
+  }
+
+  for (const task of state.dailyTasks) {
+    const progress = Math.min(task.target, getDailyTaskProgressValue(state, task.type))
+    if (task.progress !== progress) {
+      task.progress = progress
+      changed = true
+    }
+  }
+
+  return changed
+}
+
 function resetDailyStealIfNeeded(state, now = Date.now()) {
-  const dayKey = new Date(now).setHours(0, 0, 0, 0)
+  const dayKey = getFarmDayKey(now)
   if (state.dailyStealDayKey !== dayKey) {
     state.dailyStealDayKey = dayKey
     state.dailyStealAttempts = 0
@@ -2038,6 +2196,10 @@ function syncFarmState(state, now = Date.now()) {
   }
 
   if (ensureQuestStates(state, { completeTutorial: hasLegacyFarmProgress(state) }, now)) {
+    changed = true
+  }
+
+  if (syncDailyTasks(state, now)) {
     changed = true
   }
 
@@ -2187,6 +2349,25 @@ function applyQuestReward(state, reward) {
   return summary
 }
 
+function createEmptyQuestProgressSummary() {
+  return {
+    changed: false,
+    coinReward: 0,
+    xpGained: 0,
+    stepCompletions: [],
+    chapterCompletions: []
+  }
+}
+
+function createEmptyDailyTaskProgressSummary() {
+  return {
+    changed: false,
+    coinReward: 0,
+    xpGained: 0,
+    taskCompletions: []
+  }
+}
+
 function progressMainQuests(state, now = Date.now()) {
   let changed = false
   let coinReward = 0
@@ -2263,15 +2444,87 @@ function progressMainQuests(state, now = Date.now()) {
   }
 }
 
-function buildMutationMeta(state, beforeXp, beforeLevel, questSummary) {
+function progressDailyTasks(state, now = Date.now()) {
+  let changed = false
+  let coinReward = 0
+  let xpGained = 0
+  const taskCompletions = []
+
+  for (const task of state.dailyTasks) {
+    const progress = Math.min(task.target, getDailyTaskProgressValue(state, task.type))
+    if (task.progress !== progress) {
+      task.progress = progress
+      changed = true
+    }
+
+    if (task.completedAt || progress < task.target) {
+      continue
+    }
+
+    task.completedAt = now
+    changed = true
+    const xpSummary = task.xpReward > 0 ? gainFarmXp(state, task.xpReward) : { xpGained: 0 }
+    coinReward += task.coinReward
+    xpGained += xpSummary.xpGained
+    taskCompletions.push({
+      templateId: task.templateId,
+      type: task.type,
+      title: task.title,
+      target: task.target,
+      reward: {
+        coinReward: task.coinReward,
+        xpGained: xpSummary.xpGained
+      }
+    })
+  }
+
+  return {
+    changed,
+    coinReward,
+    xpGained,
+    taskCompletions
+  }
+}
+
+function progressFarmMilestones(state, now = Date.now()) {
+  const dailySummary = progressDailyTasks(state, now)
+  const questSummary = progressMainQuests(state, now)
+
+  return {
+    changed: dailySummary.changed || questSummary.changed,
+    dailySummary,
+    questSummary
+  }
+}
+
+function normalizeProgressSummary(summary) {
+  if (summary && typeof summary === 'object' && ('questSummary' in summary || 'dailySummary' in summary)) {
+    return {
+      questSummary: summary.questSummary || createEmptyQuestProgressSummary(),
+      dailySummary: summary.dailySummary || createEmptyDailyTaskProgressSummary()
+    }
+  }
+
+  return {
+    questSummary: summary || createEmptyQuestProgressSummary(),
+    dailySummary: createEmptyDailyTaskProgressSummary()
+  }
+}
+
+function buildMutationMeta(state, beforeXp, beforeLevel, progressSummary) {
+  const summary = normalizeProgressSummary(progressSummary)
   return {
     farmXpGained: Math.max(0, state.farmXp - beforeXp),
     levelBefore: beforeLevel,
     levelAfter: state.farmLevel,
-    questCoinReward: questSummary.coinReward,
+    questCoinReward: summary.questSummary.coinReward,
+    dailyCoinReward: summary.dailySummary.coinReward,
     questProgress: {
-      stepCompletions: questSummary.stepCompletions,
-      chapterCompletions: questSummary.chapterCompletions
+      stepCompletions: summary.questSummary.stepCompletions,
+      chapterCompletions: summary.questSummary.chapterCompletions
+    },
+    dailyProgress: {
+      taskCompletions: summary.dailySummary.taskCompletions
     }
   }
 }
@@ -2280,14 +2533,14 @@ function updateFarmProgress(state, now = Date.now()) {
   syncFarmState(state, now)
   const beforeXp = state.farmXp
   const beforeLevel = state.farmLevel
-  const questSummary = progressMainQuests(state, now)
-  if (questSummary.changed) {
+  const progressSummary = progressFarmMilestones(state, now)
+  if (progressSummary.changed) {
     touchFarmState(state)
   }
 
   return {
     ok: true,
-    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+    ...buildMutationMeta(state, beforeXp, beforeLevel, progressSummary)
   }
 }
 
@@ -2299,17 +2552,18 @@ function recordFarmAction(state, action, now = Date.now()) {
 
   if (action === 'open_farm') {
     state.stats.openFarmCount += 1
+    state.dailyStats.openFarmCount += 1
     changed = true
   }
 
-  const questSummary = progressMainQuests(state, now)
-  if (changed || questSummary.changed) {
+  const progressSummary = progressFarmMilestones(state, now)
+  if (changed || progressSummary.changed) {
     touchFarmState(state)
   }
 
   return {
     ok: true,
-    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+    ...buildMutationMeta(state, beforeXp, beforeLevel, progressSummary)
   }
 }
 
@@ -2363,8 +2617,9 @@ function buySeeds(state, seedAlias, count, options = {}) {
 
   addSeedInventory(state, preview.crop, preview.count)
   state.stats.buySeedCount += preview.count
+  state.dailyStats.buySeedCount += preview.count
 
-  const questSummary = progressMainQuests(state, now)
+  const progressSummary = progressFarmMilestones(state, now)
   touchFarmState(state)
 
   return {
@@ -2373,24 +2628,26 @@ function buySeeds(state, seedAlias, count, options = {}) {
     count: preview.count,
     totalCost: preview.totalCost,
     inventoryCount: state.seeds[preview.crop.alias].count,
-    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+    ...buildMutationMeta(state, beforeXp, beforeLevel, progressSummary)
   }
 }
 
 function previewPlantSeed(state, plotId, seedAlias, now = Date.now()) {
   syncFarmState(state, now)
 
-  const plot = getPlotById(state, plotId)
-  if (!plot) {
+  const normalizedTarget = String(plotId || '').trim().toLowerCase()
+  const targetMatch = normalizedTarget.match(/^(\d+)(?:-(\d+))?$/)
+  if (!targetMatch) {
     return { ok: false, reason: 'plot_out_of_range' }
   }
 
-  if (!plot.owned) {
-    return { ok: false, reason: 'plot_locked', plot }
+  let startPlotId = parseInt(targetMatch[1])
+  let endPlotId = targetMatch[2] ? parseInt(targetMatch[2]) : startPlotId
+  if (!Number.isInteger(startPlotId) || !Number.isInteger(endPlotId)) {
+    return { ok: false, reason: 'plot_out_of_range' }
   }
-
-  if (!isPlotEmpty(plot)) {
-    return { ok: false, reason: 'plot_occupied', plot }
+  if (startPlotId > endPlotId) {
+    [startPlotId, endPlotId] = [endPlotId, startPlotId]
   }
 
   const crop = getCropByAlias(seedAlias)
@@ -2402,21 +2659,53 @@ function previewPlantSeed(state, plotId, seedAlias, now = Date.now()) {
     return { ok: false, reason: 'crop_locked', crop }
   }
 
-  const seedEntry = getSeedEntry(state, crop.alias)
-  if (!seedEntry || seedEntry.count <= 0) {
-    return { ok: false, reason: 'seed_missing', crop }
+  const previews = []
+  for (let currentPlotId = startPlotId; currentPlotId <= endPlotId; currentPlotId++) {
+    const plot = getPlotById(state, currentPlotId)
+    if (!plot) {
+      return { ok: false, reason: 'plot_out_of_range' }
+    }
+
+    if (!plot.owned) {
+      return { ok: false, reason: 'plot_locked', plot }
+    }
+
+    if (!isPlotEmpty(plot)) {
+      return { ok: false, reason: 'plot_occupied', plot }
+    }
+
+    const land = getLandConfig(plot.plotId)
+    const growMinutes = crop.growMinutes * (land?.growMultiplier || 1)
+    previews.push({
+      plot,
+      readyAt: now + Math.ceil(growMinutes * 60 * 1000),
+      growMinutes,
+      yieldTotal: Math.max(0, Math.ceil(crop.harvestYield * (land?.yieldMultiplier || 1)))
+    })
   }
 
-  const land = getLandConfig(plot.plotId)
-  const growMinutes = crop.growMinutes * (land?.growMultiplier || 1)
+  const seedEntry = getSeedEntry(state, crop.alias)
+  if (!seedEntry || seedEntry.count < previews.length) {
+    return {
+      ok: false,
+      reason: 'seed_missing',
+      crop,
+      availableSeeds: seedEntry?.count || 0,
+      requiredSeeds: previews.length
+    }
+  }
+
   return {
     ok: true,
     crop,
-    plot,
-    staminaCost: crop.plantStamina,
-    readyAt: now + Math.ceil(growMinutes * 60 * 1000),
-    growMinutes,
-    yieldTotal: Math.max(0, Math.ceil(crop.harvestYield * (land?.yieldMultiplier || 1)))
+    plot: previews[0].plot,
+    plots: previews,
+    plotTarget: startPlotId === endPlotId ? String(startPlotId) : `${startPlotId}-${endPlotId}`,
+    staminaCost: crop.plantStamina * previews.length,
+    readyAt: previews[0].readyAt,
+    growMinutes: previews[0].growMinutes,
+    yieldTotal: previews[0].yieldTotal,
+    plantCount: previews.length
   }
 }
 
@@ -2429,36 +2718,42 @@ function plantSeed(state, plotId, seedAlias, now = Date.now(), options = {}) {
   const beforeXp = state.farmXp
   const beforeLevel = state.farmLevel
   const seedEntry = getSeedEntry(state, preview.crop.alias)
-  seedEntry.count -= 1
+  seedEntry.count -= preview.plantCount
   if (seedEntry.count <= 0) {
     delete state.seeds[preview.crop.alias]
   }
 
-  Object.assign(preview.plot, {
-    cropAlias: preview.crop.alias,
-    nameSnapshot: preview.crop.name,
-    sellPriceSnapshot: preview.crop.sellPrice,
-    yieldTotalSnapshot: preview.yieldTotal,
-    yieldStolen: 0,
-    growMinutesSnapshot: preview.growMinutes,
-    waterStaminaSnapshot: preview.crop.waterStamina,
-    waterBaseReductionPercentSnapshot: preview.crop.waterBaseReductionPercent,
-    plantedAt: now,
-    readyAt: preview.readyAt,
-    watered: false
-  })
-  state.stats.plantCount += 1
+  for (const plotPreview of preview.plots) {
+    Object.assign(plotPreview.plot, {
+      cropAlias: preview.crop.alias,
+      nameSnapshot: preview.crop.name,
+      sellPriceSnapshot: preview.crop.sellPrice,
+      yieldTotalSnapshot: plotPreview.yieldTotal,
+      yieldStolen: 0,
+      growMinutesSnapshot: plotPreview.growMinutes,
+      waterStaminaSnapshot: preview.crop.waterStamina,
+      waterBaseReductionPercentSnapshot: preview.crop.waterBaseReductionPercent,
+      plantedAt: now,
+      readyAt: plotPreview.readyAt,
+      watered: false
+    })
+  }
+  state.stats.plantCount += preview.plantCount
+  state.dailyStats.plantCount += preview.plantCount
 
-  const questSummary = progressMainQuests(state, now)
+  const progressSummary = progressFarmMilestones(state, now)
   touchFarmState(state)
 
   return {
     ok: true,
     crop: preview.crop,
     plot: preview.plot,
+    plots: preview.plots.map(item => item.plot),
+    plantCount: preview.plantCount,
+    plotTarget: preview.plotTarget,
     staminaCost: preview.staminaCost,
     readyAt: preview.readyAt,
-    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+    ...buildMutationMeta(state, beforeXp, beforeLevel, progressSummary)
   }
 }
 
@@ -2530,14 +2825,15 @@ function waterPlots(state, target, now = Date.now(), options = {}) {
   }
 
   state.stats.waterCount += wateredPlots.length
-  const questSummary = progressMainQuests(state, now)
+  state.dailyStats.waterCount += wateredPlots.length
+  const progressSummary = progressFarmMilestones(state, now)
   touchFarmState(state)
 
   return {
     ok: true,
     plots: wateredPlots,
     staminaCost: preview.staminaCost,
-    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+    ...buildMutationMeta(state, beforeXp, beforeLevel, progressSummary)
   }
 }
 
@@ -2602,6 +2898,7 @@ function harvestPlots(state, target, now = Date.now()) {
         sellPriceSnapshot: plot.sellPriceSnapshot
       })
       state.stats.harvestUnits += count
+      state.dailyStats.harvestUnits += count
       state.stats.harvestOnLand[plot.landType] += count
       totalUnits += count
     }
@@ -2622,13 +2919,13 @@ function harvestPlots(state, target, now = Date.now()) {
     gainFarmXp(state, totalUnits * 2)
   }
 
-  const questSummary = progressMainQuests(state, now)
+  const progressSummary = progressFarmMilestones(state, now)
   touchFarmState(state)
 
   return {
     ok: true,
     harvested,
-    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+    ...buildMutationMeta(state, beforeXp, beforeLevel, progressSummary)
   }
 }
 
@@ -2665,11 +2962,12 @@ function sellCrops(state, cropAlias, count) {
 
   const coinReward = normalizedCount * cropEntry.sellPriceSnapshot
   state.stats.sellCropUnits += normalizedCount
+  state.dailyStats.sellCropUnits += normalizedCount
   if (coinReward > 0) {
     gainFarmXp(state, Math.floor(coinReward / 10))
   }
 
-  const questSummary = progressMainQuests(state, now)
+  const progressSummary = progressFarmMilestones(state, now)
   touchFarmState(state)
 
   return {
@@ -2678,7 +2976,7 @@ function sellCrops(state, cropAlias, count) {
     cropNameSnapshot: cropEntry.nameSnapshot,
     soldCount: normalizedCount,
     coinReward,
-    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+    ...buildMutationMeta(state, beforeXp, beforeLevel, progressSummary)
   }
 }
 
@@ -2784,10 +3082,11 @@ function deliverOrder(state, orderIndex, now = Date.now()) {
   const completedOrder = cloneData(order)
   replaceOrderSlot(state, slotIndex, now)
   state.stats.deliverOrderCount += 1
+  state.dailyStats.deliverOrderCount += 1
   const totalRequiredQty = completedOrder.requirements.reduce((sum, requirement) => sum + requirement.requiredQty, 0)
   gainFarmXp(state, 10 + (totalRequiredQty * 3))
 
-  const questSummary = progressMainQuests(state, now)
+  const progressSummary = progressFarmMilestones(state, now)
   touchFarmState(state)
 
   return {
@@ -2796,7 +3095,7 @@ function deliverOrder(state, orderIndex, now = Date.now()) {
     replacement: state.orders[slotIndex] || null,
     coinReward: completedOrder.coinReward,
     favorReward: completedOrder.favorReward,
-    ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
+    ...buildMutationMeta(state, beforeXp, beforeLevel, progressSummary)
   }
 }
 
@@ -2850,6 +3149,23 @@ function getFarmQuestView(state, now = Date.now()) {
       steps: chapter.steps
     }
   })
+}
+
+function getFarmDailyTaskView(state, now = Date.now()) {
+  syncFarmState(state, now)
+  const dayKey = state.dailyTaskDayKey || getFarmDayKey(now)
+
+  return {
+    dayKey,
+    resetsAt: dayKey + DAY_MS,
+    completedCount: state.dailyTasks.filter(task => task.completedAt > 0).length,
+    totalCount: state.dailyTasks.length,
+    tasks: state.dailyTasks.map(task => ({
+      ...cloneData(task),
+      progress: Math.min(task.target, getDailyTaskProgressValue(state, task.type)),
+      completed: task.completedAt > 0
+    }))
+  }
 }
 
 function getFarmLandView(state) {
@@ -3359,6 +3675,7 @@ export {
   sellSeeds,
   deliverOrder,
   getFarmQuestView,
+  getFarmDailyTaskView,
   getFarmLandView,
   getFarmLevelInfo,
   getUnlockedFarmCrops,

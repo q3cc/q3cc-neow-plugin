@@ -4,6 +4,7 @@ import path from 'path'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  FARM_DAILY_TASK_SLOT_COUNT,
   FARM_ORDER_SLOT_COUNT,
   __configureFarmForTests,
   __getFarmConfigForTests,
@@ -17,6 +18,7 @@ import {
   deliverOrder,
   feedPet,
   getFarmAddonStatus,
+  getFarmDailyTaskView,
   getFarmLevelInfo,
   getFarmQuestView,
   getFarmRegistry,
@@ -119,6 +121,49 @@ test('25 种核心作物按等级解锁，土地倍率与购地规则生效', as
   } finally { await cleanup(t) }
 })
 
+test('支持用 1-5 范围一次性连续播种，且会一次扣除种子与体力成本', async () => {
+  const t = await env()
+  try {
+    const state = getFarmState('range-planter')
+    state.seeds = {}
+    buySeeds(state, 'radish', 5)
+    const result = plantSeed(state, '1-5', 'radish', 0)
+    assert.equal(result.ok, true)
+    assert.equal(result.plantCount, 5)
+    assert.equal(result.staminaCost, 25)
+    assert.equal(state.seeds.radish, undefined)
+    assert.equal(state.stats.plantCount, 5)
+    assert.deepEqual(result.plots.map(plot => plot.plotId), [1, 2, 3, 4, 5])
+    assert.equal(result.plots.every(plot => plot.cropAlias === 'radish'), true)
+  } finally { await cleanup(t) }
+})
+
+test('连续播种遇到空位不足种子或中途被占用时不会部分播种', async () => {
+  const t = await env()
+  try {
+    const state = getFarmState('range-planter-guard')
+    state.seeds = {}
+    buySeeds(state, 'radish', 4)
+    const notEnoughSeeds = plantSeed(state, '1-5', 'radish', 0, { preview: true })
+    assert.equal(notEnoughSeeds.ok, false)
+    assert.equal(notEnoughSeeds.reason, 'seed_missing')
+    assert.equal(notEnoughSeeds.requiredSeeds, 5)
+    assert.equal(notEnoughSeeds.availableSeeds, 4)
+
+    buySeeds(state, 'radish', 1)
+    plantSeed(state, 3, 'radish', 0)
+    const occupied = plantSeed(state, '1-5', 'radish', 1, { preview: true })
+    assert.equal(occupied.ok, false)
+    assert.equal(occupied.reason, 'plot_occupied')
+    assert.equal(occupied.plot.plotId, 3)
+    assert.equal(state.plots[0].cropAlias, '')
+    assert.equal(state.plots[1].cropAlias, '')
+    assert.equal(state.plots[2].cropAlias, 'radish')
+    assert.equal(state.plots[3].cropAlias, '')
+    assert.equal(state.plots[4].cropAlias, '')
+  } finally { await cleanup(t) }
+})
+
 test('订单板会补满 5 单，并在过期后整板刷新', async () => {
   const t = await env({ random: rand([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]) })
   try {
@@ -187,6 +232,107 @@ test('农场主线按章节顺序逐步解锁显示', async () => {
     questView = getFarmQuestView(state, 2)
     assert.deepEqual(questView.map(item => item.chapterId), ['tutorial', 'expansion'])
     assert.equal(questView.some(item => item.chapterId === 'guard'), false)
+  } finally { await cleanup(t) }
+})
+
+test('每日任务会在首次同步时补满 3 条，并在跨天后重置进度', async () => {
+  const t = await env({ random: rand([0, 0.2, 0.4, 0.6, 0.8, 0.1]) })
+  try {
+    const baseNow = Date.UTC(2026, 0, 2, 12, 0, 0)
+    const state = getFarmState('daily-reset')
+    const firstView = getFarmDailyTaskView(state, baseNow)
+    assert.equal(firstView.totalCount, FARM_DAILY_TASK_SLOT_COUNT)
+    assert.equal(firstView.tasks.length, FARM_DAILY_TASK_SLOT_COUNT)
+
+    state.dailyStats.openFarmCount = 5
+    state.dailyStats.buySeedCount = 5
+    state.dailyStats.plantCount = 5
+    state.dailyStats.waterCount = 5
+    state.dailyStats.harvestUnits = 5
+    state.dailyStats.sellCropUnits = 5
+    state.dailyStats.deliverOrderCount = 5
+    state.dailyTasks[0].completedAt = 123
+
+    const nextDayNow = firstView.dayKey + (24 * 60 * 60 * 1000) + 1000
+    const nextView = getFarmDailyTaskView(state, nextDayNow)
+    assert.equal(nextView.totalCount, FARM_DAILY_TASK_SLOT_COUNT)
+    assert.notEqual(nextView.dayKey, firstView.dayKey)
+    assert.equal(state.dailyStats.openFarmCount, 0)
+    assert.equal(state.dailyStats.buySeedCount, 0)
+    assert.equal(state.dailyStats.plantCount, 0)
+    assert.equal(state.dailyStats.waterCount, 0)
+    assert.equal(state.dailyStats.harvestUnits, 0)
+    assert.equal(state.dailyStats.sellCropUnits, 0)
+    assert.equal(state.dailyStats.deliverOrderCount, 0)
+    assert.equal(nextView.completedCount, 0)
+    assert.equal(nextView.tasks.every(task => task.progress === 0 && task.completed === false), true)
+  } finally { await cleanup(t) }
+})
+
+test('每日任务完成奖励只会发放一次', async () => {
+  const t = await env({ random: rand([0, 0.2, 0.4, 0.6, 0.8]) })
+  try {
+    const baseNow = Date.UTC(2026, 0, 2, 12, 0, 0)
+    const state = getFarmState('daily-once')
+    getFarmDailyTaskView(state, baseNow)
+    state.mainQuests.tutorial.currentStep = 1
+    state.mainQuests.tutorial.progress = 0
+    state.dailyTasks = [{
+      templateId: 'open-farm',
+      type: 'open_farm',
+      title: '打开一次 /farm',
+      target: 1,
+      progress: 0,
+      coinReward: 20,
+      xpReward: 5,
+      completedAt: 0
+    }]
+
+    const first = recordFarmAction(state, 'open_farm', baseNow)
+    assert.equal(first.questCoinReward, 0)
+    assert.equal(first.dailyCoinReward, 20)
+    assert.equal(first.farmXpGained, 5)
+    assert.equal(first.dailyProgress.taskCompletions.length, 1)
+    assert.equal(state.dailyTasks[0].completedAt, baseNow)
+
+    const second = recordFarmAction(state, 'open_farm', baseNow + 1)
+    assert.equal(second.dailyCoinReward, 0)
+    assert.equal(second.dailyProgress.taskCompletions.length, 0)
+    assert.equal(state.dailyTasks[0].completedAt, baseNow)
+  } finally { await cleanup(t) }
+})
+
+test('每日统计会随着买种子到交订单的动作推进', async () => {
+  const t = await env()
+  try {
+    const state = getFarmState('daily-progress')
+    buySeeds(state, 'radish', 2)
+    assert.equal(state.dailyStats.buySeedCount, 2)
+
+    plantSeed(state, '1-2', 'radish', 0)
+    assert.equal(state.dailyStats.plantCount, 2)
+
+    waterPlots(state, 'all', 1)
+    assert.equal(state.dailyStats.waterCount, 2)
+
+    const readyAt = Math.max(state.plots[0].readyAt, state.plots[1].readyAt)
+    harvestPlots(state, 'all', readyAt + 1)
+    assert.equal(state.dailyStats.harvestUnits, 2)
+
+    sellCrops(state, 'radish', 1)
+    assert.equal(state.dailyStats.sellCropUnits, 1)
+
+    state.orders = [{
+      slot: 1,
+      requirements: [
+        { cropAlias: 'radish', cropNameSnapshot: '白萝卜', requiredQty: 1 }
+      ],
+      coinReward: 12,
+      favorReward: 1,
+      expiresAt: Date.now() + 60_000
+    }, ...state.orders.slice(1)]
+    deliverOrder(state, 1, Date.now())
+    assert.equal(state.dailyStats.deliverOrderCount, 1)
   } finally { await cleanup(t) }
 })
 

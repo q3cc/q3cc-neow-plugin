@@ -86,6 +86,7 @@ import {
   deliverOrder,
   feedPet,
   getFarmAddonStatus,
+  getFarmDailyTaskView,
   getFarmLandView,
   getFarmLevelInfo,
   getFarmPetView,
@@ -238,7 +239,7 @@ export class NeowPlugin extends plugin {
           fnc: 'buyFarmSeed'
         },
         {
-          reg: /^(?:\/|#)?farm\s+plant\s+(\d+)\s+([a-z0-9_-]+)\s*$/i,
+          reg: /^(?:\/|#)?farm\s+plant\s+(\d+(?:-\d+)?)\s+([a-z0-9_-]+)\s*$/i,
           fnc: 'plantFarmSeed'
         },
         {
@@ -272,6 +273,10 @@ export class NeowPlugin extends plugin {
         {
           reg: /^(?:\/|#)?farm\s+quest\s*$/i,
           fnc: 'showFarmQuest'
+        },
+        {
+          reg: /^(?:\/|#)?farm\s+daily\s*$/i,
+          fnc: 'showFarmDaily'
         },
         {
           reg: /^(?:\/|#)?farm\s+land\s*$/i,
@@ -928,6 +933,33 @@ export class NeowPlugin extends plugin {
     return `${quest.name}: ${quest.currentStep}/${quest.totalSteps} - ${quest.step?.label || '进行中'} (${quest.progress}/${quest.target})`
   }
 
+  formatFarmDailyTaskRewardText(reward) {
+    if (!reward) {
+      return ''
+    }
+
+    const parts = []
+    const coinReward = Number(reward.coinReward) || 0
+    const xpReward = Number(reward.xpGained) || Number(reward.xpReward) || 0
+    if (coinReward > 0) {
+      parts.push(`${coinReward} Star 币`)
+    }
+    if (xpReward > 0) {
+      parts.push(`${xpReward} 农场经验`)
+    }
+    return parts.join(' + ')
+  }
+
+  formatFarmDailyTaskLine(task) {
+    if (!task) {
+      return ''
+    }
+
+    const rewardText = this.formatFarmDailyTaskRewardText(task)
+    const statusText = task.completed ? '已完成' : `${task.progress}/${task.target}`
+    return `${task.completed ? '✅' : '📝'} ${task.title} (${statusText}) - 奖励 ${rewardText}`
+  }
+
   formatFarmLandSummaryLine(landView) {
     const landTypes = ['normal', 'yellow', 'black']
     return landTypes.map(landType => {
@@ -1034,6 +1066,14 @@ export class NeowPlugin extends plugin {
       lines.push(`🎉 主线[${item.chapterName}] 已完成`)
     }
 
+    for (const item of mutation.dailyProgress?.taskCompletions || []) {
+      lines.push(`🗓️ 每日任务完成: ${item.title}`)
+      const rewardText = this.formatFarmDailyTaskRewardText(item.reward)
+      if (rewardText) {
+        lines.push(`   奖励: ${rewardText}`)
+      }
+    }
+
     return lines
   }
 
@@ -1065,7 +1105,8 @@ export class NeowPlugin extends plugin {
     const favorDelta = Number.isFinite(Number(options.favorDelta)) ? Number(options.favorDelta) : 0
     const staminaDelta = Number.isFinite(Number(options.staminaDelta)) ? Number(options.staminaDelta) : 0
     const questCoinReward = Math.max(0, Number(mutation?.questCoinReward) || 0)
-    const totalCoinDelta = directCoinDelta + questCoinReward
+    const dailyCoinReward = Math.max(0, Number(mutation?.dailyCoinReward) || 0)
+    const totalCoinDelta = directCoinDelta + questCoinReward + dailyCoinReward
     let userChanged = false
 
     if (totalCoinDelta !== 0) {
@@ -1091,6 +1132,7 @@ export class NeowPlugin extends plugin {
       favorDelta,
       staminaDelta,
       questCoinReward,
+      dailyCoinReward,
       totalCoinDelta
     }
   }
@@ -1110,6 +1152,7 @@ export class NeowPlugin extends plugin {
 
     const levelInfo = getFarmLevelInfo(farm.state)
     const questView = getFarmQuestView(farm.state, farm.now)
+    const dailyTaskView = getFarmDailyTaskView(farm.state, farm.now)
     const landView = getFarmLandView(farm.state)
     const petView = getFarmPetView(farm.state, farm.now)
     const unlockedCrops = getUnlockedFarmCrops(farm.state)
@@ -1136,6 +1179,7 @@ export class NeowPlugin extends plugin {
       `🗺️ 地块进度: ${this.formatFarmLandSummaryLine(landView)}`,
       `🐾 宠物驻守: ${this.formatFarmPetStatusLine(petView)}`,
       `📋 主线完成: ${completedQuestCount}/${questView.length}`,
+      `🗓️ 每日任务: ${dailyTaskView.completedCount}/${dailyTaskView.totalCount}`,
       '',
       '主线进度:',
       ...questView.map(item => `  ${this.formatFarmQuestLine(item)}`),
@@ -1153,6 +1197,7 @@ export class NeowPlugin extends plugin {
       '/farm harvest all - 一键收成熟作物',
       '/farm bag - 查看背包',
       '/farm order - 查看订单板',
+      '/farm daily - 查看每日任务',
       '/farm sell seed radish all - 回收多余种子',
       '/farm land - 查看地块购买',
       '/farm quest - 查看主线任务',
@@ -1185,12 +1230,13 @@ export class NeowPlugin extends plugin {
       '/farm shop - 查看种子商店',
       '/farm bag - 查看背包',
       '/farm order - 查看订单板',
+      '/farm daily - 查看每日任务',
       '/farm quest - 查看主线任务',
       '/farm land - 查看地块购买',
       '',
       '种植:',
       '/farm buy <作物别名> [数量] - 购买种子',
-      '/farm plant <地块号> <作物别名> - 播种',
+      '/farm plant <地块号|起始-结束> <作物别名> - 播种',
       '/farm water <地块号|all> - 浇水',
       '/farm harvest <地块号|all> - 收获',
       '/farm sell seed <作物别名> <数量|all> - 回收种子',
@@ -1211,6 +1257,7 @@ export class NeowPlugin extends plugin {
       '示例:',
       '/farm buy radish 2',
       '/farm plant 1 radish',
+      '/farm plant 1-5 radish',
       '/farm water all',
       '/farm harvest all'
     ]
@@ -1319,25 +1366,29 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+plant\s+(\d+)\s+([a-z0-9_-]+)\s*$/i)
-    const plotId = parseInt(match?.[1])
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+plant\s+(\d+(?:-\d+)?)\s+([a-z0-9_-]+)\s*$/i)
+    const plotTarget = String(match?.[1] || '').trim().toLowerCase()
     const cropAlias = String(match?.[2] || '').trim().toLowerCase()
-    const preview = plantSeed(farm.state, plotId, cropAlias, farm.now, { preview: true })
+    const preview = plantSeed(farm.state, plotTarget, cropAlias, farm.now, { preview: true })
 
     if (!preview.ok) {
       let message = '播种失败喵~'
       if (preview.reason === 'plot_out_of_range') {
         message = `地块编号不对喵，目前只有 1-${farm.state.plots.length} 号地`
       } else if (preview.reason === 'plot_locked') {
-        message = `${plotId}号地还没买下来喵，先用 /farm land 看看解锁条件吧~`
+        message = `${preview.plot?.plotId || plotTarget}号地还没买下来喵，先用 /farm land 看看解锁条件吧~`
       } else if (preview.reason === 'plot_occupied') {
-        message = `${plotId}号地已经种着东西啦，先收掉再播种吧~`
+        message = `${preview.plot?.plotId || plotTarget}号地已经种着东西啦，先收掉再播种吧~`
       } else if (preview.reason === 'unknown_crop') {
         message = '这个作物别名不存在喵，先用 /farm shop 看看商店吧~'
       } else if (preview.reason === 'crop_locked') {
         message = `${preview.crop?.name || cropAlias} 要到农场 Lv${preview.crop?.unlockLevel || '?'} 才会开放喵~`
       } else if (preview.reason === 'seed_missing') {
-        message = `背包里没有 ${preview.crop?.seedName || cropAlias} 了喵，先去 /farm shop 买点吧~`
+        if ((preview.requiredSeeds || 0) > 1) {
+          message = `背包里只有 ${preview.availableSeeds || 0} 颗 ${preview.crop?.seedName || cropAlias}，不够种满 ${preview.requiredSeeds} 块地喵~`
+        } else {
+          message = `背包里没有 ${preview.crop?.seedName || cropAlias} 了喵，先去 /farm shop 买点吧~`
+        }
       }
       await this.replyWithTimeout(e, message, true)
       return true
@@ -1352,7 +1403,8 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const result = plantSeed(farm.state, plotId, cropAlias, farm.now)
+    const result = plantSeed(farm.state, plotTarget, cropAlias, farm.now)
+    const plotLabel = (result.plots || []).map(plot => `${plot.plotId}号地`).join('、')
     await this.applyFarmUserChanges(farm, {
       staminaDelta: -result.staminaCost,
       mutation: result
@@ -1360,9 +1412,11 @@ export class NeowPlugin extends plugin {
 
     const lines = [
       '播种完成喵~',
-      `${result.plot.plotId}号地已经种下 ${result.crop.name}`,
+      result.plantCount > 1
+        ? `已同时在 ${plotLabel} 种下 ${result.crop.name}`
+        : `${result.plot.plotId}号地已经种下 ${result.crop.name}`,
       `消耗体力: ${result.staminaCost}`,
-      `预计成熟: ${new Date(result.readyAt).toLocaleString('zh-CN')}`
+      ...(result.plots || []).map(plot => `${plot.plotId}号地预计成熟: ${new Date(plot.readyAt).toLocaleString('zh-CN')}`)
     ]
 
     return this.replyFarmResult(e, lines, {
@@ -1744,6 +1798,32 @@ export class NeowPlugin extends plugin {
       ...questView.flatMap(item => item.completed
         ? ['', `${item.name} - 已完成`, `当前章节: ${item.totalSteps}/${item.totalSteps}`]
         : ['', `${item.name} - 进行中 ${item.currentStep}/${item.totalSteps}`, `当前步骤: ${item.step?.label || '进行中'}`, `进度: ${item.progress}/${item.target}`])
+    ]
+
+    return this.replyFarmResult(e, lines, {
+      notifications: farm.notifications
+    })
+  }
+
+  async showFarmDaily(e) {
+    if (!await this.ensureUsable(e)) {
+      return true
+    }
+
+    const farm = await this.getFarmContext(e)
+    if (!farm) {
+      return true
+    }
+
+    const dailyTaskView = getFarmDailyTaskView(farm.state, farm.now)
+    const lines = [
+      '农场每日任务',
+      `今日完成: ${dailyTaskView.completedCount}/${dailyTaskView.totalCount}`,
+      `明日刷新: ${this.formatFarmDuration(Math.max(0, dailyTaskView.resetsAt - farm.now))}`,
+      '',
+      ...(dailyTaskView.tasks.length
+        ? dailyTaskView.tasks.map(task => this.formatFarmDailyTaskLine(task))
+        : ['今天还没有刷出任务喵~'])
     ]
 
     return this.replyFarmResult(e, lines, {

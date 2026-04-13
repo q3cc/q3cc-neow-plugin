@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### 重点更新日志
+- [新增] farm 每日任务系统：每天刷新 `3` 条任务，覆盖打开农场、买种子、播种、浇水、收获、卖作物与交订单等动作，并自动发放 `Star 币 + 农场经验`
+- [新增] `/farm daily`，可查看今日每日任务进度、奖励与刷新倒计时；`/farm` 总览与 `/farm help` 也同步加入每日任务入口
+- [优化] farm 动作结算现在会把每日任务完成奖励与主线奖励一起拆分到第二条提示消息里发送
+- [优化] `/farm plant` 现在支持 `1-5` 这类连续地块范围一次性播种，并在种子不足或中途有占地时整次失败避免半成功
 - [优化] farm 主线章节改为按顺序逐步解锁显示，完成前一章后才会展示下一章
 - [优化] `/farm` 总览增加播种快捷入口并改为引导使用 `/farm help` 查看完整指令帮助
 - [优化] farm 主线完成与升级奖励提示现在会与主信息分开发送，避免总览和操作反馈过长
@@ -11,6 +15,7 @@
 - [优化] `/farm shop`、`/farm bag`、`/farm order` 与 `/farm deliver` 文案同步更新，展示种子回收价、多作物订单需求与缺失材料反馈
 - [优化] `resources/farm-core-addon.json` 的核心订单模板升级为多作物 `requirements[]` 结构，同时保留旧单作物订单模板与旧订单存档兼容
 - [测试] `tests/farm-game.test.js` 补充 `5` 单订单板、多作物交付、`requirements[]` 模板加载与种子回收覆盖
+- [测试] `tests/farm-game.test.js` 补充 farm 每日任务首刷、跨天重置、完成奖励与日常动作累计覆盖
 - [新增] `/farm quest`、`/farm land`、`/farm buyplot`、`/farm visit`、`/farm steal`、`/farm pet`、`/farm pet shop`、`/farm pet buy`、`/farm pet food buy`、`/farm pet use`、`/farm pet feed`，补齐农场 v2 主线 / 地块 / 互偷 / 宠物玩法
 - [新增] farm 等级与经验系统、`15` 块分级土地、`3` 条一次性主线任务与 `Lv20` 解锁的偷菜 / 守卫链路
 - [新增] `resources/farm-core-addon.json` 升级到 schema v2，核心内容扩展为 `25` 种作物、`3` 只宠物、`3` 种宠物粮与主线章节数据
