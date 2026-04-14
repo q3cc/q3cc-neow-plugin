@@ -9,14 +9,17 @@ import {
   BOOM_ROOM_IDLE_MS,
   addBoomPlayer,
   applyBoomGuess,
+  createBoomRoomPersistenceSnapshot,
   createBoomRoom,
   deleteBoomRoom,
+  getBoomDataPersistenceSnapshot,
   getBoomCurrentPlayerId,
   getBoomGuessRange,
   getBoomRoom,
   isBoomCountdownActive,
   isBoomRoomIdleActive,
   prepareBoomStart,
+  restoreBoomRoomFromPersistenceSnapshot,
   rollBoomStake,
   setBoomCountdown,
   setBoomRoomIdle,
@@ -206,4 +209,63 @@ test('settleBoomRoom splits prize pool and distributes remainder from next playe
   })
 
   deleteBoomRoom('settle-room')
+})
+
+test('active boom rooms can be snapshotted and restored after restart', () => {
+  const room = createBoomRoom('persist-room', 10009, '1', 1)
+  addBoomPlayer(room, '2', 3)
+
+  prepareBoomStart(
+    room,
+    () => 100,
+    createSequenceRandom([0, 0.999999])
+  )
+  startBoomGame(room, () => 0)
+
+  const snapshot = createBoomRoomPersistenceSnapshot(room)
+
+  assert.ok(snapshot)
+  assert.equal(snapshot.status, 'active')
+  assert.equal('countdownTimer' in snapshot, false)
+  assert.equal('roomIdleTimer' in snapshot, false)
+
+  const restored = restoreBoomRoomFromPersistenceSnapshot(snapshot)
+
+  assert.ok(restored)
+  assert.equal(restored.status, 'active')
+  assert.equal(restored.sessionId, 'persist-room')
+  assert.equal(restored.bombNumber, room.bombNumber)
+  assert.equal(restored.prizePool, room.prizePool)
+  assert.deepEqual(restored.turnOrder, room.turnOrder)
+  assert.deepEqual(
+    restored.players.map(player => ({
+      userId: player.userId,
+      actualStake: player.actualStake,
+      eliminated: player.eliminated
+    })),
+    room.players.map(player => ({
+      userId: player.userId,
+      actualStake: player.actualStake,
+      eliminated: player.eliminated
+    }))
+  )
+
+  deleteBoomRoom('persist-room')
+})
+
+test('boom persistence snapshot only includes active rooms', () => {
+  const lobbyRoom = createBoomRoom('persist-lobby-room', 10010, '1', 1)
+  const activeRoom = createBoomRoom('persist-active-room', 10011, '3', 1)
+  addBoomPlayer(activeRoom, '4', 2)
+  prepareBoomStart(activeRoom, () => 100, () => 0)
+  startBoomGame(activeRoom, () => 0)
+
+  const snapshot = JSON.parse(getBoomDataPersistenceSnapshot().content)
+
+  assert.equal(snapshot['persist-lobby-room'], undefined)
+  assert.ok(snapshot['persist-active-room'])
+  assert.equal(snapshot['persist-active-room'].status, 'active')
+
+  deleteBoomRoom('persist-lobby-room')
+  deleteBoomRoom('persist-active-room')
 })

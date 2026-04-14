@@ -55,6 +55,9 @@ const DEFAULT_POKE_ACTIONS = {
   ]
 }
 
+let userDataLoadError = ''
+let signStatsLoadError = ''
+
 function createDefaultUser() {
   return {
     uid: 0,
@@ -169,21 +172,42 @@ async function flushSignStats() {
 }
 
 function saveUsers() {
+  assertUserDataPersistenceReady()
   usersDirty = true
   return flushUsers()
 }
 
 function saveSignStats() {
+  assertSignStatsPersistenceReady()
   signStatsDirty = true
   return flushSignStats()
+}
+
+function assertUserDataPersistenceReady() {
+  if (userDataLoadError) {
+    throw new Error(userDataLoadError)
+  }
+}
+
+function assertSignStatsPersistenceReady() {
+  if (signStatsLoadError) {
+    throw new Error(signStatsLoadError)
+  }
 }
 
 function loadPersistedData() {
   let uidChanged = false
   const recovery = recoverSharedStateTransaction(sharedStateTransactionPath)
   if (recovery.error) {
-    console.error('[neow] 恢复共享事务失败:', recovery.error)
+    userDataLoadError = recovery.error
+    signStatsLoadError = recovery.error
+    users.clear()
+    dailySignStats.clear()
+    return
   }
+
+  userDataLoadError = ''
+  signStatsLoadError = ''
 
   try {
     if (fs.existsSync(usersPath)) {
@@ -192,11 +216,16 @@ function loadPersistedData() {
         users.set(normalizeUserId(userId), { ...createDefaultUser(), ...user })
       }
     }
-  } catch {
+  } catch (error) {
     users.clear()
+    userDataLoadError = `读取 users 存档失败: ${error?.message || error}`
   }
 
-  uidChanged = assignMissingUids() || uidChanged
+  if (!userDataLoadError) {
+    uidChanged = assignMissingUids() || uidChanged
+  } else {
+    nextUid = 1
+  }
 
   try {
     if (fs.existsSync(signStatsPath)) {
@@ -212,8 +241,9 @@ function loadPersistedData() {
         })
       }
     }
-  } catch {
+  } catch (error) {
     dailySignStats.clear()
+    signStatsLoadError = `读取签到统计失败: ${error?.message || error}`
   }
 
   if (uidChanged) {
@@ -419,6 +449,7 @@ export function markUserDataDirty() {
 }
 
 export function getUserDataPersistenceSnapshot() {
+  assertUserDataPersistenceReady()
   return {
     filePath: usersPath,
     content: serializeUsers()
@@ -435,10 +466,43 @@ export function acknowledgeUserDataPersistenceSnapshot(snapshot) {
   }
 }
 
-export async function saveUserAndFarmDataInTransaction(farmSnapshot) {
+export function getSignStatsPersistenceSnapshot() {
+  assertSignStatsPersistenceReady()
+  return {
+    filePath: signStatsPath,
+    content: serializeSignStats()
+  }
+}
+
+export function acknowledgeSignStatsPersistenceSnapshot(snapshot) {
+  if (!snapshot?.content) {
+    return
+  }
+
+  if (serializeSignStats() === snapshot.content) {
+    signStatsDirty = false
+  }
+}
+
+async function saveUserAndSnapshotsInTransaction(additionalSnapshots = []) {
   const userSnapshot = getUserDataPersistenceSnapshot()
-  await commitSharedStateTransaction([userSnapshot, farmSnapshot], sharedStateTransactionPath)
+  await commitSharedStateTransaction([userSnapshot, ...additionalSnapshots.filter(Boolean)], sharedStateTransactionPath)
   acknowledgeUserDataPersistenceSnapshot(userSnapshot)
+  return userSnapshot
+}
+
+export async function saveUserAndFarmDataInTransaction(farmSnapshot) {
+  return saveUserAndSnapshotsInTransaction([farmSnapshot])
+}
+
+export async function saveUserAndBoomDataInTransaction(boomSnapshot) {
+  return saveUserAndSnapshotsInTransaction([boomSnapshot])
+}
+
+export async function saveUserAndSignStatsInTransaction() {
+  const signStatsSnapshot = getSignStatsPersistenceSnapshot()
+  const userSnapshot = await saveUserAndSnapshotsInTransaction([signStatsSnapshot])
+  acknowledgeSignStatsPersistenceSnapshot(signStatsSnapshot)
   return userSnapshot
 }
 
@@ -505,6 +569,7 @@ export function syncUserData(user, options = {}) {
 }
 
 export function getUserData(userId) {
+  assertUserDataPersistenceReady()
   const normalizedUserId = normalizeUserId(userId)
   let created = false
 
@@ -799,7 +864,8 @@ export function buildHelpLines(options = {}) {
   return lines
 }
 
-export function recordDailySign(userId, timestamp = Date.now()) {
+export function recordDailySign(userId, timestamp = Date.now(), options = {}) {
+  assertSignStatsPersistenceReady()
   const normalizedUserId = normalizeUserId(userId)
   const dayKey = new Date(timestamp).setHours(0, 0, 0, 0)
   const stats = dailySignStats.get(dayKey) || {
@@ -811,7 +877,11 @@ export function recordDailySign(userId, timestamp = Date.now()) {
     stats.users.add(normalizedUserId)
     stats.count += 1
     dailySignStats.set(dayKey, stats)
-    saveSignStats()
+    signStatsDirty = true
+
+    if (options.persist !== false) {
+      saveSignStats()
+    }
   }
 
   return stats.count

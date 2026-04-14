@@ -1,9 +1,20 @@
+import fs from 'fs'
+import path from 'path'
+import {
+  pluginDataDirPath,
+  recoverSharedStateTransaction,
+  sharedStateTransactionPath,
+  writeTextFileAtomically
+} from './persistence.js'
+
 export const BOOM_MIN_COINS = 40
 export const BOOM_MAX_PLAYERS = 8
 export const BOOM_COUNTDOWN_MS = 15000
 export const BOOM_ROOM_IDLE_MS = 30 * 60 * 1000
 export const BOOM_GUESS_MIN = 1
 export const BOOM_GUESS_MAX = 100
+
+const boomStatePath = path.join(pluginDataDirPath, 'boom-state.json')
 
 export const BOOM_DIFFICULTIES = {
   0: {
@@ -32,6 +43,7 @@ const boomRooms = new Map()
 let nextBoomRoomId = 1
 let nextBoomCountdownToken = 1
 let nextBoomRoomIdleToken = 1
+let boomDataLoadError = ''
 
 function normalizeSessionId(sessionId) {
   return String(sessionId)
@@ -39,6 +51,15 @@ function normalizeSessionId(sessionId) {
 
 function normalizeUserId(userId) {
   return String(userId)
+}
+
+function normalizeNonNegativeInteger(value, fallback = 0) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return fallback
+  }
+
+  return Math.max(0, Math.trunc(parsed))
 }
 
 function rollInt(min, max, random = Math.random) {
@@ -60,6 +81,12 @@ function getDifficulty(difficultyId) {
   return BOOM_DIFFICULTIES[difficultyId] || BOOM_DIFFICULTIES[1]
 }
 
+function assertBoomPersistenceReady() {
+  if (boomDataLoadError) {
+    throw new Error(boomDataLoadError)
+  }
+}
+
 export function createBoomPlayer(userId, difficultyId = 1) {
   const difficulty = getDifficulty(difficultyId)
 
@@ -70,6 +97,190 @@ export function createBoomPlayer(userId, difficultyId = 1) {
     actualStake: 0,
     eliminated: false
   }
+}
+
+function serializeBoomPlayer(player = {}) {
+  const difficultyId = Number.isInteger(player.difficulty) ? player.difficulty : 1
+  const difficulty = getDifficulty(difficultyId)
+
+  return {
+    userId: normalizeUserId(player.userId),
+    difficulty: difficultyId,
+    difficultyName: difficulty.name,
+    actualStake: normalizeNonNegativeInteger(player.actualStake),
+    eliminated: Boolean(player.eliminated)
+  }
+}
+
+export function createBoomRoomPersistenceSnapshot(room) {
+  if (!room || room.status !== 'active') {
+    return null
+  }
+
+  const sessionId = normalizeSessionId(room.sessionId)
+  if (!sessionId || !Array.isArray(room.players) || room.players.length < 2) {
+    return null
+  }
+
+  return {
+    roomId: normalizeNonNegativeInteger(room.roomId, 1) || 1,
+    sessionId,
+    groupId: normalizeNonNegativeInteger(room.groupId),
+    status: 'active',
+    hostId: normalizeUserId(room.hostId),
+    players: room.players.map(player => serializeBoomPlayer(player)),
+    turnOrder: Array.isArray(room.turnOrder)
+      ? room.turnOrder.map(userId => normalizeUserId(userId))
+      : [],
+    currentTurnIndex: normalizeNonNegativeInteger(room.currentTurnIndex),
+    lowerBound: normalizeNonNegativeInteger(room.lowerBound, BOOM_GUESS_MIN - 1),
+    upperBound: normalizeNonNegativeInteger(room.upperBound, BOOM_GUESS_MAX + 1),
+    bombNumber: normalizeNonNegativeInteger(room.bombNumber, BOOM_GUESS_MIN),
+    prizePool: normalizeNonNegativeInteger(room.prizePool)
+  }
+}
+
+export function restoreBoomRoomFromPersistenceSnapshot(snapshot) {
+  if (!snapshot || snapshot.status !== 'active') {
+    return null
+  }
+
+  const sessionId = normalizeSessionId(snapshot.sessionId)
+  const players = Array.isArray(snapshot.players)
+    ? snapshot.players
+        .map(player => serializeBoomPlayer(player))
+        .filter(player => player.userId)
+    : []
+
+  if (!sessionId || players.length < 2) {
+    return null
+  }
+
+  const playerIds = new Set(players.map(player => player.userId))
+  let hostId = normalizeUserId(snapshot.hostId)
+  if (!playerIds.has(hostId)) {
+    hostId = players[0].userId
+  }
+
+  let turnOrder = Array.isArray(snapshot.turnOrder)
+    ? snapshot.turnOrder
+        .map(userId => normalizeUserId(userId))
+        .filter((userId, index, list) => playerIds.has(userId) && list.indexOf(userId) === index)
+    : []
+
+  if (turnOrder.length !== players.length) {
+    turnOrder = players.map(player => player.userId)
+  }
+
+  let currentTurnIndex = normalizeNonNegativeInteger(snapshot.currentTurnIndex)
+  if (currentTurnIndex >= turnOrder.length) {
+    currentTurnIndex = 0
+  }
+
+  let lowerBound = normalizeNonNegativeInteger(snapshot.lowerBound, BOOM_GUESS_MIN - 1)
+  if (lowerBound >= BOOM_GUESS_MAX) {
+    lowerBound = BOOM_GUESS_MIN - 1
+  }
+
+  let upperBound = normalizeNonNegativeInteger(snapshot.upperBound, BOOM_GUESS_MAX + 1)
+  if (upperBound <= lowerBound + 1 || upperBound > BOOM_GUESS_MAX + 1) {
+    upperBound = BOOM_GUESS_MAX + 1
+  }
+
+  let bombNumber = normalizeNonNegativeInteger(snapshot.bombNumber, BOOM_GUESS_MIN)
+  if (bombNumber < BOOM_GUESS_MIN || bombNumber > BOOM_GUESS_MAX) {
+    bombNumber = BOOM_GUESS_MIN
+  }
+
+  if (bombNumber <= lowerBound || bombNumber >= upperBound) {
+    lowerBound = BOOM_GUESS_MIN - 1
+    upperBound = BOOM_GUESS_MAX + 1
+  }
+
+  return {
+    roomId: normalizeNonNegativeInteger(snapshot.roomId, 1) || 1,
+    sessionId,
+    groupId: normalizeNonNegativeInteger(snapshot.groupId),
+    status: 'active',
+    hostId,
+    players,
+    countdownEndsAt: 0,
+    countdownTimer: null,
+    countdownToken: 0,
+    roomIdleEndsAt: 0,
+    roomIdleTimer: null,
+    roomIdleToken: 0,
+    turnOrder,
+    currentTurnIndex,
+    lowerBound,
+    upperBound,
+    bombNumber,
+    prizePool: normalizeNonNegativeInteger(
+      snapshot.prizePool,
+      players.reduce((sum, player) => sum + player.actualStake, 0)
+    )
+  }
+}
+
+function serializeBoomRooms() {
+  return JSON.stringify(Object.fromEntries(
+    [...boomRooms.entries()]
+      .map(([sessionId, room]) => [sessionId, createBoomRoomPersistenceSnapshot(room)])
+      .filter(([, snapshot]) => snapshot)
+  ), null, 2)
+}
+
+function loadBoomRooms() {
+  const recovery = recoverSharedStateTransaction(sharedStateTransactionPath)
+  if (recovery.error) {
+    boomDataLoadError = recovery.error
+    boomRooms.clear()
+    nextBoomRoomId = 1
+    return
+  }
+
+  boomDataLoadError = ''
+  boomRooms.clear()
+  nextBoomRoomId = 1
+
+  try {
+    if (!fs.existsSync(boomStatePath)) {
+      return
+    }
+
+    const rawRooms = JSON.parse(fs.readFileSync(boomStatePath, 'utf8'))
+    for (const [sessionId, snapshot] of Object.entries(rawRooms || {})) {
+      const room = restoreBoomRoomFromPersistenceSnapshot({
+        ...(snapshot || {}),
+        sessionId: snapshot?.sessionId || sessionId
+      })
+
+      if (!room) {
+        continue
+      }
+
+      boomRooms.set(room.sessionId, room)
+      nextBoomRoomId = Math.max(nextBoomRoomId, room.roomId + 1)
+    }
+  } catch (error) {
+    boomRooms.clear()
+    nextBoomRoomId = 1
+    boomDataLoadError = `读取数字炸弹存档失败: ${error?.message || error}`
+  }
+}
+
+export function getBoomDataPersistenceSnapshot() {
+  assertBoomPersistenceReady()
+  return {
+    filePath: boomStatePath,
+    content: serializeBoomRooms()
+  }
+}
+
+export async function saveBoomData() {
+  const snapshot = getBoomDataPersistenceSnapshot()
+  await writeTextFileAtomically(snapshot.filePath, snapshot.content)
+  return snapshot
 }
 
 export function getBoomRoom(sessionId) {
@@ -440,3 +651,5 @@ export function settleBoomRoom(room, loserId) {
     payoutOrder
   }
 }
+
+loadBoomRooms()

@@ -4,7 +4,9 @@ import {
   markUserDataDirty,
   syncUserData,
   saveUserData,
+  saveUserAndBoomDataInTransaction,
   saveUserAndFarmDataInTransaction,
+  saveUserAndSignStatsInTransaction,
   buildHelpLines,
   buildUserInfoLines,
   getCoinLeaderboard,
@@ -119,7 +121,9 @@ import {
   BOOM_ROOM_IDLE_MS,
   addBoomPlayer,
   applyBoomGuess,
+  getBoomDataPersistenceSnapshot,
   createBoomRoom,
+  saveBoomData,
   deleteBoomRoom,
   getBoomCurrentPlayerId,
   getBoomGuessRange,
@@ -3523,12 +3527,21 @@ export class NeowPlugin extends plugin {
     const hintLine = result.direction === 'higher'
       ? '还不够大喵，炸弹在更高一点的位置~'
       : '太大啦喵，炸弹躲在更低一点的位置~'
+    let boomProgressWarning = ''
+
+    try {
+      await saveBoomData()
+    } catch (error) {
+      logWarn(`[neow][boom] 保存猜测进度失败: ${error?.message || error}`)
+      boomProgressWarning = '⚠️ 这次猜测已经生效，但本局进度暂时没存稳喵'
+    }
 
     await e.reply([
       `${this.getBoomPlayerLabel(e.user_id)} 猜了 ${guess}`,
       hintLine,
       `当前区间: ${result.range.min}-${result.range.max}`,
-      `轮到 ${this.getBoomPlayerLabel(result.nextPlayerId)} 了喵~`
+      `轮到 ${this.getBoomPlayerLabel(result.nextPlayerId)} 了喵~`,
+      ...(boomProgressWarning ? [boomProgressWarning] : [])
     ].join('\n'), true)
     return true
   }
@@ -3930,9 +3943,19 @@ export class NeowPlugin extends plugin {
     user.favor += favorReward
     user.signCount = (user.signCount || 0) + 1
     user.lastSign = now
-    syncUserData(user, { persist: true })
+    syncUserData(user)
+    markUserDataDirty()
 
-    const signOrder = recordDailySign(e.user_id, now)
+    let signOrder = 0
+    try {
+      signOrder = recordDailySign(e.user_id, now, { persist: false })
+      await saveUserAndSignStatsInTransaction()
+    } catch (error) {
+      logWarn(`[neow][sign] 保存签到结果失败: ${error?.message || error}`)
+      await e.reply(`签到奖励暂时存不进去喵：${error?.message || error}`, true)
+      return true
+    }
+
     await e.reply([
       `${getRandomSignPrompt()} 你是今天第 ${signOrder} 位签到的`,
       `累计签到 ${user.signCount} 次`,
@@ -4072,27 +4095,32 @@ export class NeowPlugin extends plugin {
   }
 
   async ensureUsable(e) {
-    this.syncSenderNickname(e)
+    try {
+      this.syncSenderNickname(e)
 
-    if (e.isMaster) {
-      return true
+      const user = getUserData(e.user_id)
+      if (e.isMaster) {
+        return true
+      }
+
+      if (!isBannedUser(user)) {
+        return true
+      }
+
+      const remainMs = getBanRemainingMs(user)
+      const remainText = remainMs === -1
+        ? '当前为永久封禁'
+        : `剩余 ${Math.ceil(remainMs / 60000)} 分钟`
+
+      await e.reply([
+        '你已被大喵喵封禁，暂时不能使用这些指令喵~',
+        remainText
+      ].join('\n'), true)
+      return false
+    } catch (error) {
+      await this.replyWithTimeout(e, `用户存档暂时读不了喵：${error?.message || error}`, true)
+      return false
     }
-
-    const user = getUserData(e.user_id)
-    if (!isBannedUser(user)) {
-      return true
-    }
-
-    const remainMs = getBanRemainingMs(user)
-    const remainText = remainMs === -1
-      ? '当前为永久封禁'
-      : `剩余 ${Math.ceil(remainMs / 60000)} 分钟`
-
-    await e.reply([
-      '你已被大喵喵封禁，暂时不能使用这些指令喵~',
-      remainText
-    ].join('\n'), true)
-    return false
   }
 
   syncSenderNickname(e) {
@@ -4281,6 +4309,14 @@ export class NeowPlugin extends plugin {
       return
     }
 
+    try {
+      getBoomDataPersistenceSnapshot()
+    } catch (error) {
+      deleteBoomRoom(sessionId)
+      await this.sendGroupMessage(groupId, `数字炸弹存档暂时不可用喵：${error?.message || error}\n本房间已自动取消，请稍后再试吧~`)
+      return
+    }
+
     const startInfo = prepareBoomStart(room, userId => getUserData(userId).coins)
     const lines = []
 
@@ -4305,9 +4341,17 @@ export class NeowPlugin extends plugin {
       user.coins = Math.max(0, user.coins - player.actualStake)
       syncUserData(user)
     }
-    saveUserData()
-
+    markUserDataDirty()
     startBoomGame(room)
+    let boomStartPersistenceWarning = ''
+
+    try {
+      await saveUserAndBoomDataInTransaction(getBoomDataPersistenceSnapshot())
+    } catch (error) {
+      logWarn(`[neow][boom] 保存开局状态失败: ${error?.message || error}`)
+      boomStartPersistenceWarning = '⚠️ 本局进度暂时没存稳，若机器人现在重启可能需要人工核对'
+    }
+
     const currentPlayerId = getBoomCurrentPlayerId(room)
 
     lines.push('数字炸弹开始啦喵~')
@@ -4316,6 +4360,9 @@ export class NeowPlugin extends plugin {
     lines.push('炸弹已经藏在 1-100 之间了喵，踩中的人会当场 boom！')
     lines.push(`先手: ${this.getBoomPlayerLabel(currentPlayerId)}`)
     lines.push('请使用 /boom <数字> 开始猜测')
+    if (boomStartPersistenceWarning) {
+      lines.push(boomStartPersistenceWarning)
+    }
 
     await this.sendGroupMessage(groupId, lines.join('\n'))
   }
@@ -4328,7 +4375,7 @@ export class NeowPlugin extends plugin {
       user.coins += result.payouts[winnerId] || 0
       syncUserData(user)
     }
-    saveUserData()
+    markUserDataDirty()
 
     const lines = ['BOOM!!!']
 
@@ -4351,6 +4398,13 @@ export class NeowPlugin extends plugin {
     }
 
     deleteBoomRoom(sessionId)
+    try {
+      await saveUserAndBoomDataInTransaction(getBoomDataPersistenceSnapshot())
+    } catch (error) {
+      logWarn(`[neow][boom] 保存结算状态失败: ${error?.message || error}`)
+      lines.push('', '⚠️ 结算记录暂时没存稳，若机器人现在重启可能需要人工核对')
+    }
+
     await this.sendGroupMessage(room.groupId, lines.join('\n'))
   }
 
