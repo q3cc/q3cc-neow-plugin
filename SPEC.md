@@ -103,6 +103,7 @@
 - `/farm`
   - 总览只展示快捷操作
   - 必须显示每日任务完成数摘要与 `/farm daily` 入口
+  - 宠物摘要必须展示 `当前驻守宠物 + Lv + 实时拦截率 + 剩余看家`
   - 主线完成/升级奖励提示与总览信息分两次发送
   - 主线章节必须按顺序解锁，只显示已解锁章节
 - `/farm buy <作物别名> [数量]`
@@ -153,14 +154,21 @@
   - 地主至少保留 `1` 个可收获单位
 - `/farm pet`
   - 查看当前驻守宠物、已拥有宠物与宠物粮
+  - 必须展示宠物 `Lv / XP 进度 / 疲劳值 / 当前拦截率 / 剩余看家`
 - `/farm pet shop`
   - 查看核心包与外部附加件提供的宠物、宠物粮商店
+  - 必须展示宠物 `售价 / 基础看家 / 基础拦截率 / 疲劳速度`
+  - 必须展示宠物粮 `档位 / 基础时长 / XP / 恢复疲劳`
 - `/farm pet buy <petAlias>` / `/farm pet food buy <foodAlias> [数量]`
   - `Lv20` 开放
   - 购买永久宠物或宠物粮
 - `/farm pet use <petAlias>` / `/farm pet feed <foodAlias> [数量]`
   - 同一时间只允许 `1` 只宠物驻守
-  - 宠物粮只延长当前驻守宠物的 `guardUntil`
+  - 宠物固定 `Lv1-Lv5`
+  - 驻守每满 `1` 小时：当前驻守宠物 `+1 XP`，并按宠物自身疲劳速度累积疲劳
+  - 未驻守时按小时自动恢复疲劳；喂食时额外恢复疲劳并提供宠物经验
+  - 实时拦截率按 `基础拦截率 + 等级修正 - 疲劳修正` 计算，并限制在 `5%-95%`
+  - 宠物粮只延长当前驻守宠物的 `guardUntil`，延长时长受宠物种类 / 等级 / 疲劳共同影响
   - 看家总时长上限 `48h`
 - `/farm addon`
   - 仅管理员可用
@@ -185,6 +193,14 @@
   - `pets[]`
   - `petFoods[]`
   - `mainQuestChapters[]`
+- `pets[]` 支持可选字段：
+  - `guardBaseHours`
+  - `guardBonusPercent`
+  - `fatigueGainPerHour`
+- `petFoods[]` 支持可选字段：
+  - `tier`
+  - `xpReward`
+  - `fatigueRecovery`
 - 订单模板兼容两种写法：
   - schema v1 / v2 都可使用
   - 旧写法：`cropAlias + qtyMin + qtyMax`

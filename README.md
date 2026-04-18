@@ -156,7 +156,10 @@
 - 农场主线按章节顺序逐步解锁：默认只显示当前已解锁章节，完成前一章后才会显示下一章
 - `/farm quest` 会展示 `新手教程 / 农场扩张 / 守卫家园` 三条一次性主线；完成教程末步后会自动补足到 `Lv20`
 - `/farm visit` 与 `/farm steal` 在 `Lv20` 开放：每天最多 `5` 次尝试，每块地每轮作物最多成功被偷 `1` 次，且地主至少保留 `1` 个收成
-- `/farm pet` 系统同样在 `Lv20` 开放：同一时间只能有 `1` 只宠物驻守，宠物粮会延长 `guardUntil`，总看家时长上限 `48h`
+- `/farm pet` 系统同样在 `Lv20` 开放：同一时间只能有 `1` 只宠物驻守，核心包内置 `6` 只宠物与 `4` 档宠物粮
+- 宠物拥有 `Lv1-Lv5`、经验与疲劳值；驻守每满 `1` 小时会涨经验并累积疲劳，休息时会按小时自动恢复疲劳
+- 宠物粮现在会同时提供看家时长、宠物经验与疲劳恢复，最终看家时长仍受 `48h` 上限约束
+- `/farm`、`/farm pet`、`/farm pet shop` 会展示宠物的实时拦截率、等级进度、疲劳与宠物粮档位收益
 - `/farm bag` 会同时展示种子、作物与宠物粮；种子支持用 `/farm sell seed` 按买入价 `50%` 回收，且不会提供农场经验
 - 地块、背包、订单都带快照，即使附加件被删除，旧存档仍可继续收获、卖出与交付
 
@@ -166,6 +169,7 @@
 - 外部附加件目录固定为 `data/q3cc-neow-plugin/addons/farm/*.json`，目录变更会触发自动热重载
 - 当前同时兼容 `schemaVersion: 1` 与 `schemaVersion: 2`
 - schema v2 在 v1 基础上新增：`crops[].unlockLevel`、`pets[]`、`petFoods[]`、`mainQuestChapters[]`
+- `pets[]` 额外支持 `guardBaseHours`、`guardBonusPercent`、`fatigueGainPerHour`；`petFoods[]` 额外支持 `tier`、`xpReward`、`fatigueRecovery`
 - `orderTemplates` 在 schema v1 / v2 下都兼容两种写法：旧的单作物 `cropAlias + qtyMin + qtyMax`，以及多作物 `requirements[]`
 - 附加件仍然只允许声明固定字段，不支持任意脚本执行
 - 冲突与错误处理保持“坏包跳过、旧 registry 保留”策略：重复 `id` 跳过、冲突 `alias` 整包跳过、坏引用模板单条跳过、整体重建失败则继续保留上一份可用 registry

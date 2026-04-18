@@ -26,11 +26,20 @@ export const FARM_DAILY_STEAL_LIMIT = 5
 export const FARM_PET_GUARD_CAP_MS = 48 * 60 * 60 * 1000
 export const FARM_STEAL_UNLOCK_LEVEL = 20
 export const FARM_DAILY_TASK_SLOT_COUNT = 3
+export const FARM_PET_LEVEL_THRESHOLDS = [0, 10, 25, 45, 70]
 
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 const FARM_ALIAS_PATTERN = /^[a-z0-9_-]+$/
 const FARM_NOTIFICATION_LIMIT = 20
+const FARM_PET_MAX_LEVEL = FARM_PET_LEVEL_THRESHOLDS.length
+const FARM_PET_DEFAULT_GUARD_BASE_HOURS = 4
+const FARM_PET_DEFAULT_GUARD_BONUS_PERCENT = 0
+const FARM_PET_DEFAULT_FATIGUE_GAIN_PER_HOUR = 8
+const FARM_PET_DEFAULT_FOOD_TIER = 1
+const FARM_PET_FATIGUE_RECOVERY_PER_HOUR = 12
+const FARM_PET_MIN_INTERCEPT_PERCENT = 5
+const FARM_PET_MAX_INTERCEPT_PERCENT = 95
 const FARM_DAILY_TASK_TEMPLATES = [
   { id: 'open-farm', type: 'open_farm', title: '打开一次 /farm', targetMin: 1, targetMax: 1, coinReward: 20, xpReward: 5, weight: 12 },
   { id: 'buy-seed', type: 'buy_seed', title: '购买种子', targetMin: 2, targetMax: 4, coinReward: 30, xpReward: 8, weight: 10 },
@@ -276,6 +285,10 @@ function normalizePositiveNumber(value, fallback = 0) {
   return parsed > 0 && Number.isFinite(parsed) ? parsed : fallback
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
 function getSeedSellPrice(seedPrice) {
   return Math.max(1, Math.floor(Math.max(0, normalizeInteger(seedPrice, 0)) * 0.5))
 }
@@ -357,6 +370,108 @@ function getFarmLevelProgressInfo(totalXp) {
   }
 }
 
+function getPetMaxXp() {
+  return FARM_PET_LEVEL_THRESHOLDS[FARM_PET_LEVEL_THRESHOLDS.length - 1] || 0
+}
+
+function getPetLevelStartXp(level) {
+  const index = clamp(normalizeInteger(level, 1), 1, FARM_PET_MAX_LEVEL) - 1
+  return FARM_PET_LEVEL_THRESHOLDS[index] || 0
+}
+
+function resolvePetLevelFromXp(totalXp) {
+  const xp = clamp(normalizeInteger(totalXp, 0), 0, getPetMaxXp())
+  let level = 1
+  for (let index = 0; index < FARM_PET_LEVEL_THRESHOLDS.length; index++) {
+    if (xp >= FARM_PET_LEVEL_THRESHOLDS[index]) {
+      level = index + 1
+    }
+  }
+  return level
+}
+
+function getPetLevelProgressInfo(totalXp) {
+  const cappedXp = clamp(normalizeInteger(totalXp, 0), 0, getPetMaxXp())
+  const level = resolvePetLevelFromXp(cappedXp)
+  const levelStartXp = getPetLevelStartXp(level)
+  const nextLevel = Math.min(FARM_PET_MAX_LEVEL, level + 1)
+  const nextLevelStartXp = level >= FARM_PET_MAX_LEVEL
+    ? getPetMaxXp()
+    : getPetLevelStartXp(nextLevel)
+
+  return {
+    level,
+    totalXp: cappedXp,
+    currentXp: level >= FARM_PET_MAX_LEVEL ? cappedXp : cappedXp - levelStartXp,
+    neededXp: level >= FARM_PET_MAX_LEVEL ? 0 : Math.max(0, nextLevelStartXp - levelStartXp),
+    nextLevel,
+    isMaxLevel: level >= FARM_PET_MAX_LEVEL
+  }
+}
+
+function syncPetLevel(entry) {
+  const xp = clamp(normalizeInteger(entry?.xp, 0), 0, getPetMaxXp())
+  entry.xp = xp
+  entry.level = resolvePetLevelFromXp(xp)
+  return entry
+}
+
+function gainPetXp(entry, amount) {
+  const beforeXp = clamp(normalizeInteger(entry?.xp, 0), 0, getPetMaxXp())
+  const beforeLevel = resolvePetLevelFromXp(beforeXp)
+  const xpGained = Math.max(0, normalizeInteger(amount, 0))
+  const afterXp = clamp(beforeXp + xpGained, 0, getPetMaxXp())
+  entry.xp = afterXp
+  entry.level = resolvePetLevelFromXp(afterXp)
+
+  return {
+    xpBefore: beforeXp,
+    xpAfter: afterXp,
+    levelBefore: beforeLevel,
+    levelAfter: entry.level,
+    xpGained: afterXp - beforeXp
+  }
+}
+
+function getPetEffectiveInterceptPercent(entry) {
+  const baseIntercept = Math.max(0, Math.min(100, normalizeInteger(entry?.guardInterceptPercentSnapshot, 0)))
+  const level = clamp(normalizeInteger(entry?.level, 1), 1, FARM_PET_MAX_LEVEL)
+  const fatigue = clamp(normalizeInteger(entry?.fatigue, 0), 0, 100)
+  return clamp(
+    baseIntercept + ((level - 1) * 3) - Math.floor(fatigue / 10),
+    FARM_PET_MIN_INTERCEPT_PERCENT,
+    FARM_PET_MAX_INTERCEPT_PERCENT
+  )
+}
+
+function calculatePetFeedAddedHours(entry, food) {
+  const baseHours = Math.max(1, normalizeInteger(food?.guardHours, 1))
+  const guardBonusPercent = Math.max(0, normalizeInteger(entry?.guardBonusPercentSnapshot, 0))
+  const level = clamp(normalizeInteger(entry?.level, 1), 1, FARM_PET_MAX_LEVEL)
+  const fatigue = clamp(normalizeInteger(entry?.fatigue, 0), 0, 100)
+  const fatigueMultiplier = Math.max(0.5, 1 - (fatigue / 200))
+  const levelMultiplier = 1 + ((level - 1) * 0.05)
+  const bonusMultiplier = 1 + (guardBonusPercent / 100)
+  return Math.max(1, Math.floor(baseHours * bonusMultiplier * levelMultiplier * fatigueMultiplier))
+}
+
+function buildPetFoodSnapshot(food) {
+  if (!food) {
+    return null
+  }
+
+  const guardHours = Math.max(1, normalizeInteger(food.guardHours, 1))
+  return {
+    alias: normalizeAlias(food.alias),
+    name: String(food.name || '').trim(),
+    price: Math.max(0, normalizeInteger(food.price, 0)),
+    guardHours,
+    tier: Math.max(1, normalizeInteger(food.tier, FARM_PET_DEFAULT_FOOD_TIER)),
+    xpReward: Math.max(0, normalizeInteger(food.xpReward, guardHours)),
+    fatigueRecovery: Math.max(0, normalizeInteger(food.fatigueRecovery, guardHours * 3))
+  }
+}
+
 function gainFarmXp(state, amount) {
   const normalizedAmount = Math.max(0, normalizeInteger(amount, 0))
   const beforeXp = state.farmXp
@@ -425,6 +540,26 @@ function getActivePetEntry(state) {
   return state.activePetAlias ? getPetEntry(state, state.activePetAlias) : null
 }
 
+function getStoredPetFoodDefinition(entry) {
+  if (!entry) {
+    return null
+  }
+
+  return buildPetFoodSnapshot({
+    alias: entry.foodAlias,
+    name: entry.nameSnapshot,
+    price: entry.priceSnapshot,
+    guardHours: entry.guardHoursSnapshot,
+    tier: entry.tierSnapshot,
+    xpReward: entry.xpRewardSnapshot,
+    fatigueRecovery: entry.fatigueRecoverySnapshot
+  })
+}
+
+function resolvePetFoodForUse(state, alias) {
+  return getPetFoodByAlias(alias) || getStoredPetFoodDefinition(getPetFoodEntry(state, alias))
+}
+
 function isPlotEmpty(plot) {
   return !plot?.cropAlias
 }
@@ -491,13 +626,28 @@ function normalizePetEntry(alias, entry) {
     return null
   }
 
-  return {
+  const rawLevel = normalizeInteger(entry?.level, 0)
+  const xp = Number.isFinite(Number(entry?.xp)) && Number(entry?.xp) >= 0
+    ? clamp(normalizeInteger(entry?.xp, 0), 0, getPetMaxXp())
+    : (isPositiveInteger(rawLevel) ? getPetLevelStartXp(rawLevel) : 0)
+  const levelInfo = getPetLevelProgressInfo(xp)
+
+  return syncPetLevel({
     petAlias,
     nameSnapshot: String(entry?.nameSnapshot || '').trim(),
     guardInterceptPercentSnapshot: Math.max(0, Math.min(100, normalizeInteger(entry?.guardInterceptPercentSnapshot, 0))),
+    guardBaseHoursSnapshot: Math.max(1, normalizeInteger(entry?.guardBaseHoursSnapshot, FARM_PET_DEFAULT_GUARD_BASE_HOURS)),
+    guardBonusPercentSnapshot: Math.max(0, normalizeInteger(entry?.guardBonusPercentSnapshot, FARM_PET_DEFAULT_GUARD_BONUS_PERCENT)),
+    fatigueGainPerHourSnapshot: Math.max(0, normalizeInteger(entry?.fatigueGainPerHourSnapshot, FARM_PET_DEFAULT_FATIGUE_GAIN_PER_HOUR)),
     boughtAt: Number(entry?.boughtAt) || 0,
-    guardUntil: Math.max(0, Number(entry?.guardUntil) || 0)
-  }
+    guardUntil: Math.max(0, Number(entry?.guardUntil) || 0),
+    level: levelInfo.level,
+    xp,
+    fatigue: clamp(normalizeInteger(entry?.fatigue, 0), 0, 100),
+    lifecycleSyncedAt: Math.max(0, Number(entry?.lifecycleSyncedAt) || 0),
+    activeProgressMs: clamp(normalizeInteger(entry?.activeProgressMs, 0), 0, HOUR_MS - 1),
+    restProgressMs: clamp(normalizeInteger(entry?.restProgressMs, 0), 0, HOUR_MS - 1)
+  })
 }
 
 function normalizePetFoodEntry(alias, entry) {
@@ -512,7 +662,10 @@ function normalizePetFoodEntry(alias, entry) {
     count,
     nameSnapshot: String(entry?.nameSnapshot || '').trim(),
     guardHoursSnapshot: Math.max(0, normalizeInteger(entry?.guardHoursSnapshot, 0)),
-    priceSnapshot: Math.max(0, normalizeInteger(entry?.priceSnapshot, 0))
+    priceSnapshot: Math.max(0, normalizeInteger(entry?.priceSnapshot, 0)),
+    tierSnapshot: Math.max(1, normalizeInteger(entry?.tierSnapshot, FARM_PET_DEFAULT_FOOD_TIER)),
+    xpRewardSnapshot: Math.max(0, normalizeInteger(entry?.xpRewardSnapshot, normalizeInteger(entry?.guardHoursSnapshot, 0))),
+    fatigueRecoverySnapshot: Math.max(0, normalizeInteger(entry?.fatigueRecoverySnapshot, Math.max(0, normalizeInteger(entry?.guardHoursSnapshot, 0)) * 3))
   }
 }
 
@@ -1186,6 +1339,15 @@ function validatePetDefinition(rawPet, source) {
 
   const price = Number(rawPet.price)
   const guardInterceptPercent = Number(rawPet.guardInterceptPercent)
+  const guardBaseHours = rawPet.guardBaseHours == null
+    ? FARM_PET_DEFAULT_GUARD_BASE_HOURS
+    : Number(rawPet.guardBaseHours)
+  const guardBonusPercent = rawPet.guardBonusPercent == null
+    ? FARM_PET_DEFAULT_GUARD_BONUS_PERCENT
+    : Number(rawPet.guardBonusPercent)
+  const fatigueGainPerHour = rawPet.fatigueGainPerHour == null
+    ? FARM_PET_DEFAULT_FATIGUE_GAIN_PER_HOUR
+    : Number(rawPet.fatigueGainPerHour)
   if (!isNonNegativeInteger(price)) {
     return { ok: false, reason: `${source} 的 pet ${alias}.price 不合法` }
   }
@@ -1194,13 +1356,28 @@ function validatePetDefinition(rawPet, source) {
     return { ok: false, reason: `${source} 的 pet ${alias}.guardInterceptPercent 不合法` }
   }
 
+  if (!isPositiveInteger(guardBaseHours)) {
+    return { ok: false, reason: `${source} 的 pet ${alias}.guardBaseHours 不合法` }
+  }
+
+  if (!isNonNegativeInteger(guardBonusPercent)) {
+    return { ok: false, reason: `${source} 的 pet ${alias}.guardBonusPercent 不合法` }
+  }
+
+  if (!isNonNegativeInteger(fatigueGainPerHour)) {
+    return { ok: false, reason: `${source} 的 pet ${alias}.fatigueGainPerHour 不合法` }
+  }
+
   return {
     ok: true,
     pet: {
       alias,
       name,
       price,
-      guardInterceptPercent
+      guardInterceptPercent,
+      guardBaseHours,
+      guardBonusPercent,
+      fatigueGainPerHour
     }
   }
 }
@@ -1222,6 +1399,15 @@ function validatePetFoodDefinition(rawFood, source) {
 
   const price = Number(rawFood.price)
   const guardHours = Number(rawFood.guardHours)
+  const tier = rawFood.tier == null
+    ? FARM_PET_DEFAULT_FOOD_TIER
+    : Number(rawFood.tier)
+  const xpReward = rawFood.xpReward == null
+    ? guardHours
+    : Number(rawFood.xpReward)
+  const fatigueRecovery = rawFood.fatigueRecovery == null
+    ? (guardHours * 3)
+    : Number(rawFood.fatigueRecovery)
   if (!isNonNegativeInteger(price)) {
     return { ok: false, reason: `${source} 的 petFood ${alias}.price 不合法` }
   }
@@ -1230,13 +1416,28 @@ function validatePetFoodDefinition(rawFood, source) {
     return { ok: false, reason: `${source} 的 petFood ${alias}.guardHours 不合法` }
   }
 
+  if (!isPositiveInteger(tier)) {
+    return { ok: false, reason: `${source} 的 petFood ${alias}.tier 不合法` }
+  }
+
+  if (!isNonNegativeInteger(xpReward)) {
+    return { ok: false, reason: `${source} 的 petFood ${alias}.xpReward 不合法` }
+  }
+
+  if (!isNonNegativeInteger(fatigueRecovery)) {
+    return { ok: false, reason: `${source} 的 petFood ${alias}.fatigueRecovery 不合法` }
+  }
+
   return {
     ok: true,
     petFood: {
       alias,
       name,
       price,
-      guardHours
+      guardHours,
+      tier,
+      xpReward,
+      fatigueRecovery
     }
   }
 }
@@ -1731,6 +1932,10 @@ function buildFarmRegistryFromDisk() {
     return left.alias.localeCompare(right.alias, 'en')
   })
   registry.petFoodList = Object.values(registry.petFoods).sort((left, right) => {
+    if (left.tier !== right.tier) {
+      return left.tier - right.tier
+    }
+
     if (left.price !== right.price) {
       return left.price - right.price
     }
@@ -1887,19 +2092,30 @@ function addPetFoodInventory(state, food, count) {
     return
   }
 
-  const entry = state.petFoods[food.alias] || {
-    foodAlias: food.alias,
+  const snapshot = buildPetFoodSnapshot(food)
+  if (!snapshot) {
+    return
+  }
+
+  const entry = state.petFoods[snapshot.alias] || {
+    foodAlias: snapshot.alias,
     count: 0,
-    nameSnapshot: food.name,
-    guardHoursSnapshot: food.guardHours,
-    priceSnapshot: food.price
+    nameSnapshot: snapshot.name,
+    guardHoursSnapshot: snapshot.guardHours,
+    priceSnapshot: snapshot.price,
+    tierSnapshot: snapshot.tier,
+    xpRewardSnapshot: snapshot.xpReward,
+    fatigueRecoverySnapshot: snapshot.fatigueRecovery
   }
 
   entry.count += normalizedCount
-  entry.nameSnapshot = food.name
-  entry.guardHoursSnapshot = food.guardHours
-  entry.priceSnapshot = food.price
-  state.petFoods[food.alias] = entry
+  entry.nameSnapshot = snapshot.name
+  entry.guardHoursSnapshot = snapshot.guardHours
+  entry.priceSnapshot = snapshot.price
+  entry.tierSnapshot = snapshot.tier
+  entry.xpRewardSnapshot = snapshot.xpReward
+  entry.fatigueRecoverySnapshot = snapshot.fatigueRecovery
+  state.petFoods[snapshot.alias] = entry
 }
 
 function applyStarterGrants(state) {
@@ -2115,9 +2331,109 @@ function resetDailyStealIfNeeded(state, now = Date.now()) {
   return false
 }
 
+function syncSinglePetLifecycle(state, petEntry, now = Date.now()) {
+  if (!petEntry) {
+    return false
+  }
+
+  const hasLifecycleSyncedAt = Number.isFinite(Number(petEntry.lifecycleSyncedAt))
+  const hasBoughtAt = Number.isFinite(Number(petEntry.boughtAt))
+  const lastSyncedAt = hasLifecycleSyncedAt
+    ? Math.max(0, Number(petEntry.lifecycleSyncedAt))
+    : (hasBoughtAt ? Math.max(0, Number(petEntry.boughtAt)) : now)
+  if (!hasLifecycleSyncedAt && !hasBoughtAt) {
+    petEntry.lifecycleSyncedAt = now
+    return true
+  }
+
+  if (now <= lastSyncedAt) {
+    if (petEntry.lifecycleSyncedAt !== now) {
+      petEntry.lifecycleSyncedAt = now
+      return true
+    }
+    return false
+  }
+
+  let changed = false
+  let cursor = lastSyncedAt
+  const isActivePet = state.activePetAlias === petEntry.petAlias
+
+  if (isActivePet && petEntry.guardUntil > cursor) {
+    const guardEnd = Math.min(now, petEntry.guardUntil)
+    const guardedMs = Math.max(0, guardEnd - cursor)
+    if (guardedMs > 0) {
+      const totalActiveMs = Math.max(0, normalizeInteger(petEntry.activeProgressMs, 0)) + guardedMs
+      const activeHours = Math.floor(totalActiveMs / HOUR_MS)
+      const activeRemainderMs = totalActiveMs % HOUR_MS
+      if (petEntry.activeProgressMs !== activeRemainderMs) {
+        petEntry.activeProgressMs = activeRemainderMs
+        changed = true
+      }
+      if (activeHours > 0) {
+        const nextFatigue = clamp(
+          normalizeInteger(petEntry.fatigue, 0) + (activeHours * Math.max(0, normalizeInteger(petEntry.fatigueGainPerHourSnapshot, FARM_PET_DEFAULT_FATIGUE_GAIN_PER_HOUR))),
+          0,
+          100
+        )
+        if (petEntry.fatigue !== nextFatigue) {
+          petEntry.fatigue = nextFatigue
+          changed = true
+        }
+        const xpResult = gainPetXp(petEntry, activeHours)
+        if (xpResult.xpGained > 0 || xpResult.levelAfter !== xpResult.levelBefore) {
+          changed = true
+        }
+      }
+      cursor = guardEnd
+    }
+  }
+
+  const restMs = Math.max(0, now - cursor)
+  if (restMs > 0) {
+    const totalRestMs = Math.max(0, normalizeInteger(petEntry.restProgressMs, 0)) + restMs
+    const restHours = Math.floor(totalRestMs / HOUR_MS)
+    const restRemainderMs = totalRestMs % HOUR_MS
+    if (petEntry.restProgressMs !== restRemainderMs) {
+      petEntry.restProgressMs = restRemainderMs
+      changed = true
+    }
+    if (restHours > 0) {
+      const nextFatigue = clamp(
+        normalizeInteger(petEntry.fatigue, 0) - (restHours * FARM_PET_FATIGUE_RECOVERY_PER_HOUR),
+        0,
+        100
+      )
+      if (petEntry.fatigue !== nextFatigue) {
+        petEntry.fatigue = nextFatigue
+        changed = true
+      }
+    }
+  }
+
+  if (petEntry.lifecycleSyncedAt !== now) {
+    petEntry.lifecycleSyncedAt = now
+    changed = true
+  }
+
+  syncPetLevel(petEntry)
+  return changed
+}
+
+function syncPetLifecycles(state, now = Date.now()) {
+  let changed = false
+  for (const petEntry of Object.values(state.pets || {})) {
+    if (syncSinglePetLifecycle(state, petEntry, now)) {
+      changed = true
+    }
+  }
+  return changed
+}
+
 function syncGuardProgress(state, now = Date.now()) {
   const activePet = getActivePetEntry(state)
-  const trackedAt = state.guardTrackedAt > 0 ? state.guardTrackedAt : now
+  const trackedAt = Number.isFinite(Number(state.guardTrackedAt))
+    ? Math.max(0, Number(state.guardTrackedAt))
+    : now
   let changed = false
 
   if (activePet && activePet.guardUntil > trackedAt) {
@@ -2130,6 +2446,10 @@ function syncGuardProgress(state, now = Date.now()) {
 
   if (state.guardTrackedAt !== now) {
     state.guardTrackedAt = now
+    changed = true
+  }
+
+  if (syncPetLifecycles(state, now)) {
     changed = true
   }
 
@@ -2601,6 +2921,41 @@ function recordFarmAction(state, action, now = Date.now()) {
 function getPlotWaterCost(plot) {
   const crop = getCropByAlias(plot.cropAlias)
   return crop?.waterStamina ?? plot.waterStaminaSnapshot ?? 0
+}
+
+function buildPetViewEntry(entry, now = Date.now()) {
+  if (!entry) {
+    return null
+  }
+
+  const cloned = cloneData(entry)
+  const levelInfo = getPetLevelProgressInfo(cloned.xp)
+  return {
+    ...cloned,
+    level: levelInfo.level,
+    xp: levelInfo.totalXp,
+    levelXp: levelInfo.currentXp,
+    levelXpNeeded: levelInfo.neededXp,
+    nextLevel: levelInfo.nextLevel,
+    isMaxLevel: levelInfo.isMaxLevel,
+    fatigue: clamp(normalizeInteger(cloned.fatigue, 0), 0, 100),
+    effectiveInterceptPercent: getPetEffectiveInterceptPercent(cloned),
+    remainingGuardMs: Math.max(0, cloned.guardUntil - now)
+  }
+}
+
+function buildPetFoodViewEntry(entry) {
+  if (!entry) {
+    return null
+  }
+
+  const cloned = cloneData(entry)
+  return {
+    ...cloned,
+    tierSnapshot: Math.max(1, normalizeInteger(cloned.tierSnapshot, FARM_PET_DEFAULT_FOOD_TIER)),
+    xpRewardSnapshot: Math.max(0, normalizeInteger(cloned.xpRewardSnapshot, cloned.guardHoursSnapshot)),
+    fatigueRecoverySnapshot: Math.max(0, normalizeInteger(cloned.fatigueRecoverySnapshot, cloned.guardHoursSnapshot * 3))
+  }
 }
 
 function getPlotWaterReductionMs(plot) {
@@ -3218,7 +3573,7 @@ function getFarmLandView(state) {
 }
 
 function buyPlot(state, plotId, options = {}) {
-  syncFarmState(state)
+  syncFarmState(state, options.now ?? Date.now())
   const land = getLandConfig(plotId)
   if (!land) {
     return { ok: false, reason: 'plot_out_of_range' }
@@ -3242,7 +3597,7 @@ function buyPlot(state, plotId, options = {}) {
     }
   }
 
-  const now = options.now || Date.now()
+  const now = options.now ?? Date.now()
   const beforeXp = state.farmXp
   const beforeLevel = state.farmLevel
   plot.owned = true
@@ -3270,26 +3625,18 @@ function getFarmPetView(state, now = Date.now()) {
   return {
     unlocked: isFarmSocialUnlocked(state),
     activePetAlias: state.activePetAlias,
-    activePet: activePet
-      ? {
-        ...cloneData(activePet),
-        remainingGuardMs: Math.max(0, activePet.guardUntil - now)
-      }
-      : null,
+    activePet: buildPetViewEntry(activePet, now),
     pets: Object.values(state.pets)
       .sort((left, right) => left.petAlias.localeCompare(right.petAlias, 'en'))
-      .map(entry => ({
-        ...cloneData(entry),
-        remainingGuardMs: Math.max(0, entry.guardUntil - now)
-      })),
+      .map(entry => buildPetViewEntry(entry, now)),
     petFoods: Object.values(state.petFoods)
       .sort((left, right) => left.foodAlias.localeCompare(right.foodAlias, 'en'))
-      .map(entry => cloneData(entry))
+      .map(entry => buildPetFoodViewEntry(entry))
   }
 }
 
 function buyPet(state, petAlias, options = {}) {
-  syncFarmState(state)
+  syncFarmState(state, options.now ?? Date.now())
   if (!isFarmSocialUnlocked(state)) {
     return { ok: false, reason: 'feature_locked' }
   }
@@ -3311,15 +3658,27 @@ function buyPet(state, petAlias, options = {}) {
     }
   }
 
-  const now = options.now || Date.now()
+  const now = options.now ?? Date.now()
   const beforeXp = state.farmXp
   const beforeLevel = state.farmLevel
+  const initialGuardUntil = !state.activePetAlias
+    ? now + (pet.guardBaseHours * HOUR_MS)
+    : 0
   state.pets[pet.alias] = {
     petAlias: pet.alias,
     nameSnapshot: pet.name,
     guardInterceptPercentSnapshot: pet.guardInterceptPercent,
+    guardBaseHoursSnapshot: pet.guardBaseHours,
+    guardBonusPercentSnapshot: pet.guardBonusPercent,
+    fatigueGainPerHourSnapshot: pet.fatigueGainPerHour,
     boughtAt: now,
-    guardUntil: 0
+    guardUntil: initialGuardUntil,
+    level: 1,
+    xp: 0,
+    fatigue: 0,
+    lifecycleSyncedAt: now,
+    activeProgressMs: 0,
+    restProgressMs: 0
   }
   state.stats.buyPetCount += 1
   if (!state.activePetAlias) {
@@ -3334,12 +3693,14 @@ function buyPet(state, petAlias, options = {}) {
     ok: true,
     pet,
     price: pet.price,
+    ownedPet: buildPetViewEntry(state.pets[pet.alias], now),
+    initialGuardHours: initialGuardUntil > now ? Math.floor((initialGuardUntil - now) / HOUR_MS) : 0,
     ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
   }
 }
 
 function buyPetFood(state, foodAlias, count, options = {}) {
-  syncFarmState(state)
+  syncFarmState(state, options.now ?? Date.now())
   if (!isFarmSocialUnlocked(state)) {
     return { ok: false, reason: 'feature_locked' }
   }
@@ -3363,7 +3724,7 @@ function buyPetFood(state, foodAlias, count, options = {}) {
     }
   }
 
-  const now = options.now || Date.now()
+  const now = options.now ?? Date.now()
   const beforeXp = state.farmXp
   const beforeLevel = state.farmLevel
   addPetFoodInventory(state, food, normalizedCount)
@@ -3378,6 +3739,7 @@ function buyPetFood(state, foodAlias, count, options = {}) {
     count: normalizedCount,
     totalCost: food.price * normalizedCount,
     inventoryCount: state.petFoods[food.alias].count,
+    inventoryEntry: buildPetFoodViewEntry(state.petFoods[food.alias]),
     ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
   }
 }
@@ -3403,7 +3765,7 @@ function usePet(state, petAlias, now = Date.now()) {
 
   return {
     ok: true,
-    pet: cloneData(petEntry),
+    pet: buildPetViewEntry(petEntry, now),
     ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
   }
 }
@@ -3419,7 +3781,7 @@ function feedPet(state, foodAlias, count, now = Date.now()) {
     return { ok: false, reason: 'no_active_pet' }
   }
 
-  const food = getPetFoodByAlias(foodAlias)
+  const food = resolvePetFoodForUse(state, foodAlias)
   if (!food) {
     return { ok: false, reason: 'unknown_food' }
   }
@@ -3445,22 +3807,45 @@ function feedPet(state, foodAlias, count, now = Date.now()) {
 
   const beforeXp = state.farmXp
   const beforeLevel = state.farmLevel
-  const baseUntil = Math.max(now, activePet.guardUntil)
   const maxUntil = now + FARM_PET_GUARD_CAP_MS
-  const requestedMs = food.guardHours * normalizedCount * HOUR_MS
-  const newUntil = Math.min(maxUntil, baseUntil + requestedMs)
-  const actualAddedMs = Math.max(0, newUntil - baseUntil)
-  if (actualAddedMs <= 0) {
+  const fatigueBefore = activePet.fatigue
+  const petXpBefore = activePet.xp
+  const levelBeforePet = activePet.level
+  let usedCount = 0
+  let actualAddedMs = 0
+
+  while (usedCount < normalizedCount) {
+    const baseUntil = Math.max(now, activePet.guardUntil)
+    if (baseUntil >= maxUntil) {
+      break
+    }
+
+    const addedHours = calculatePetFeedAddedHours(activePet, food)
+    const unitAddedMs = Math.min(maxUntil - baseUntil, addedHours * HOUR_MS)
+    if (unitAddedMs <= 0) {
+      break
+    }
+
+    activePet.guardUntil = baseUntil + unitAddedMs
+    actualAddedMs += unitAddedMs
+    usedCount += 1
+    activePet.fatigue = clamp(
+      normalizeInteger(activePet.fatigue, 0) - Math.max(0, normalizeInteger(food.fatigueRecovery, 0)),
+      0,
+      100
+    )
+    gainPetXp(activePet, Math.max(0, normalizeInteger(food.xpReward, 0)))
+  }
+
+  if (actualAddedMs <= 0 || usedCount <= 0) {
     return { ok: false, reason: 'guard_full', pet: activePet }
   }
 
-  const usedCount = Math.min(normalizedCount, Math.max(1, Math.ceil(actualAddedMs / (food.guardHours * HOUR_MS))))
   foodEntry.count -= usedCount
   if (foodEntry.count <= 0) {
     delete state.petFoods[food.alias]
   }
 
-  activePet.guardUntil = newUntil
   state.stats.feedPetAddedMs += actualAddedMs
   if (state.activePetAlias === activePet.petAlias) {
     state.guardTrackedAt = now
@@ -3471,10 +3856,15 @@ function feedPet(state, foodAlias, count, now = Date.now()) {
 
   return {
     ok: true,
-    pet: cloneData(activePet),
+    pet: buildPetViewEntry(activePet, now),
     food,
     usedCount,
     actualAddedHours: Math.floor(actualAddedMs / HOUR_MS),
+    petXpGained: activePet.xp - petXpBefore,
+    fatigueBefore,
+    fatigueAfter: activePet.fatigue,
+    petLevelBefore: levelBeforePet,
+    petLevelAfter: activePet.level,
     guardUntil: activePet.guardUntil,
     ...buildMutationMeta(state, beforeXp, beforeLevel, questSummary)
   }
@@ -3486,15 +3876,7 @@ function getFarmVisitView(targetState, now = Date.now()) {
 
   return {
     farmLevel: targetState.farmLevel,
-    activePet: activePet
-      ? {
-        petAlias: activePet.petAlias,
-        nameSnapshot: activePet.nameSnapshot,
-        guardInterceptPercentSnapshot: activePet.guardInterceptPercentSnapshot,
-        guardUntil: activePet.guardUntil,
-        remainingGuardMs: Math.max(0, activePet.guardUntil - now)
-      }
-      : null,
+    activePet: buildPetViewEntry(activePet, now),
     plots: targetState.plots
       .filter(plot => plot.owned)
       .map(plot => ({
@@ -3591,7 +3973,7 @@ function stealFromFarm(attackerState, targetState, targetUid, plotId, now = Date
 
   const activePet = getActivePetEntry(targetState)
   const interceptRate = activePet && activePet.guardUntil > now
-    ? activePet.guardInterceptPercentSnapshot / 100
+    ? getPetEffectiveInterceptPercent(activePet) / 100
     : 0
   if (interceptRate > 0 && nextRandom() < interceptRate) {
     const questSummary = progressMainQuests(attackerState, now)
@@ -3602,7 +3984,7 @@ function stealFromFarm(attackerState, targetState, targetUid, plotId, now = Date
       ok: false,
       reason: 'pet_blocked',
       plot,
-      activePet: cloneData(activePet),
+      activePet: buildPetViewEntry(activePet, now),
       ...buildMutationMeta(attackerState, beforeXp, beforeLevel, questSummary)
     }
   }

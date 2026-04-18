@@ -833,19 +833,55 @@
       "alias": "dog",
       "name": "看家狗",
       "price": 800,
-      "guardInterceptPercent": 35
+      "guardInterceptPercent": 35,
+      "guardBaseHours": 4,
+      "guardBonusPercent": 0,
+      "fatigueGainPerHour": 9
     },
     {
       "alias": "goose",
       "name": "大白鹅",
-      "price": 1800,
-      "guardInterceptPercent": 55
+      "price": 1600,
+      "guardInterceptPercent": 45,
+      "guardBaseHours": 6,
+      "guardBonusPercent": 5,
+      "fatigueGainPerHour": 8
+    },
+    {
+      "alias": "orangecat",
+      "name": "橘座猫",
+      "price": 2400,
+      "guardInterceptPercent": 52,
+      "guardBaseHours": 5,
+      "guardBonusPercent": 8,
+      "fatigueGainPerHour": 7
+    },
+    {
+      "alias": "collie",
+      "name": "牧场边牧",
+      "price": 3600,
+      "guardInterceptPercent": 60,
+      "guardBaseHours": 8,
+      "guardBonusPercent": 12,
+      "fatigueGainPerHour": 6
     },
     {
       "alias": "nightcat",
       "name": "夜巡猫",
-      "price": 3200,
-      "guardInterceptPercent": 75
+      "price": 4800,
+      "guardInterceptPercent": 68,
+      "guardBaseHours": 7,
+      "guardBonusPercent": 10,
+      "fatigueGainPerHour": 5
+    },
+    {
+      "alias": "wolfdog",
+      "name": "狼影犬",
+      "price": 6800,
+      "guardInterceptPercent": 76,
+      "guardBaseHours": 10,
+      "guardBonusPercent": 15,
+      "fatigueGainPerHour": 4
     }
   ],
   "petFoods": [
@@ -853,19 +889,37 @@
       "alias": "small-feed",
       "name": "小包宠物粮",
       "price": 60,
-      "guardHours": 2
+      "guardHours": 2,
+      "tier": 1,
+      "xpReward": 2,
+      "fatigueRecovery": 6
     },
     {
       "alias": "medium-feed",
       "name": "中包宠物粮",
       "price": 150,
-      "guardHours": 6
+      "guardHours": 6,
+      "tier": 2,
+      "xpReward": 5,
+      "fatigueRecovery": 14
     },
     {
       "alias": "large-feed",
       "name": "大包宠物粮",
       "price": 280,
-      "guardHours": 12
+      "guardHours": 12,
+      "tier": 3,
+      "xpReward": 10,
+      "fatigueRecovery": 24
+    },
+    {
+      "alias": "deluxe-feed",
+      "name": "豪华宠物粮",
+      "price": 420,
+      "guardHours": 18,
+      "tier": 4,
+      "xpReward": 16,
+      "fatigueRecovery": 36
     }
   ],
   "mainQuestChapters": [

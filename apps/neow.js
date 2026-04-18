@@ -1012,12 +1012,32 @@ export class NeowPlugin extends plugin {
       return '暂无驻守宠物'
     }
 
-    return `${petView.activePet.nameSnapshot} - 剩余 ${this.formatFarmDuration(petView.activePet.remainingGuardMs)}`
+    return `${petView.activePet.nameSnapshot} Lv${petView.activePet.level} / 拦截 ${petView.activePet.effectiveInterceptPercent}% / 剩余 ${this.formatFarmDuration(petView.activePet.remainingGuardMs)}`
+  }
+
+  formatFarmPetXpText(pet) {
+    if (pet.isMaxLevel) {
+      return 'XP MAX'
+    }
+
+    return `XP ${pet.levelXp}/${pet.levelXpNeeded}`
   }
 
   formatFarmOwnedPetLine(pet, activePetAlias) {
     const activeText = pet.petAlias === activePetAlias ? ' (当前驻守)' : ''
-    return `${pet.petAlias} - ${pet.nameSnapshot} / 拦截 ${pet.guardInterceptPercentSnapshot}% / 看家 ${this.formatFarmDuration(pet.remainingGuardMs)}${activeText}`
+    return `${pet.petAlias} - ${pet.nameSnapshot} / Lv${pet.level} ${this.formatFarmPetXpText(pet)} / 疲劳 ${pet.fatigue} / 拦截 ${pet.effectiveInterceptPercent}% / 看家 ${this.formatFarmDuration(pet.remainingGuardMs)}${activeText}`
+  }
+
+  formatFarmPetFoodInventoryLine(entry) {
+    return `${entry.foodAlias} - ${entry.nameSnapshot} x${entry.count} / T${entry.tierSnapshot} / +${entry.guardHoursSnapshot}h / XP+${entry.xpRewardSnapshot} / 疲劳-${entry.fatigueRecoverySnapshot}`
+  }
+
+  formatFarmPetShopLine(pet) {
+    return `${pet.alias} - ${pet.name} ${pet.price} Star 币 | 基础看家 ${pet.guardBaseHours}h | 基础拦截 ${pet.guardInterceptPercent}% | 疲劳+${pet.fatigueGainPerHour}/h`
+  }
+
+  formatFarmPetFoodShopLine(food) {
+    return `${food.alias} - ${food.name} ${food.price} Star 币 | T${food.tier} | +${food.guardHours}h | XP+${food.xpReward} | 疲劳-${food.fatigueRecovery}`
   }
 
   formatFarmVisitPlotLine(plot, now = Date.now()) {
@@ -1578,7 +1598,7 @@ export class NeowPlugin extends plugin {
       '',
       '宠物粮:',
       ...(petFoodEntries.length
-        ? petFoodEntries.map(entry => `  ${entry.foodAlias} - ${entry.nameSnapshot} x${entry.count} (+${entry.guardHoursSnapshot}h)`)
+        ? petFoodEntries.map(entry => `  ${this.formatFarmPetFoodInventoryLine(entry)}`)
         : ['  暂时没有宠物粮喵~']),
       '',
       '卖种子示例: /farm sell seed radish all',
@@ -1978,7 +1998,7 @@ export class NeowPlugin extends plugin {
 
     await this.applyFarmUserChanges(farm, { mutation: result })
     const guardText = result.view.activePet
-      ? `${result.view.activePet.nameSnapshot} / 拦截 ${result.view.activePet.guardInterceptPercentSnapshot}% / 剩余 ${this.formatFarmDuration(result.view.activePet.remainingGuardMs)}`
+      ? `${result.view.activePet.nameSnapshot} Lv${result.view.activePet.level} / 拦截 ${result.view.activePet.effectiveInterceptPercent}% / 剩余 ${this.formatFarmDuration(result.view.activePet.remainingGuardMs)}`
       : '暂无驻守宠物'
     const lines = [
       '参观农场成功喵~',
@@ -2107,7 +2127,7 @@ export class NeowPlugin extends plugin {
         : ['  还没有宠物喵~']))
       lines.push('', '宠物粮:')
       lines.push(...(petView.petFoods.length
-        ? petView.petFoods.map(entry => `  ${entry.foodAlias} - ${entry.nameSnapshot} x${entry.count} (+${entry.guardHoursSnapshot}h)`)
+        ? petView.petFoods.map(entry => `  ${this.formatFarmPetFoodInventoryLine(entry)}`)
         : ['  还没有宠物粮喵~']))
       lines.push('', '/farm pet shop - 查看宠物商店')
     }
@@ -2133,10 +2153,10 @@ export class NeowPlugin extends plugin {
       `当前状态: ${this.formatFarmPetStatusLine(petView)}`,
       '',
       '宠物:',
-      ...farm.registry.petList.map(pet => `  ${pet.alias} - ${pet.name} ${pet.price} Star 币 | 拦截 ${pet.guardInterceptPercent}%`),
+      ...farm.registry.petList.map(pet => `  ${this.formatFarmPetShopLine(pet)}`),
       '',
       '宠物粮:',
-      ...farm.registry.petFoodList.map(food => `  ${food.alias} - ${food.name} ${food.price} Star 币 | +${food.guardHours}h`),
+      ...farm.registry.petFoodList.map(food => `  ${this.formatFarmPetFoodShopLine(food)}`),
       '',
       '购买宠物: /farm pet buy dog',
       '购买宠物粮: /farm pet food buy small-feed 2'
@@ -2193,6 +2213,12 @@ export class NeowPlugin extends plugin {
       '买宠物成功喵~',
       `带回家: ${result.pet.name}`,
       `花费: ${result.price} Star 币`,
+      `当前等级: Lv${result.ownedPet.level} (${this.formatFarmPetXpText(result.ownedPet)})`,
+      `当前疲劳: ${result.ownedPet.fatigue}`,
+      `当前拦截: ${result.ownedPet.effectiveInterceptPercent}%`,
+      result.initialGuardHours > 0
+        ? `初始看家: ${result.initialGuardHours} 小时`
+        : `当前看家: ${this.formatFarmDuration(result.ownedPet.remainingGuardMs)}`,
       `当前 Star 币: ${farm.user.coins}`
     ]
 
@@ -2249,6 +2275,7 @@ export class NeowPlugin extends plugin {
       '买宠物粮成功喵~',
       `购入: ${result.food.name} x${result.count}`,
       `花费: ${result.totalCost} Star 币`,
+      `粮食效果: T${result.inventoryEntry.tierSnapshot} / +${result.inventoryEntry.guardHoursSnapshot}h / XP+${result.inventoryEntry.xpRewardSnapshot} / 疲劳-${result.inventoryEntry.fatigueRecoverySnapshot}`,
       `当前持有: ${result.inventoryCount} 份`
     ]
 
@@ -2283,7 +2310,11 @@ export class NeowPlugin extends plugin {
     await this.applyFarmUserChanges(farm, { mutation: result })
     const lines = [
       '切换驻守成功喵~',
-      `当前驻守: ${result.pet.nameSnapshot}`
+      `当前驻守: ${result.pet.nameSnapshot}`,
+      `当前等级: Lv${result.pet.level} (${this.formatFarmPetXpText(result.pet)})`,
+      `当前疲劳: ${result.pet.fatigue}`,
+      `当前拦截: ${result.pet.effectiveInterceptPercent}%`,
+      `剩余看家: ${this.formatFarmDuration(result.pet.remainingGuardMs)}`
     ]
 
     return this.replyFarmResult(e, lines, {
@@ -2333,6 +2364,10 @@ export class NeowPlugin extends plugin {
       '喂食成功喵~',
       `消耗: ${result.food.name} x${result.usedCount}`,
       `新增看家: ${result.actualAddedHours} 小时`,
+      `宠物经验: +${result.petXpGained} (${this.formatFarmPetXpText(result.pet)})`,
+      `疲劳变化: ${result.fatigueBefore} → ${result.fatigueAfter}`,
+      `当前等级: Lv${result.pet.level}`,
+      `当前拦截: ${result.pet.effectiveInterceptPercent}%`,
       `驻守截止: ${new Date(result.guardUntil).toLocaleString('zh-CN')}`
     ]
 
