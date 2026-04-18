@@ -251,11 +251,11 @@ export class NeowPlugin extends plugin {
           fnc: 'plantFarmSeed'
         },
         {
-          reg: /^(?:\/|#)?farm\s+water\s+(\d+|all)\s*$/i,
+          reg: /^(?:\/|#)?farm\s+water\s+(\d+(?:-\d+)?|all)\s*$/i,
           fnc: 'waterFarmPlot'
         },
         {
-          reg: /^(?:\/|#)?farm\s+harvest\s+(\d+|all)\s*$/i,
+          reg: /^(?:\/|#)?farm\s+harvest\s+(\d+(?:-\d+)?|all)\s*$/i,
           fnc: 'harvestFarmPlot'
         },
         {
@@ -1259,8 +1259,8 @@ export class NeowPlugin extends plugin {
       '种植:',
       '/farm buy <作物别名> [数量] - 购买种子',
       '/farm plant <地块号|起始-结束> <作物别名> - 播种',
-      '/farm water <地块号|all> - 浇水',
-      '/farm harvest <地块号|all> - 收获',
+      '/farm water <地块号|起始-结束|all> - 浇水',
+      '/farm harvest <地块号|起始-结束|all> - 收获',
       '/farm sell seed <作物别名> <数量|all> - 回收种子',
       '/farm sell <作物别名> <数量|all> - 卖出作物',
       '/farm deliver <订单号> - 交付订单',
@@ -1280,7 +1280,9 @@ export class NeowPlugin extends plugin {
       '/farm buy radish 2',
       '/farm plant 1 radish',
       '/farm plant 1-5 radish',
+      '/farm water 1-5',
       '/farm water all',
+      '/farm harvest 1-5',
       '/farm harvest all'
     ]
 
@@ -1457,7 +1459,7 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+water\s+(\d+|all)\s*$/i)
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+water\s+(\d+(?:-\d+)?|all)\s*$/i)
     const target = String(match?.[1] || '').trim().toLowerCase()
     const preview = waterPlots(farm.state, target, farm.now, { preview: true })
 
@@ -1518,7 +1520,7 @@ export class NeowPlugin extends plugin {
       return true
     }
 
-    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+harvest\s+(\d+|all)\s*$/i)
+    const match = (e.msg || '').match(/^(?:\/|#)?farm\s+harvest\s+(\d+(?:-\d+)?|all)\s*$/i)
     const target = String(match?.[1] || '').trim().toLowerCase()
     const result = harvestPlots(farm.state, target, farm.now)
 

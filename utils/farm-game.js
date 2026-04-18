@@ -536,6 +536,51 @@ function getPlotById(state, plotId) {
   return state.plots.find(plot => plot.plotId === Number(plotId)) || null
 }
 
+function parseFarmPlotTarget(state, target, options = {}) {
+  const targetText = String(target || '').trim().toLowerCase()
+  if (options.allowAll && targetText === 'all') {
+    return {
+      ok: true,
+      isAll: true,
+      targetText,
+      plotTarget: 'all',
+      plots: [...state.plots]
+    }
+  }
+
+  const targetMatch = targetText.match(/^(\d+)(?:-(\d+))?$/)
+  if (!targetMatch) {
+    return { ok: false, reason: 'plot_out_of_range' }
+  }
+
+  let startPlotId = parseInt(targetMatch[1])
+  let endPlotId = targetMatch[2] ? parseInt(targetMatch[2]) : startPlotId
+  if (!Number.isInteger(startPlotId) || !Number.isInteger(endPlotId)) {
+    return { ok: false, reason: 'plot_out_of_range' }
+  }
+
+  if (startPlotId > endPlotId) {
+    [startPlotId, endPlotId] = [endPlotId, startPlotId]
+  }
+
+  const plots = []
+  for (let currentPlotId = startPlotId; currentPlotId <= endPlotId; currentPlotId++) {
+    const plot = getPlotById(state, currentPlotId)
+    if (!plot) {
+      return { ok: false, reason: 'plot_out_of_range' }
+    }
+    plots.push(plot)
+  }
+
+  return {
+    ok: true,
+    isAll: false,
+    targetText,
+    plotTarget: startPlotId === endPlotId ? String(startPlotId) : `${startPlotId}-${endPlotId}`,
+    plots
+  }
+}
+
 function getActivePetEntry(state) {
   return state.activePetAlias ? getPetEntry(state, state.activePetAlias) : null
 }
@@ -3021,19 +3066,9 @@ function buySeeds(state, seedAlias, count, options = {}) {
 function previewPlantSeed(state, plotId, seedAlias, now = Date.now()) {
   syncFarmState(state, now)
 
-  const normalizedTarget = String(plotId || '').trim().toLowerCase()
-  const targetMatch = normalizedTarget.match(/^(\d+)(?:-(\d+))?$/)
-  if (!targetMatch) {
-    return { ok: false, reason: 'plot_out_of_range' }
-  }
-
-  let startPlotId = parseInt(targetMatch[1])
-  let endPlotId = targetMatch[2] ? parseInt(targetMatch[2]) : startPlotId
-  if (!Number.isInteger(startPlotId) || !Number.isInteger(endPlotId)) {
-    return { ok: false, reason: 'plot_out_of_range' }
-  }
-  if (startPlotId > endPlotId) {
-    [startPlotId, endPlotId] = [endPlotId, startPlotId]
+  const selection = parseFarmPlotTarget(state, plotId)
+  if (!selection.ok) {
+    return selection
   }
 
   const crop = getCropByAlias(seedAlias)
@@ -3046,12 +3081,7 @@ function previewPlantSeed(state, plotId, seedAlias, now = Date.now()) {
   }
 
   const previews = []
-  for (let currentPlotId = startPlotId; currentPlotId <= endPlotId; currentPlotId++) {
-    const plot = getPlotById(state, currentPlotId)
-    if (!plot) {
-      return { ok: false, reason: 'plot_out_of_range' }
-    }
-
+  for (const plot of selection.plots) {
     if (!plot.owned) {
       return { ok: false, reason: 'plot_locked', plot }
     }
@@ -3086,7 +3116,7 @@ function previewPlantSeed(state, plotId, seedAlias, now = Date.now()) {
     crop,
     plot: previews[0].plot,
     plots: previews,
-    plotTarget: startPlotId === endPlotId ? String(startPlotId) : `${startPlotId}-${endPlotId}`,
+    plotTarget: selection.plotTarget,
     staminaCost: crop.plantStamina * previews.length,
     readyAt: previews[0].readyAt,
     growMinutes: previews[0].growMinutes,
@@ -3146,20 +3176,20 @@ function plantSeed(state, plotId, seedAlias, now = Date.now(), options = {}) {
 function previewWaterPlots(state, target, now = Date.now()) {
   syncFarmState(state, now)
 
-  const targetText = String(target || '').trim().toLowerCase()
-  const selectedPlots = targetText === 'all'
-    ? state.plots.filter(plot => plot.owned && !isPlotEmpty(plot))
-    : [getPlotById(state, Number(target))]
+  const selection = parseFarmPlotTarget(state, target, { allowAll: true })
+  if (!selection.ok) {
+    return selection
+  }
 
-  if (targetText === 'all' && !selectedPlots.length) {
+  const selectedPlots = selection.isAll
+    ? selection.plots.filter(plot => plot.owned && !isPlotEmpty(plot))
+    : selection.plots
+
+  if (selection.isAll && !selectedPlots.length) {
     return { ok: false, reason: 'no_eligible_plots' }
   }
 
-  if (!selectedPlots.length || selectedPlots.includes(null)) {
-    return { ok: false, reason: 'plot_out_of_range' }
-  }
-
-  if (targetText !== 'all') {
+  if (!selection.isAll && selectedPlots.length === 1) {
     const plot = selectedPlots[0]
     if (!plot.owned) {
       return { ok: false, reason: 'plot_locked', plot }
@@ -3226,20 +3256,20 @@ function waterPlots(state, target, now = Date.now(), options = {}) {
 function previewHarvestPlots(state, target, now = Date.now()) {
   syncFarmState(state, now)
 
-  const targetText = String(target || '').trim().toLowerCase()
-  const selectedPlots = targetText === 'all'
-    ? state.plots.filter(plot => plot.owned && !isPlotEmpty(plot))
-    : [getPlotById(state, Number(target))]
+  const selection = parseFarmPlotTarget(state, target, { allowAll: true })
+  if (!selection.ok) {
+    return selection
+  }
 
-  if (targetText === 'all' && !selectedPlots.length) {
+  const selectedPlots = selection.isAll
+    ? selection.plots.filter(plot => plot.owned && !isPlotEmpty(plot))
+    : selection.plots
+
+  if (selection.isAll && !selectedPlots.length) {
     return { ok: false, reason: 'no_ready_plots' }
   }
 
-  if (!selectedPlots.length || selectedPlots.includes(null)) {
-    return { ok: false, reason: 'plot_out_of_range' }
-  }
-
-  if (targetText !== 'all') {
+  if (!selection.isAll && selectedPlots.length === 1) {
     const plot = selectedPlots[0]
     if (!plot.owned) {
       return { ok: false, reason: 'plot_locked', plot }

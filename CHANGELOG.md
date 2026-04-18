@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### 重点更新日志
+- [优化] `/farm water` 与 `/farm harvest` 现在支持 `1-5` 这类连续地块范围输入，可对连续地块批量浇水和收获
 - [优化] `/farm` 总览页不再展开整段快捷指令列表，改为仅保留一条 `/farm help` 引导提示，避免首页信息过长
 - [新增] farm 宠物完整养成：核心包宠物扩展到 `6` 只、宠物粮扩展到 `4` 档，新增宠物 `Lv1-Lv5`、经验、疲劳值与实时拦截率
 - [优化] `/farm`、`/farm pet`、`/farm pet shop`、`/farm bag`、`/farm pet buy`、`/farm pet use`、`/farm pet feed` 文案同步展示宠物等级进度、疲劳、当前拦截率与宠物粮档位收益

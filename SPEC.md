@@ -114,10 +114,12 @@
   - 支持连续地块范围，例如 `1-5`
   - 范围播种必须一次性全部合法且种子足够，否则整次失败，不允许部分播种
   - 扣除该作物定义中的播种体力，总消耗 = 单块体力 * 实际播种地块数
-- `/farm water <地块号|all>`
+- `/farm water <地块号|起始-结束|all>`
+  - 支持连续地块范围，例如 `1-5`
   - 每轮作物只能浇水一次
   - 会按作物基础成长时长缩短固定比例
-- `/farm harvest <地块号|all>`
+- `/farm harvest <地块号|起始-结束|all>`
+  - 支持连续地块范围，例如 `1-5`
   - 收获成熟作物
   - 使用 `actualHarvest = ceil(baseYield * landYieldMultiplier) - yieldStolen`
 - `/farm bag`
