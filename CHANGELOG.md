@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### 重点更新日志
+- [优化] `/farm` 总览页不再展开整段快捷指令列表，改为仅保留一条 `/farm help` 引导提示，避免首页信息过长
 - [新增] farm 宠物完整养成：核心包宠物扩展到 `6` 只、宠物粮扩展到 `4` 档，新增宠物 `Lv1-Lv5`、经验、疲劳值与实时拦截率
 - [优化] `/farm`、`/farm pet`、`/farm pet shop`、`/farm bag`、`/farm pet buy`、`/farm pet use`、`/farm pet feed` 文案同步展示宠物等级进度、疲劳、当前拦截率与宠物粮档位收益
 - [优化] `resources/farm-core-addon.json` 的 `pets[]` / `petFoods[]` 扩展支持基础看家、喂食时长加成、疲劳速度、粮食档位、喂食 XP 与疲劳恢复，并补齐旧附加件默认值兼容

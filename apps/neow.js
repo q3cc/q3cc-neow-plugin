@@ -1200,17 +1200,9 @@ export class NeowPlugin extends plugin {
     const petView = getFarmPetView(farm.state, farm.now)
     const unlockedCrops = getUnlockedFarmCrops(farm.state)
     const ownedPlots = landView.filter(plot => plot.owned)
-    const emptyPlot = ownedPlots.find(plot => !plot.cropAlias)
-    const seedEntries = Object.values(farm.state.seeds)
-      .sort((left, right) => left.cropAlias.localeCompare(right.cropAlias, 'en'))
-    const quickPlantAlias = seedEntries[0]?.cropAlias || unlockedCrops[0]?.alias || 'radish'
-    const quickPlantPlotId = emptyPlot?.plotId || ownedPlots[0]?.plotId || 1
     const totalSeedCount = Object.values(farm.state.seeds).reduce((sum, entry) => sum + entry.count, 0)
     const totalCropCount = Object.values(farm.state.crops).reduce((sum, entry) => sum + entry.count, 0)
     const completedQuestCount = questView.filter(item => item.completed).length
-    const adminLines = isTemporaryAdmin(farm.user)
-      ? ['', '/farm addon - 查看附加件状态']
-      : []
 
     const lines = [
       '大喵喵的小农田开张啦喵~',
@@ -1232,20 +1224,7 @@ export class NeowPlugin extends plugin {
         ? ownedPlots.map(plot => `  ${this.formatFarmLandLine(plot, levelInfo.level, farm.now)}`)
         : ['  还没有地块喵~']),
       '',
-      '快捷操作:',
-      '/farm help - 查看种田指令',
-      '/farm shop - 查看种子商店',
-      `/farm plant ${quickPlantPlotId} ${quickPlantAlias} - 去播种一块地`,
-      '/farm water all - 给能浇水的地块浇水',
-      '/farm harvest all - 一键收成熟作物',
-      '/farm bag - 查看背包',
-      '/farm order - 查看订单板',
-      '/farm daily - 查看每日任务',
-      '/farm sell seed radish all - 回收多余种子',
-      '/farm land - 查看地块购买',
-      '/farm quest - 查看主线任务',
-      '/farm pet - 查看宠物与守卫',
-      ...adminLines
+      '💡 更多操作请用 /farm help 查看完整指令喵~'
     ]
 
     return this.replyFarmResult(e, lines, {
